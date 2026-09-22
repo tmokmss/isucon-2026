@@ -44,7 +44,7 @@ isuh <command> [args]
 | `setup` | 起動後のサーバセットアップ | #9 #11 |
 | `deploy` | 指定 ref を全台へ配布して再起動 | #1 ✅ |
 | `check` | ベンチ不要の検証ゲート | #12 |
-| `bench` | ロック取得〜ベンチ〜レポートまで通し | #2 #4 |
+| `bench` | ロック取得〜ベンチ〜レポートまで通し | #2 ✅ / #4 |
 | `history` | スコア台帳の表示 | #5 |
 | `rollback` | 直前の good revision へ戻す | #6 |
 | `portal` | ポータルを Cookie 付きの HTTP で操作 | #3 |
@@ -74,7 +74,8 @@ isuh <command> [args]
 npm run typecheck      # tsc --noEmit
 
 ./test/up.sh           # 検証用の sshd コンテナ 3 台（isu1/isu2/isu3）を起動
-./test/smoke.sh        # 実際に isuh を走らせて確かめる
+./test/smoke.sh        # deploy の検証
+./test/lock.sh         # ロックと bench の検証（直列化・kill・計測の回収）
 ./test/down.sh
 ```
 
@@ -85,5 +86,9 @@ npm run typecheck      # tsc --noEmit
 
 ## 現在の状態
 
-`deploy` が実装済み。他のコマンドはスタブで、引数解釈と設定読み込みまでは通り、
+`deploy` と、`bench` のクリティカルセクション（ロック・ログのリセット・リソース計測・
+計測の回収）が実装済み。ベンチの起動そのものはポータル経由（#3）、
+`report.md` と `history.tsv` の生成は #4 / #5 で入る。
+
+他のコマンドはスタブで、引数解釈と設定読み込みまでは通り、
 未実装部分は担当 Issue 番号を表示して終了コード 70 で終わる。

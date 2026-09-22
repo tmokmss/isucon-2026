@@ -14,7 +14,7 @@
 
 | | |
 |---|---|
-| 実行 | `node_modules/.bin/tsx`（`bin/isuh` が呼ぶ） |
+| 実行 | `node --import tsx`（`bin/isuh` が exec する。**プロセスは 1 本**→ §7） |
 | サブプロセス | `execa`（`ssh` / `scp` / `git` はすべてこれ経由） |
 | 型チェック | `npm run typecheck`（`tsc --noEmit`） |
 | 実行場所 | **手元の PC**。競技サーバには置かない |
@@ -191,6 +191,14 @@ runs/
 
 `runs/<run-id>/` は `.gitignore` 済み（`history.tsv` のみ追跡）。
 
+**誰が書くか** — 生ファイル（`alp.txt` / `ptquery.txt` / `pprof.txt` / `resource/*`）は
+`lib/collect.ts` がベンチの前後に書く。それを読んで `report.md` と `meta.json` に
+まとめるのが #4（`lib/report.ts`）、`history.tsv` への追記が #5。
+
+計測ツールが入っていない場合（導入は #11）、`collect.ts` はランを失敗させず、
+そのファイルに **「未取得」と理由と再現コマンド** を書く。ベンチ 1 回は高価なので、
+補助的な計測が欠けただけで結果を捨てない。
+
 ### `meta.json`
 
 ```json
@@ -310,11 +318,29 @@ ssh <primary> "exec 9><lockPath>; flock -w <timeout> 9 || exit 10; echo ACQUIRED
 ```
 
 - 末尾の `cat` が stdin を開いたまま保つ → **ssh プロセスが生きている間だけロックが保持される**
-- 子プロセスを kill すると接続が切れ、flock が自動解放される
-- Node なら `try-finally` と `process.on("exit")` で確実に kill できるため、
-  **Ctrl-C でも異常終了でもロックが残らない**（#2 の完了条件）
+- 正常時は `release()` が stdin を閉じる。リモートの `cat` が EOF で終わり、
+  シェルが終了して fd 9 が閉じ、flock が解放される
 - ローカルのファイルロックではなく**サーバ側**に置く理由は、worktree・別ターミナル・
   別マシンをまたいで効かせるため
+
+### 異常終了でロックが残らない仕組み
+
+3 段構えになっている。どれか 1 つでも効けばロックは解ける。
+
+| 死に方 | 効く仕組み |
+|---|---|
+| 例外・`exit` | `try-finally` の `release()` |
+| Ctrl-C | SIGINT はプロセスグループ全体に届くので ssh も一緒に死ぬ |
+| `kill -9` | **node が死ぬと stdin のパイプが閉じる** → ssh が EOF を転送 → リモートの `cat` が終わる |
+
+3 つめが要で、これがあるので `process.on("exit")` が走らない殺され方でも残らない。
+
+**そのため `isuh` はプロセスが 1 本でなければならない。**
+`node_modules/.bin/tsx` は子プロセスとして node を起動するので、`isuh` の PID を
+kill しても実作業のプロセスが生き残り、ロックが残る。`bin/isuh` は
+`node --import tsx src/cli.ts` を `exec` すること。
+
+検証は `test/lock.sh`（`kill -9` 後にロックが解放されることを実測している）。
 
 ### 保持者の表示
 
@@ -339,7 +365,8 @@ ssh <primary> "exec 9><lockPath>; flock -w <timeout> 9 || exit 10; echo ACQUIRED
 | `lib/paths.ts` | `repoRoot` / `newRunId` / `runDir` / `historyFile` |
 | `lib/ssh.ts` | `onHost` / `onHostShell` / `onHosts`（並列）/ `copyTo`（scp）/ `local` / `shQuote` |
 | `lib/git.ts` | `resolveSha`（`config.app.repoLocal` で解決） |
-| `lib/lock.ts` | `acquireLock` / `Lock.release`（実装 #2） |
+| `lib/lock.ts` | `acquireLock` / `Lock.release` |
+| `lib/collect.ts` | `resetLogs` / `startResourceSampling` / `collectMetrics` |
 | `lib/command.ts` | `Command` インターフェース |
 | `config.ts` | `Config` 型一式 / `loadConfig` |
 
@@ -394,7 +421,8 @@ ssh <primary> "exec 9><lockPath>; flock -w <timeout> 9 || exit 10; echo ACQUIRED
 
 ```sh
 ./test/up.sh      # コンテナ + 鍵 + ssh_config + ダミーのアプリリポジトリ
-./test/smoke.sh   # 通しで検証
+./test/smoke.sh   # deploy の検証
+./test/lock.sh    # ロックと bench の検証（直列化・kill・計測の回収）
 ./test/down.sh
 ```
 

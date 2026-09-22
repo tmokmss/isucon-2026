@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # isuh — ハーネスのエントリポイント。実体は src/cli.ts。
+#
+# tsx の CLI（node_modules/.bin/tsx）は使わない。あれは子プロセスとして node を起動するため、
+# isuh の PID を kill しても実作業のプロセスが生き残る。ベンチのロックは「プロセスが死んだら
+# 解放される」ことで安全性が成り立っているので、プロセスは 1 本でなければならない。
+# node に tsx をローダとして読ませれば、プロセスは 1 本のまま .ts を直接実行できる。
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TSX="$ROOT/node_modules/.bin/tsx"
-if [[ ! -x "$TSX" ]]; then
+if [[ ! -d "$ROOT/node_modules/tsx" ]]; then
     echo "依存が未インストールです。npm install を実行してください。" >&2
     exit 65
 fi
-exec "$TSX" "$ROOT/src/cli.ts" "$@"
+exec node --import tsx "$ROOT/src/cli.ts" "$@"

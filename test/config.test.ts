@@ -42,6 +42,7 @@ export const config: Config = {
   },
 
   metrics: {
+    alpFormat: "ltsv",
     alpMatches: [],
     alpSort: "sum",
     alpLimit: 30,
@@ -61,7 +62,7 @@ export const config: Config = {
 
   bench: {
     lockPath: "/tmp/isucon-bench.lock",
-    lockTimeoutSec: 10,
+    lockTimeoutSec: 3,
     timeoutSec: 60,
     scoreRegressionRatio: 0.9,
     autoRollback: false,
