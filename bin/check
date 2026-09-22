@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# bin/check — ベンチを使わない検証ゲート
+# 契約: docs/DESIGN.md §3   実装: #12
+set -euo pipefail
+. "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+usage() {
+    cat <<'USAGE'
+usage: bin/check
+
+ベンチを使わずに「壊れていないこと」だけを数秒で確認する。
+bin/bench が deploy の直後に自動実行し、落ちた場合はベンチを起動しない。
+ベンチは直列でしか回せないため、正しさの確認にベンチ枠を使わないのが狙い。
+
+確認すること:
+  - APP_INITIALIZE_PATH を叩いて成功すること
+  - 主要エンドポイントが 200 を返すこと
+  - レスポンスの「構造」が既知の形と一致すること（値ではなくキーの形）
+
+レスポンス構造の変更はレギュレーション違反なので、ここが主な防波堤になる。
+
+終了コード: 0 成功 / 30 検証失敗 / 65 設定不備
+USAGE
+}
+
+main() {
+    usage_guard "$@"
+    (( $# > 0 )) && die "$EX_USAGE" "引数は取らない: $*"
+    load_config
+    log_info "check target=$APP_BASE_URL"
+    not_implemented 12
+}
+main "$@"

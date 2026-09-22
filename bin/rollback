@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# bin/rollback — 直前の good revision へ戻す
+# 契約: docs/DESIGN.md §3   実装: #6
+set -euo pipefail
+. "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+usage() {
+    cat <<'USAGE'
+usage: bin/rollback [<sha>]
+
+指定した sha、または runs/history.tsv から決めた直前の good revision へ
+戻してデプロイする。
+
+ISUCON のスコアは数 % 〜 10 % 程度は平気でブレる。ベンチ 1 回で改悪と
+断定しないため、判定には SCORE_REGRESSION_RATIO を使う。
+bin/bench は AUTO_ROLLBACK=true のときにこれを自動で呼ぶ。
+
+戻したことは stderr のログと report.md に残すこと。
+USAGE
+}
+
+main() {
+    usage_guard "$@"
+    local sha=""
+    while (( $# > 0 )); do
+        case "$1" in
+            -*) die "$EX_USAGE" "不明なオプション: $1" ;;
+            *)  sha="$1" ;;
+        esac
+        shift
+    done
+    load_config
+    log_info "rollback target=${sha:-<直前の good revision>} ratio=$SCORE_REGRESSION_RATIO"
+    not_implemented 6
+}
+main "$@"

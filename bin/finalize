@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# bin/finalize — 終盤チェックリスト
+# 契約: docs/DESIGN.md §3   実装: #8
+set -euo pipefail
+. "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+usage() {
+    cat <<'USAGE'
+usage: bin/finalize
+
+競技終盤に 1 コマンドで確認する。「終盤 1 時間は改善禁止、finalize に充てる」
+という運用とセットで使う。
+
+確認すること:
+  - 全ログの無効化: nginx access log / DB slow query log / アプリの debug logger / pprof
+  - systemd の enable 確認（再起動後に全部上がるか）
+  - デバッグ用に開けたポート（6060 等）が閉じているか
+  - 不要になったデバッグコードが残っていないか
+
+その後、最終ベンチ → bin/verify-restart まで流す。
+
+終了コード: 0 成功 / 40 ベンチ失敗 / 50 スコア低下
+USAGE
+}
+
+main() {
+    usage_guard "$@"
+    (( $# > 0 )) && die "$EX_USAGE" "引数は取らない: $*"
+    load_config
+    log_info "finalize hosts=[$ISU_HOSTS]"
+    not_implemented 8
+}
+main "$@"

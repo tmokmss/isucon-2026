@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# bin/history — スコア台帳の表示
+# 契約: docs/DESIGN.md §4   実装: #5
+set -euo pipefail
+. "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+
+usage() {
+    cat <<'USAGE'
+usage: bin/history [-n <count>]
+
+runs/history.tsv を読んでスコア台帳を表示する。ベスト更新を強調する。
+「どの変更でスコアがどう動いたか」が一目で分かることが目的で、
+bin/rollback が戻し先を決めるための材料にもなる。
+
+  -n <count>   表示する件数（既定: 全件）
+
+カラム: run_id / started_at / sha / ref / score / status / note
+USAGE
+}
+
+main() {
+    usage_guard "$@"
+    local count=0
+    while (( $# > 0 )); do
+        case "$1" in
+            -n) shift; count="${1:-0}" ;;
+            -*) die "$EX_USAGE" "不明なオプション: $1" ;;
+            *)  die "$EX_USAGE" "不明な引数: $1" ;;
+        esac
+        shift
+    done
+    local hf; hf="$(history_file)"
+    if [[ ! -f "$hf" ]]; then
+        log_info "まだ実行履歴がありません: $hf"
+        exit "$EX_OK"
+    fi
+    log_info "history file=$hf count=$count"
+    not_implemented 5
+}
+main "$@"

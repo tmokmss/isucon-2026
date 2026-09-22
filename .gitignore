@@ -1,0 +1,11 @@
+# 当日埋める実設定（example をコピーして使う）
+config.env
+
+# ベンチ実行結果。history.tsv だけは追跡する
+runs/*
+!runs/.gitkeep
+!runs/history.tsv
+
+# ローカル作業用
+*.log
+.DS_Store
