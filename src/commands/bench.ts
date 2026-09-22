@@ -16,7 +16,6 @@ import { newRunId, runDir } from "../lib/paths.js";
 import { asJson, pick } from "../lib/portal.js";
 import { writeReport } from "../lib/report.js";
 import {
-  type HistoryRow,
   type RunMeta,
   appendHistory,
   bestRun,
@@ -28,6 +27,7 @@ import {
 } from "../lib/run.js";
 import { command as checkCommand } from "./check.js";
 import { deploy } from "./deploy.js";
+import { resolveRollbackTarget, rollbackTo } from "./rollback.js";
 import { SCORE_KEYS, STATUS_KEYS, enqueueBench, isPassStatus, waitBench } from "./portal.js";
 
 interface BenchOutcome {
@@ -150,6 +150,7 @@ stdout にはスコアだけを出す。読むべきものは runs/<run-id>/repo
     let sampler: ResourceSampler | undefined;
     let outcome: BenchOutcome | undefined;
     let failure: Error | undefined;
+    let rolledBackTo: string | null = null;
 
     try {
       await deploy(cfg, { ref: sha });
@@ -164,10 +165,35 @@ stdout にはスコアだけを出す。読むべきものは runs/<run-id>/repo
 
       outcome = await runBenchmark(cfg, dir);
       log.info(`ベンチ完了 job=${outcome.jobId} status=${outcome.rawStatus} score=${outcome.score}`);
+
+      // 9. スコア判定。ISUCON のスコアは数 % 〜 10 % 平気でブレるので、
+      // ベスト × bench.scoreRegressionRatio を下回ったときだけ「低下」とする。
+      const threshold = best === undefined ? 0 : best.score * cfg.bench.scoreRegressionRatio;
+      const regressed =
+        outcome.status === "pass" && best !== undefined && outcome.score < threshold;
+
+      if (outcome.status !== "pass" || regressed) {
+        rolledBackTo = await maybeRollback(cfg, sha);
+      }
+
       if (outcome.status !== "pass") {
         throw new HarnessError(
           EXIT.BENCH,
           `ベンチが失敗しました (status=${outcome.rawStatus})\n  詳細: ${join(dir, "bench.log")}`,
+        );
+      }
+
+      // 低下していてもスコアは出す。判定は終了コードで伝える。
+      out(String(outcome.score));
+
+      if (regressed) {
+        throw new HarnessError(
+          EXIT.REGRESSION,
+          `スコアが低下しました: ${outcome.score} < ベスト ${best?.score} × ${cfg.bench.scoreRegressionRatio} = ${threshold.toFixed(0)}\n` +
+            (rolledBackTo === null
+              ? `  戻すなら: isuh rollback\n`
+              : `  ${rolledBackTo.slice(0, 12)} へ戻しました\n`) +
+            `  ブレの範囲かもしれません。大きい変更なら 2 回測って判断してください。`,
         );
       }
     } catch (error) {
@@ -201,6 +227,7 @@ stdout にはスコアだけを出す。読むべきものは runs/<run-id>/repo
           benchJobId: outcome?.jobId ?? "",
           prevRunId: prev?.runId ?? null,
           bestRunId: updatesBest ? runId : (best?.runId ?? null),
+          rolledBackTo,
         };
         writeMeta(dir, meta);
         await writeReport(dir, { cfg, meta, prev, best, failure: failure?.message });
@@ -223,26 +250,32 @@ stdout にはスコアだけを出す。読むべきものは runs/<run-id>/repo
     }
 
     if (failure !== undefined) throw failure;
-
-    const passed = outcome as BenchOutcome;
-    checkRegression(cfg, passed.score, best);
-    out(String(passed.score));
   },
 };
 
-/** 9. スコア判定。ベストから落ちすぎていたら止める。自動ロールバックは #6。 */
-const checkRegression = (cfg: Config, score: number, best: HistoryRow | undefined): void => {
-  if (best === undefined) return;
-  const threshold = best.score * cfg.bench.scoreRegressionRatio;
-  if (score >= threshold) return;
-
-  const hint = cfg.bench.autoRollback
-    ? `  bench.autoRollback が有効ですが、自動ロールバックは未実装です（#6）。\n`
-    : "";
-  throw new HarnessError(
-    EXIT.REGRESSION,
-    `スコアが低下しました: ${score} < ベスト ${best.score} × ${cfg.bench.scoreRegressionRatio} = ${threshold.toFixed(0)}\n` +
-      hint +
-      `  戻すなら: isuh deploy ${best.sha.slice(0, 12)}（ベスト時の revision）`,
-  );
+/**
+ * 失敗・低下を受けて戻す。ロックはすでに取れている（bench のクリティカルセクション内）。
+ *
+ * 戻したかどうかは bench.autoRollback で切り替える。序盤は手動（false）、
+ * 終盤は自動（true）が使いやすい。戻せなかった場合もランは記録して先へ進む。
+ */
+const maybeRollback = async (cfg: Config, currentSha: string): Promise<string | null> => {
+  if (!cfg.bench.autoRollback) {
+    log.warn("bench.autoRollback が false のため戻していません。戻すなら: isuh rollback");
+    return null;
+  }
+  try {
+    const target = await resolveRollbackTarget(cfg, undefined);
+    if (target.sha === currentSha) {
+      log.warn("戻し先が今デプロイした revision と同じなので、戻しませんでした");
+      return null;
+    }
+    await rollbackTo(cfg, target);
+    return target.sha;
+  } catch (error) {
+    log.error(
+      `ロールバックに失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return null;
+  }
 };

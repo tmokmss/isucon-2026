@@ -8,7 +8,7 @@ echo "### typecheck"
 echo "  ok"
 echo
 
-for suite in smoke lock portal report; do
+for suite in smoke lock portal report rollback; do
   echo "### $suite"
   "./$suite.sh"
   echo

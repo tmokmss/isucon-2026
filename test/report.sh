@@ -99,7 +99,7 @@ ok "vmstat を要約して次に見るべきホストを言う"
 echo "== 6. meta.json の形が契約どおり"
 node -e '
 const m = require(process.argv[1]);
-const need = ["runId","startedAt","finishedAt","ref","sha","score","status","note","benchJobId","prevRunId","bestRunId"];
+const need = ["runId","startedAt","finishedAt","ref","sha","score","status","note","benchJobId","prevRunId","bestRunId","rolledBackTo"];
 const missing = need.filter((k) => !(k in m));
 if (missing.length) { console.error("欠けている: " + missing.join(",")); process.exit(1); }
 if (m.status !== "pass" || m.score !== 12345) { console.error("値が違う: " + JSON.stringify(m)); process.exit(1); }
@@ -107,7 +107,7 @@ if (m.prevRunId !== null) { console.error("prevRunId は null のはず"); proce
 if (m.bestRunId !== m.runId) { console.error("bestRunId が自分ではない"); process.exit(1); }
 if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/.test(m.startedAt)) { console.error("startedAt の形式: " + m.startedAt); process.exit(1); }
 ' "$DIR1/meta.json" || ng "meta.json の中身が契約と違います"
-ok "meta.json に 11 項目が揃い、時刻はオフセット付き ISO8601"
+ok "meta.json に 12 項目が揃い、時刻はオフセット付き ISO8601"
 
 echo "== 7. history.tsv がタブ区切りで追記される"
 header=$(head -1 "$HISTORY")
@@ -146,7 +146,7 @@ echo 1000 >"$WORK/fake-score"
 run bench main --note "regression"
 [ "$rc" = 50 ] || ng "exit=$rc (50 のはず)"
 grep -q "スコアが低下しました" "$ERR" || ng "低下の説明がありません"
-grep -q "isuh deploy" "$ERR" || ng "戻し方が案内されていません"
+grep -q "isuh rollback" "$ERR" || ng "戻し方が案内されていません"
 [ "$(wc -l <"$HISTORY" | tr -d ' ')" = "5" ] || ng "低下したランが台帳に残っていません"
 ok "ベスト × scoreRegressionRatio を下回れば 50（戻し方つき）"
 

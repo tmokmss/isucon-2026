@@ -22,6 +22,7 @@
 | `./test/lock.sh` | ロックと bench — 直列化・kill 耐性・通しの完走・計測の回収 |
 | `./test/portal.sh` | ポータル — Cookie・ログイン切れ判定・CSRF・enqueue/wait/score（コンテナ不要） |
 | `./test/report.sh` | report.md の見出しと中身・meta.json・history.tsv・スコア判定 |
+| `./test/rollback.sh` | 戻し先の決定・ロック・スコア低下とベンチ失敗での自動ロールバック |
 
 手で触るとき:
 
@@ -46,6 +47,7 @@ ssh -F test/.work/ssh_config isu1 'curl -s localhost:8080/version'
 | `lock.sh` | ロックと `bench` の通し検証 |
 | `portal.sh` | ポータル操作の検証 |
 | `report.sh` | レポートと台帳の検証 |
+| `rollback.sh` | ロールバックの検証 |
 | `fake-portal.ts` | ポータルの代役。Django 風の 302 / CSRF / ジョブ進行を返す |
 | `lock-probe.ts` | ロックの取り合いを再現するための小さなプログラム |
 | `.work/` | 生成物（鍵・ssh_config・ダミーリポジトリ）。git 管理外 |

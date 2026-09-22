@@ -153,6 +153,32 @@ POST は Django の CSRF を通すため、Cookie の `csrftoken` を `X-CSRFTok
 > URL とパラメータは `config.portal` に集約し、当日は埋めるだけにする。
 > 事前に検証できるのは `whoami` と `get` まで。
 
+### `isuh rollback` の戻し先
+
+**good revision = ベスト × `bench.scoreRegressionRatio` 以上のスコアを出した最も新しいラン。**
+
+「直前に pass したラン」ではない。**スコアが低下したランも pass ではある**ので、
+それを戻し先にすると悪い版へ戻してしまう。判定の基準を bench のスコア低下判定と
+揃えることで、「低下と判定されない範囲で最も新しい版」に戻ることになる。
+
+ベストそのものへ戻さないのは、ベストが古すぎてその後の良い変更まで
+巻き戻してしまうのを避けるため。ベストへ戻したいときは `isuh history` で
+sha を見て `isuh rollback <sha>` と明示する。
+
+`rollback` は**ベンチと同じロックを取る**。走っている計測を壊さないため。
+
+`bench` は次のときに自動で戻す（`bench.autoRollback` が true のときだけ）。
+
+- ベンチが fail した
+- スコアがベスト × `scoreRegressionRatio` を下回った
+
+序盤は false（止めるが戻さない）、終盤は true が使いやすい。
+戻したことは stderr のログ、`meta.json` の `rolledBackTo`、
+`report.md` の Summary に残る。
+
+> ISUCON のスコアは数 % 〜 10 % 程度は平気でブレる。**ベンチ 1 回で改悪と断定しない。**
+> 低下で止まったときは、大きい変更ならもう 1 回測ってから判断する。
+
 ### `isuh deploy` が配るもの
 
 **アプリのバイナリ** — `app.repoLocal` で ref を sha に解決し、`git archive` で取り出した
@@ -243,7 +269,8 @@ runs/
   "note": "add index on competition_id",
   "benchJobId": "4321",
   "prevRunId": "20261031-102011-9f8e7d6",
-  "bestRunId": "20261031-103512-a1b2c3d"
+  "bestRunId": "20261031-103512-a1b2c3d",
+  "rolledBackTo": null
 }
 ```
 
@@ -469,6 +496,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 ./test/lock.sh    # ロックと bench（直列化・kill 耐性・通しの完走）
 ./test/portal.sh  # ポータル（コンテナ不要。fake-portal を立てる）
 ./test/report.sh  # report.md / meta.json / history.tsv / スコア判定
+./test/rollback.sh # 戻し先の決定・ロック・自動ロールバック
 ```
 
 - 設定は `test/config.test.ts`（`ISUH_CONFIG` で指す）
