@@ -52,12 +52,15 @@ export const config: Config = {
     resourceIntervalSec: 1,
   },
 
+  // test/fake-portal.ts が 127.0.0.1:18080 で Django 風の応答を返す
   portal: {
-    base: "https://portal.isucon.net",
+    base: process.env["ISUH_TEST_PORTAL"] ?? "http://127.0.0.1:18080",
     cookieFile: join(here, ".work", "portal-cookie"),
-    teamId: "0",
-    enqueuePath: "",
-    jobPath: "",
+    teamId: "7",
+    whoamiPath: "/team/",
+    enqueuePath: "/api/bench/enqueue",
+    jobPath: "/api/bench/job/{job}",
+    scorePath: "/api/score",
   },
 
   bench: {

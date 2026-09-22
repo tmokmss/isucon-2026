@@ -33,6 +33,35 @@ bin/isuh history            # スコア台帳
 
 ハーネスは**手元の PC で動かす**。競技サーバには置かない。
 
+## ポータルの Cookie を用意する
+
+ポータル（https://portal.isucon.net/ ）に公開 API は無く、ブラウザ操作が前提。
+GitHub 認証後の Django セッション Cookie を手元に持ち出して使う。
+
+1. ブラウザで https://portal.isucon.net/ にログインする
+2. DevTools → Application → Cookies → `https://portal.isucon.net`
+3. `sessionid` と `csrftoken` の値をコピーして、次の **1 行**をファイルに保存する
+
+   ```
+   sessionid=<値>; csrftoken=<値>
+   ```
+
+4. 置き場所を `config.ts` の `portal.cookieFile` に書く（既定 `~/.isucon/portal-cookie`）
+
+DevTools の Network タブでリクエストを右クリック → Copy → Copy as cURL して、
+`-H 'Cookie: ...'` の中身を貼っても同じ。`#` 始まりの行はコメントとして無視される。
+
+```sh
+bin/isuh portal whoami        # Cookie が生きているかの確認
+bin/isuh portal get /         # 任意のページを Cookie 付きで引く
+```
+
+Cookie が切れていれば終了コード 65 で、取り直す手順ごと表示される。
+
+> **ベンチ起動のエンドポイントは当日まで分からない。**
+> `isuh portal get` で探って、`config.ts` の `portal.enqueuePath` /
+> `jobPath` / `scorePath` を埋める。
+
 ## コマンド
 
 ```
@@ -47,7 +76,7 @@ isuh <command> [args]
 | `bench` | ロック取得〜ベンチ〜レポートまで通し | #2 ✅ / #4 |
 | `history` | スコア台帳の表示 | #5 |
 | `rollback` | 直前の good revision へ戻す | #6 |
-| `portal` | ポータルを Cookie 付きの HTTP で操作 | #3 |
+| `portal` | ポータルを Cookie 付きの HTTP で操作 | #3 ✅ |
 | `monitor` | 全台のリソースを 1 画面で見る | #17 |
 | `verify-restart` | 再起動試験（失格回避） | #7 |
 | `finalize` | 終盤チェックリスト | #8 |
@@ -74,8 +103,7 @@ isuh <command> [args]
 npm run typecheck      # tsc --noEmit
 
 ./test/up.sh           # 検証用の sshd コンテナ 3 台（isu1/isu2/isu3）を起動
-./test/smoke.sh        # deploy の検証
-./test/lock.sh         # ロックと bench の検証（直列化・kill・計測の回収）
+./test/all.sh          # typecheck + 全スイート（deploy / ロックと bench / ポータル）
 ./test/down.sh
 ```
 
@@ -86,9 +114,10 @@ npm run typecheck      # tsc --noEmit
 
 ## 現在の状態
 
-`deploy` と、`bench` のクリティカルセクション（ロック・ログのリセット・リソース計測・
-計測の回収）が実装済み。ベンチの起動そのものはポータル経由（#3）、
+`deploy`、`bench` のクリティカルセクション（ロック・ログのリセット・リソース計測・
+計測の回収）、`portal` が実装済み。
 `report.md` と `history.tsv` の生成は #4 / #5 で入る。
+ベンチ起動のエンドポイントは当日 `config.ts` に埋める。
 
 他のコマンドはスタブで、引数解釈と設定読み込みまでは通り、
 未実装部分は担当 Issue 番号を表示して終了コード 70 で終わる。

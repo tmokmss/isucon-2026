@@ -55,8 +55,12 @@ export const config: Config = {
     base: "https://portal.isucon.net",
     cookieFile: `${process.env["HOME"]}/.isucon/portal-cookie`,
     teamId: "",
-    enqueuePath: "", // 当日埋める
-    jobPath: "", // 当日埋める
+    // Cookie の生死確認に使うページ。ログインが要るところなら何でもよい。
+    whoamiPath: "/",
+    // 当日埋める。まずは `isuh portal get <path>` で探る。
+    enqueuePath: "",
+    jobPath: "", // 例: "/api/job/{job}" — {job} が job-id に置換される
+    scorePath: "",
   },
 
   bench: {

@@ -1,0 +1,108 @@
+/**
+ * ポータルの代役。Django 風の挙動だけを真似る。
+ *
+ *   - 認証が要るページに未認証で来たら /auth/login/ へ 302
+ *   - POST は Cookie の csrftoken と X-CSRFToken が一致しなければ 403
+ *   - ベンチのジョブは pending → running → done と進む
+ *
+ * 本物のポータルは当日までエンドポイントが分からないので、ここで確かめるのは
+ * 「Cookie を付けて叩けるか」「ログイン切れを見分けられるか」「CSRF が通るか」
+ * の 3 点だけ。
+ */
+import { createServer } from "node:http";
+
+const PORT = Number(process.env["ISUH_FAKE_PORTAL_PORT"] ?? "18080");
+const VALID_SESSION = "valid-session";
+
+/** job-id → status を返した回数。3 回目で done にする。 */
+const polls = new Map<string, number>();
+
+const cookiesOf = (header: string | undefined): Record<string, string> => {
+  const result: Record<string, string> = {};
+  for (const part of (header ?? "").split(";")) {
+    const index = part.indexOf("=");
+    if (index > 0) result[part.slice(0, index).trim()] = part.slice(index + 1).trim();
+  }
+  return result;
+};
+
+const server = createServer((req, res) => {
+  const url = new URL(req.url ?? "/", `http://127.0.0.1:${PORT}`);
+  const cookies = cookiesOf(req.headers.cookie);
+  const authed = cookies["sessionid"] === VALID_SESSION;
+
+  const send = (status: number, contentType: string, body: string): void => {
+    res.writeHead(status, { "content-type": contentType, vary: "Cookie" });
+    res.end(body);
+  };
+  const json = (status: number, value: unknown): void =>
+    send(status, "application/json", JSON.stringify(value));
+
+  // ログインページは誰でも見られる
+  if (url.pathname === "/auth/login/") {
+    send(200, "text/html; charset=utf-8", "<html><title>Sign in</title></html>");
+    return;
+  }
+
+  // トップは未ログインでも 200 を返す（本物のポータルがそうなっている）。
+  // 見分けはナビのリンク。
+  if (url.pathname === "/") {
+    const nav = authed
+      ? '<a href="/auth/logout/">ログアウト</a>'
+      : '<a href="/auth/login/">ログイン</a>';
+    send(200, "text/html; charset=utf-8", `<html><head><title>ISUCON2026 Portal</title></head><body>${nav}</body></html>`);
+    return;
+  }
+
+  if (!authed) {
+    res.writeHead(302, { location: `/auth/login/?next=${encodeURIComponent(url.pathname)}` });
+    res.end();
+    return;
+  }
+
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    const sent = req.headers["x-csrftoken"];
+    if (typeof sent !== "string" || sent === "" || sent !== cookies["csrftoken"]) {
+      send(403, "text/html; charset=utf-8", "<html><title>CSRF verification failed</title></html>");
+      return;
+    }
+  }
+
+  if (url.pathname === "/team/") {
+    send(
+      200,
+      "text/html; charset=utf-8",
+      '<html><head><title>チーム情報 | ISUCON</title></head><body><a href="/auth/logout/">ログアウト</a></body></html>',
+    );
+    return;
+  }
+
+  if (url.pathname === "/api/bench/enqueue" && req.method === "POST") {
+    json(200, { job_id: "4321", status: "pending" });
+    return;
+  }
+
+  const jobMatch = /^\/api\/bench\/job\/([^/]+)$/.exec(url.pathname);
+  if (jobMatch !== null) {
+    const id = jobMatch[1]!;
+    const seen = (polls.get(id) ?? 0) + 1;
+    polls.set(id, seen);
+    if (seen >= 3) {
+      json(200, { job_id: id, status: "done", score: 12345, reason: "" });
+      return;
+    }
+    json(200, { job_id: id, status: seen === 1 ? "pending" : "running" });
+    return;
+  }
+
+  if (url.pathname === "/api/score") {
+    json(200, { team: "7", score: 12345 });
+    return;
+  }
+
+  send(404, "text/html; charset=utf-8", "<html><title>Not Found</title></html>");
+});
+
+server.listen(PORT, "127.0.0.1", () => {
+  process.stderr.write(`fake-portal listening on http://127.0.0.1:${PORT}\n`);
+});
