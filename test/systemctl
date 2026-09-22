@@ -1,0 +1,106 @@
+#!/bin/sh
+# テスト用コンテナ向けの最小 systemctl。
+# ユニット定義は /etc/isuh-units/<unit> に「起動コマンド」を 1 行で書く。
+set -eu
+
+UNIT_DIR=/etc/isuh-units
+RUN_DIR=/var/run/isuh
+LOG_DIR=/var/log/isuh
+
+action=${1:-}
+[ "$#" -gt 0 ] && shift
+
+# --no-pager / -l などのフラグを読み飛ばして最初の非フラグをユニット名とする
+unit=""
+for arg in "$@"; do
+  case "$arg" in
+    -*) ;;
+    *) if [ -z "$unit" ]; then unit="$arg"; fi ;;
+  esac
+done
+
+mkdir -p "$RUN_DIR" "$LOG_DIR"
+pidfile="$RUN_DIR/$unit.pid"
+logfile="$LOG_DIR/$unit.log"
+def="$UNIT_DIR/$unit"
+
+# kill -0 は「root が起動したプロセスを一般ユーザが見る」と EPERM で落ちるので使わない
+# （本物の systemd はそうならない）。/proc の有無で判定する。
+running() {
+  [ -n "$unit" ] && [ -f "$pidfile" ] && [ -d "/proc/$(cat "$pidfile" 2>/dev/null)" ]
+}
+
+stop_unit() {
+  if running; then
+    kill "$(cat "$pidfile")" 2>/dev/null || true
+    i=0
+    while running && [ "$i" -lt 50 ]; do
+      sleep 0.1
+      i=$((i + 1))
+    done
+    if running; then kill -9 "$(cat "$pidfile")" 2>/dev/null || true; fi
+  fi
+  rm -f "$pidfile"
+}
+
+start_unit() {
+  if [ ! -f "$def" ]; then
+    echo "Failed to start $unit: Unit $unit not found." >&2
+    exit 5
+  fi
+  # 競技環境に合わせてサービスは isucon として動かす（restart は sudo 経由で来る）
+  # setpriv は fork せず exec するので、$! がそのままサービスの PID になる
+  # （runuser や su は間にプロセスが挟まり、pidfile と実体がずれる）
+  if [ "$(id -u)" = 0 ]; then
+    launch="setpriv --reuid=isucon --regid=isucon --clear-groups -- sh -c"
+  else
+    launch="sh -c"
+  fi
+  # ssh セッションが閉じてもプロセスを残すため、stdin/stdout を切り離す
+  nohup $launch "exec $(cat "$def")" </dev/null >>"$logfile" 2>&1 &
+  echo $! >"$pidfile"
+  sleep 0.5
+  if ! running; then
+    echo "Job for $unit failed." >&2
+    tail -n 20 "$logfile" >&2 || true
+    rm -f "$pidfile"
+    exit 1
+  fi
+}
+
+case "$action" in
+  start) running || start_unit ;;
+  stop) stop_unit ;;
+  restart)
+    stop_unit
+    start_unit
+    ;;
+  # 設定の再読込は、このコンテナでは再起動で代用する
+  reload | reload-or-restart)
+    stop_unit
+    start_unit
+    ;;
+  is-active)
+    if running; then
+      echo active
+    else
+      echo inactive
+      exit 3
+    fi
+    ;;
+  is-enabled) echo enabled ;;
+  enable | disable | daemon-reload | mask | unmask) : ;;
+  status)
+    if running; then
+      echo "* $unit - active (running), main PID $(cat "$pidfile")"
+    else
+      echo "* $unit - inactive (dead)"
+    fi
+    if [ -f "$logfile" ]; then tail -n 20 "$logfile"; fi
+    running || exit 3
+    ;;
+  *)
+    echo "systemctl(test stub): unsupported action: $action" >&2
+    exit 2
+    ;;
+esac

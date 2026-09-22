@@ -1,0 +1,28 @@
+name: isuh-test
+
+# サブネットを明示する。Docker の既定プール（172.17-172.31 / 192.168.x）は
+# 他プロジェクトのネットワークで埋まっていることがあり、自動割り当てだと
+# "all predefined address pools have been fully subnetted" で起動できないため。
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.99.0.0/24
+
+# 競技環境に寄せて 3 台。互いに isu1 / isu2 / isu3 で名前解決できる。
+services:
+  isu1:
+    build: .
+    hostname: isu1
+    ports: ["22101:22"]
+    volumes: ["./.work/authorized_keys:/authorized_keys:ro"]
+  isu2:
+    build: .
+    hostname: isu2
+    ports: ["22102:22"]
+    volumes: ["./.work/authorized_keys:/authorized_keys:ro"]
+  isu3:
+    build: .
+    hostname: isu3
+    ports: ["22103:22"]
+    volumes: ["./.work/authorized_keys:/authorized_keys:ro"]
