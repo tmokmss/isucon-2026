@@ -27,6 +27,18 @@ const currentScore = (): number => {
   return 12345;
 };
 
+/** 完了時の状態。.work/fake-status に "fail" と書けばベンチ失敗を再現できる。 */
+const FINAL_STATUS_FILE = new URL(".work/fake-status", import.meta.url);
+const finalStatus = (): string => {
+  try {
+    const value = readFileSync(FINAL_STATUS_FILE, "utf8").trim();
+    if (value !== "") return value === "fail" ? "failed" : value;
+  } catch {
+    /* 無ければ既定値 */
+  }
+  return "done";
+};
+
 /** job-id → status を返した回数。3 回目で done にする。 */
 const polls = new Map<string, number>();
 
@@ -104,7 +116,13 @@ const server = createServer((req, res) => {
     const seen = (polls.get(id) ?? 0) + 1;
     polls.set(id, seen);
     if (seen >= 3) {
-      json(200, { job_id: id, status: "done", score: currentScore(), reason: "" });
+      const status = finalStatus();
+      json(200, {
+        job_id: id,
+        status,
+        score: status === "done" ? currentScore() : 0,
+        reason: status === "done" ? "" : "整合性チェックに失敗しました",
+      });
       return;
     }
     json(200, { job_id: id, status: seen === 1 ? "pending" : "running" });

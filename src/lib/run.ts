@@ -23,6 +23,8 @@ export interface RunMeta {
   benchJobId: string;
   prevRunId: string | null;
   bestRunId: string | null;
+  /** このランの結果を受けて戻した先の sha。戻していなければ null */
+  rolledBackTo: string | null;
 }
 
 /** ローカル時刻のオフセット付き ISO8601。当日ログと突き合わせるので UTC にしない。 */
@@ -150,11 +152,28 @@ export const bestRun = (rows: readonly HistoryRow[]): HistoryRow | undefined => 
   return best;
 };
 
-/** 戻し先にできる直近のラン。rollback(#6) が使う。 */
-export const lastGoodRun = (rows: readonly HistoryRow[]): HistoryRow | undefined => {
+/**
+ * 戻し先にできる直近のラン。rollback(#6) が使う。
+ *
+ * 「直前に pass したラン」ではない。**スコアが低下したランも pass ではある**ので、
+ * それを戻し先にすると悪い版へ戻してしまう（実際に踏んだ）。
+ *
+ * 「ベスト × ratio 以上のスコアを出した最も新しいラン」を good とする。
+ * これは bench がスコア低下を判定する基準と同じなので、
+ * 「低下と判定されない範囲で最も新しい版」に戻ることになる。
+ * ベストそのものへ戻さないのは、ベストが古すぎてその後の良い変更まで
+ * 巻き戻してしまうのを避けるため。
+ */
+export const lastGoodRun = (
+  rows: readonly HistoryRow[],
+  scoreRegressionRatio: number,
+): HistoryRow | undefined => {
+  const best = bestRun(rows);
+  if (best === undefined) return undefined;
+  const threshold = best.score * scoreRegressionRatio;
   for (let i = rows.length - 1; i >= 0; i--) {
     const row = rows[i]!;
-    if (row.status === "pass") return row;
+    if (row.status === "pass" && row.score >= threshold) return row;
   }
   return undefined;
 };

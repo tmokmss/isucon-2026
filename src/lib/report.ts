@@ -224,6 +224,10 @@ const summarySection = (ctx: ReportContext): string => {
     ["note", meta.note === "" ? "—" : meta.note],
   ];
 
+  if (meta.rolledBackTo !== null) {
+    rows.push(["ロールバック", `${meta.rolledBackTo.slice(0, 12)} へ戻した（この変更はサーバに載っていない）`]);
+  }
+
   const table = ["| | |", "|---|---|", ...rows.map(([k, v]) => `| ${k} | ${v} |`)].join("\n");
 
   if (ctx.failure === undefined) return table;
