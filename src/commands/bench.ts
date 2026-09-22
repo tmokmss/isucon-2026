@@ -8,7 +8,7 @@ import {
   startResourceSampling,
 } from "../lib/collect.js";
 import type { Command } from "../lib/command.js";
-import { EXIT, HarnessError, NotImplementedError, usageError } from "../lib/exit.js";
+import { EXIT, HarnessError, usageError } from "../lib/exit.js";
 import { resolveSha } from "../lib/git.js";
 import { acquireLock } from "../lib/lock.js";
 import { log, out } from "../lib/log.js";
@@ -62,22 +62,6 @@ const runBenchmark = async (cfg: Config, dir: string): Promise<BenchOutcome> => 
     status: isPassStatus(rawStatus) ? "pass" : "fail",
     score: Number.isFinite(parsed) ? parsed : 0,
   };
-};
-
-/**
- * check を挟む。deploy の「後」に走らせるのは、新しいコードが載った状態を検証するため。
- * 落ちたらベンチを起動せず、貴重なベンチ枠を消費しない。
- */
-const runCheck = async (): Promise<void> => {
-  try {
-    await checkCommand.run([]);
-  } catch (error) {
-    if (error instanceof NotImplementedError) {
-      log.warn("check は未実装のため飛ばしました（実装は #12）。構造を壊していないか自分で確認すること");
-      return;
-    }
-    throw error;
-  }
 };
 
 export const command: Command = {
@@ -156,7 +140,9 @@ stdout にはスコアだけを出す。読むべきものは runs/<run-id>/repo
       if (skipCheck) {
         log.warn("check を省略しました（--skip-check）");
       } else {
-        await runCheck();
+        // check は deploy の「後」。新しいコードが載った状態を検証するため。
+        // 落ちたらベンチを起動せず、貴重なベンチ枠を消費しない。
+        await checkCommand.run([]);
       }
 
       await resetLogs(cfg);

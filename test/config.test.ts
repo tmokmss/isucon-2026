@@ -29,7 +29,7 @@ export const config: Config = {
     binary: "isuapp",
     service: "isuapp.go.service",
     buildCommand: `GOOS=linux GOARCH=${goarch} CGO_ENABLED=0 go build -o isuapp .`,
-    baseUrl: "http://127.0.0.1:8080",
+    baseUrl: "http://127.0.0.1:18081",
     initializePath: "/initialize",
   },
 
@@ -61,6 +61,13 @@ export const config: Config = {
     enqueuePath: "/api/bench/enqueue",
     jobPath: "/api/bench/job/{job}",
     scorePath: "/api/score",
+  },
+
+  check: {
+    initialize: true,
+    endpoints: [{ path: "/api/items" }, { path: "/api/user" }],
+    snapshotFile: join(here, ".work", "structure.json"),
+    timeoutSec: 10,
   },
 
   bench: {

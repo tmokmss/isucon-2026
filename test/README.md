@@ -22,6 +22,7 @@
 | `./test/lock.sh` | ロックと bench — 直列化・kill 耐性・通しの完走・計測の回収 |
 | `./test/portal.sh` | ポータル — Cookie・ログイン切れ判定・CSRF・enqueue/wait/score（コンテナ不要） |
 | `./test/report.sh` | report.md の見出しと中身・meta.json・history.tsv・スコア判定 |
+| `./test/check.sh` | 検証ゲート — 構造の記録と比較、違反時にベンチを起動しないこと |
 
 手で触るとき:
 
@@ -46,6 +47,8 @@ ssh -F test/.work/ssh_config isu1 'curl -s localhost:8080/version'
 | `lock.sh` | ロックと `bench` の通し検証 |
 | `portal.sh` | ポータル操作の検証 |
 | `report.sh` | レポートと台帳の検証 |
+| `check.sh` | 検証ゲートの検証 |
+| `shape-probe.ts` | 構造比較の細かい挙動（null の揺れ・配列・入れ子）の確認 |
 | `fake-portal.ts` | ポータルの代役。Django 風の 302 / CSRF / ジョブ進行を返す |
 | `lock-probe.ts` | ロックの取り合いを再現するための小さなプログラム |
 | `.work/` | 生成物（鍵・ssh_config・ダミーリポジトリ）。git 管理外 |
@@ -57,12 +60,14 @@ ssh -F test/.work/ssh_config isu1 'curl -s localhost:8080/version'
 | `main~1` | `/version` が `v1` を返す |
 | `main` | `/version` が `v2` を返す |
 | `broken` | ビルドが通らない |
+| `badshape` | ビルドは通るが `/api/items` の `name` が `title` に変わる（= レギュレーション違反） |
 
 ## できること・できないこと
 
 **できる** — ssh 越しの配布、実行中バイナリの差し替え、サービス再起動、sha の記録、
 設定ファイルの配布、`flock` によるロックの取り合い、ビルド失敗時に止まること、
-ポータルの Cookie/CSRF、レポートと台帳の生成、スコア低下の判定。
+ポータルの Cookie/CSRF、レポートと台帳の生成、スコア低下の判定、
+レスポンス構造の変更の検出。
 
 テストは `ISUH_RUNS_DIR` を `.work/` 以下に向けるので、追跡している
 `runs/history.tsv` は汚れない。

@@ -14,7 +14,8 @@ services:
   isu1:
     build: .
     hostname: isu1
-    ports: ["22101:22"]
+    # 22 は ssh、18081 はアプリ（check が手元から叩く）
+    ports: ["22101:22", "18081:8080"]
     volumes: ["./.work/authorized_keys:/authorized_keys:ro"]
   isu2:
     build: .

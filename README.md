@@ -72,7 +72,7 @@ isuh <command> [args]
 |---|---|---|
 | `setup` | 起動後のサーバセットアップ | #9 #11 |
 | `deploy` | 指定 ref を全台へ配布して再起動 | #1 ✅ |
-| `check` | ベンチ不要の検証ゲート | #12 |
+| `check` | ベンチ不要の検証ゲート | #12 ✅ |
 | `bench` | ロック取得〜ベンチ〜レポートまで通し | #2 ✅ #4 ✅ |
 | `history` | スコア台帳の表示 | #5 ✅ |
 | `rollback` | 直前の good revision へ戻す | #6 |
@@ -91,7 +91,8 @@ isuh <command> [args]
 | `config.example.ts` | 当日埋める値の一覧。`config.ts` にコピーして使う |
 | `src/cli.ts` | エントリポイント。サブコマンドの振り分け |
 | `src/commands/` | 各コマンド |
-| `src/lib/` | 共通ライブラリ（ログ・終了コード・ssh・git・ロック） |
+| `src/lib/` | 共通ライブラリ（ログ・終了コード・ssh・git・ロック・計測・レポート） |
+| `check/structure.json` | 正常なレスポンス構造の記録。**git で追跡する** |
 | `conf/` | サーバへ配る設定ファイル。`isuh deploy` が絶対パスへ写す |
 | `test/` | sshd コンテナ 3 台の検証環境。実サーバ無しで動作確認する |
 | `runs/` | ベンチ 1 回 = 1 ディレクトリ。`history.tsv` がスコア台帳 |
@@ -118,7 +119,7 @@ npm run typecheck      # tsc --noEmit
 `isuh bench` 一発で、ロック取得・デプロイ・ログのリセット・リソース計測・
 ベンチ実行・計測の回収・`report.md` の生成・台帳への追記・スコア判定まで走る。
 
-残っているのは `check`(#12)、`rollback`(#6)、`setup`(#9 #11)、
+残っているのは `rollback`(#6)、`setup`(#9 #11)、
 `verify-restart`(#7)、`finalize`(#8)、`monitor`(#17)。
 ベンチ起動のエンドポイントは当日 `config.ts` に埋める。
 

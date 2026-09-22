@@ -148,6 +148,33 @@ POST は Django の CSRF を通すため、Cookie の `csrftoken` を `X-CSRFTok
 > URL とパラメータは `config.portal` に集約し、当日は埋めるだけにする。
 > 事前に検証できるのは `whoami` と `get` まで。
 
+### `isuh check` が見るもの
+
+**レスポンス構造の変更はレギュレーション違反（失格）。** ここがその主な防波堤になる。
+ベンチは直列でしか回せないので、正しさの確認にベンチ枠を使わないのも狙い。
+
+1. `check.initialize` が true なら `app.initializePath` を POST する
+2. `check.endpoints` を叩き、`status`（既定 200）を確かめる
+3. JSON の **構造**（キーと型の形）を `check.snapshotFile` の記録と比べる
+
+**値ではなく形だけを見る。** 値は initialize やベンチのたびに変わるため、
+形だけなら「一度記録すれば以後ずっと比較できる」。
+
+| 変化 | 判定 |
+|---|---|
+| キーが増えた / 消えた | **違反** |
+| 型が変わった（`number` → `string`） | **違反** |
+| 配列の要素の形が変わった | **違反**（どのキーが変わったかまで出す） |
+| `null` ↔ 値 | 許す（null を取りうるフィールドの揺れ） |
+| 配列の要素数 | 許す |
+| キーの順序 | 許す |
+| どちらかが空配列 | 比べない |
+
+知らないエンドポイントは**初回に記録される**。
+`check.snapshotFile`（既定 `check/structure.json`）は git で追跡し、
+**アプリを触る前に 1 回走らせて記録をコミットしておく。**
+記録は原則として更新しない。エンドポイントを足したときだけ増える。
+
 ### `isuh deploy` が配るもの
 
 **アプリのバイナリ** — `app.repoLocal` で ref を sha に解決し、`git archive` で取り出した
@@ -402,6 +429,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 | `lib/portal.ts` | `loadCookie` / `portalRequest` / `assertLoggedIn` / `asJson` / `pick` |
 | `lib/run.ts` | `RunMeta` / `writeMeta` / `readHistory` / `appendHistory` / `bestRun` / `lastGoodRun` / `localIso` |
 | `lib/report.ts` | `writeReport` |
+| `lib/shape.ts` | `shapeOf` / `diffShapes`（レスポンス構造の比較） |
 | `lib/command.ts` | `Command` インターフェース |
 | `config.ts` | `Config` 型一式 / `loadConfig` |
 
@@ -464,6 +492,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 ./test/lock.sh    # ロックと bench（直列化・kill 耐性・通しの完走）
 ./test/portal.sh  # ポータル（コンテナ不要。fake-portal を立てる）
 ./test/report.sh  # report.md / meta.json / history.tsv / スコア判定
+./test/check.sh   # 検証ゲート（構造の記録と比較・ベンチを起動しないこと）
 ```
 
 - 設定は `test/config.test.ts`（`ISUH_CONFIG` で指す）

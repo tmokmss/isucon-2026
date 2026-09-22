@@ -82,6 +82,29 @@ export interface PortalConfig {
   scorePath: string;
 }
 
+/** check が叩くエンドポイント。当日の主要 API を並べる。 */
+export interface CheckEndpoint {
+  /** app.baseUrl からの相対パス */
+  path: string;
+  /** 既定 GET */
+  method?: "GET" | "POST" | "PUT" | "DELETE";
+  /** JSON で送る本体 */
+  body?: unknown;
+  /** 期待するステータス。既定 200 */
+  status?: number;
+  /** ログインが要るエンドポイント用（Cookie など） */
+  headers?: Record<string, string>;
+}
+
+export interface CheckConfig {
+  /** 最初に app.initializePath を叩くか。データを決まった状態に戻すため既定は true */
+  initialize: boolean;
+  endpoints: CheckEndpoint[];
+  /** 構造スナップショットの置き場。リポジトリ相対または絶対。git で追跡する */
+  snapshotFile: string;
+  timeoutSec: number;
+}
+
 export interface BenchConfig {
   /** hosts.primary 上のロックファイル */
   lockPath: string;
@@ -99,6 +122,7 @@ export interface Config {
   middleware: MiddlewareConfig;
   metrics: MetricsConfig;
   portal: PortalConfig;
+  check: CheckConfig;
   bench: BenchConfig;
 }
 

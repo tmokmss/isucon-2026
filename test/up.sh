@@ -53,6 +53,20 @@ done
 
 # --- ダミーアプリリポジトリ ------------------------------------------------
 APP="$WORK/app-repo"
+
+write_shape() {
+  # $1 = items の name に付ける JSON キー
+  cat >"$APP/go/shape.go" <<GO
+package main
+
+type Item struct {
+	ID   int      \`json:"id"\`
+	Name string   \`json:"$1"\`
+	Tags []string \`json:"tags"\`
+}
+GO
+}
+
 if [ ! -d "$APP/.git" ]; then
   rm -rf "$APP"
   mkdir -p "$APP"
@@ -63,6 +77,7 @@ if [ ! -d "$APP/.git" ]; then
   git -C "$APP" config user.name "isuh test"
 
   printf 'package main\n\nconst version = "v1"\n' >"$APP/go/version.go"
+  write_shape name
   git -C "$APP" add -A
   git -C "$APP" commit -qm "v1"
 
@@ -76,10 +91,18 @@ if [ ! -d "$APP/.git" ]; then
   git -C "$APP" add -A
   git -C "$APP" commit -qm "broken"
   git -C "$APP" checkout -q main
+
+  # ビルドは通るがレスポンスの構造が変わるブランチ（= レギュレーション違反）。
+  # check がこれを捕まえられることの確認に使う。
+  git -C "$APP" checkout -q -b badshape
+  write_shape title
+  git -C "$APP" add -A
+  git -C "$APP" commit -qm "rename items[].name to title"
+  git -C "$APP" checkout -q main
 fi
 
 echo
 echo "準備できました。"
 echo "  export ISUH_CONFIG=$(pwd)/config.test.ts"
 echo "  export ISUH_SSH_CONFIG=$(pwd)/$WORK/ssh_config"
-echo "  ./test/smoke.sh   # 通しで検証"
+echo "  ./test/all.sh     # typecheck + 全スイート"

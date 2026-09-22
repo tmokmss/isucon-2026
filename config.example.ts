@@ -63,6 +63,20 @@ export const config: Config = {
     scorePath: "",
   },
 
+  // ベンチを使わない検証ゲート。レスポンス構造の変更（= 失格）を捕まえる防波堤。
+  // 初回実行時に「今の形」を snapshotFile に記録し、以後はそれと比較する。
+  // **アプリを触る前に 1 回走らせて、記録した形をコミットしておくこと。**
+  check: {
+    initialize: true,
+    // 当日の主要エンドポイントを並べる。ログインが要るものは headers に Cookie を。
+    endpoints: [
+      // { path: "/api/player/competitions" },
+      // { path: "/api/organizer/players", headers: { Cookie: "isuports_session=..." } },
+    ],
+    snapshotFile: "check/structure.json",
+    timeoutSec: 30, // initialize が重いことがあるので長めに
+  },
+
   bench: {
     lockPath: "/tmp/isucon-bench.lock", // hosts.primary 上
     lockTimeoutSec: 1800,
