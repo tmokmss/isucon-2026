@@ -8,6 +8,26 @@
 
 ---
 
+## 0. 実装スタック
+
+**TypeScript / Node + tsx。** ビルド不要で `.ts` を直接実行する。
+
+| | |
+|---|---|
+| 実行 | `node_modules/.bin/tsx`（`bin/isuh` が呼ぶ） |
+| サブプロセス | `execa`（`ssh` / `scp` / `git` はすべてこれ経由） |
+| 型チェック | `npm run typecheck`（`tsc --noEmit`） |
+| 実行場所 | **手元の PC**。競技サーバには置かない |
+
+ハーネスは手元で動かすので、単一バイナリ化やクロスコンパイルは不要。
+シェルスクリプトは `bin/isuh`（tsx を呼ぶだけの 10 行）のみに留める。
+
+理由: この道具の仕事は「ssh でコマンドを叩く」より「**ポータルへの HTTP
+（Cookie + CSRF）／ JSON の構造比較 ／ レポートの整形 ／ スコアの小数比較**」の
+比重が大きく、そこは shell では壊れやすい。当日の障害時に読んで直せることを優先する。
+
+---
+
 ## 1. 全体像
 
 競技中にやることは 4 つしかない。
@@ -17,75 +37,82 @@
 3. 計測結果を読む
 4. 良くなっていなければ戻す
 
-`bin/bench` がこの 4 つを 1 コマンドに畳む。**並列に走る他の作業が計測を汚染しない**よう、
+`isuh bench` がこの 4 つを 1 コマンドに畳む。**並列に走る他の作業が計測を汚染しない**よう、
 デプロイからレポート生成までを 1 つのクリティカルセクションに入れる。
 
 ```
-bin/bench [<git-ref>]
+isuh bench [<git-ref>]
  ├─ 1. ロック取得 ........................ 失敗 → exit 10
  ├─ 2. git ref を sha に解決
- ├─ 3. bin/deploy <sha> .................. 失敗 → exit 20
- ├─ 4. bin/check ......................... 失敗 → exit 30（ベンチを起動しない）
+ ├─ 3. deploy <sha> ...................... 失敗 → exit 20
+ ├─ 4. check ............................. 失敗 → exit 30（ベンチを起動しない）
  ├─ 5. ログのリセット + リソース計測開始
- ├─ 6. bin/portal enqueue → 完了待ち ..... 失敗 → exit 40
- ├─ 7. 計測停止・ログ収集（alp / pt-query-digest / pprof / dstat）
+ ├─ 6. portal でベンチ登録 → 完了待ち .... 失敗 → exit 40
+ ├─ 7. 計測停止・ログ収集（alp / pt-query-digest / pprof / リソース）
  ├─ 8. runs/<run-id>/ に report.md と meta.json を生成、history.tsv に追記
- ├─ 9. スコア判定 ........................ 低下 → exit 50（AUTO_ROLLBACK なら戻す）
- └─ 10. ロック解放（trap で異常終了時も必ず実行）
+ ├─ 9. スコア判定 ........................ 低下 → exit 50（autoRollback なら戻す）
+ └─ 10. ロック解放（try-finally で異常終了時も必ず実行）
 ```
 
-**`bin/check` は deploy の後に走る。** 新しいコードが載った状態を検証するため。
+**`check` は deploy の後に走る。** 新しいコードが載った状態を検証するため。
 落ちた場合はベンチを起動せず、貴重なベンチ枠を消費しない。
 
 ---
 
-## 2. 設定の契約 — `config.env`
+## 2. 設定の契約 — `config.ts`
 
-- 当日埋める値は **すべて** `config.env` に置く。スクリプトに直書きしない
-- 項目は `config.env.example` が唯一の定義。**項目を増やすときは example も同時に更新する**
-- 読み込みは `bin/_common.sh` の `load_config` が行う。各スクリプトは自前で読まない
-- 未設定の必須項目があれば `exit 65` で落ちる
+- 当日埋める値は **すべて** `config.ts` に置く。ソースに直書きしない
+- 型は `src/config.ts` の `Config` インターフェースが唯一の定義。
+  **項目を増やすときは型と `config.example.ts` を同時に更新する**
+- 読み込みは `loadConfig()` が行う。各コマンドは自前で読まない
+- 必須項目が空なら `EXIT.CONFIG`(65) で落ちる
+- `ISUH_CONFIG` 環境変数で場所を上書きできる（テスト用）
 
-ホストの役割は次の変数で表す。値は `~/.ssh/config` 上のホスト別名。
+**typed config にしている理由**: 当日 `config.ts` を編集するとき、補完と型チェックが効く。
+`hosts.all` が配列なので、空白区切り文字列を split する必要もない。
 
-| 変数 | 意味 |
+ホストの役割は `config.hosts` で表す。値は `~/.ssh/config` 上のホスト別名。
+
+| フィールド | 意味 |
 |---|---|
-| `ISU_HOSTS` | 全ホスト。再起動試験の対象 |
-| `ISU_APP_HOSTS` | アプリを動かすホスト。deploy の配布先 |
-| `ISU_NGINX_HOSTS` | nginx のホスト。access log の収集元 |
-| `ISU_DB_HOST` | DB のホスト。slow query log の収集元 |
-| `ISU_PRIMARY` | ベンチのリクエスト先。**ロックの保持先** |
+| `hosts.all` | 全ホスト。再起動試験の対象 |
+| `hosts.app` | アプリを動かすホスト。deploy の配布先 |
+| `hosts.nginx` | nginx のホスト。access log の収集元 |
+| `hosts.db` | DB のホスト。slow query log の収集元 |
+| `hosts.primary` | ベンチのリクエスト先。**ロックの保持先** |
 
 アプリのコードは**このハーネスとは別のリポジトリ**にある。
-`bin/deploy <git-ref>` や `bin/bench <git-ref>` の ref は `APP_REPO_LOCAL`
+`isuh deploy <git-ref>` や `isuh bench <git-ref>` の ref は `config.app.repoLocal`
 （手元のアプリリポジトリのチェックアウト）で解決する。ハーネス自身のリポジトリではない。
 これによりアプリ側を worktree で並列に触る運用がそのまま成立する。
 
 ---
 
-## 3. CLI の契約 — `bin/*`
+## 3. CLI の契約 — `bin/isuh`
+
+エントリポイントはひとつ。`bin/isuh <command> [args]`。
 
 全コマンド共通:
 
-- `-h` / `--help` で usage を表示して `exit 0`
-- `--dry-run` があるものは「何をするか」を stderr に出して実行しない
-- 引数不正は `exit 64`、設定不備は `exit 65`
-- 実行前に `load_config` を通す
+- `-h` / `--help` で usage を stdout に出して `exit 0`
+- 引数不正は `EXIT.USAGE`(64)、設定不備は `EXIT.CONFIG`(65)
+- 引数の検証は設定の読み込みより先に行う
+- 各コマンドは `src/commands/<name>.ts` で `Command` を `command` という名前で export する
 
 | コマンド | 引数 | 役割 | 実装 |
 |---|---|---|---|
-| `bin/setup` | `[--only <step>]` | 鍵配布・/etc/hosts・dotfiles・計測ツール導入 | #9 #11 |
-| `bin/deploy` | `[<git-ref>]` (既定 `HEAD`) | 指定 ref をビルドして全台へ配布・再起動 | #1 |
-| `bin/check` | なし | ベンチ不要の検証ゲート | #12 |
-| `bin/bench` | `[<git-ref>] [--skip-check] [--note <text>]` | 上記の通し実行 | #2 #4 |
-| `bin/history` | `[-n <count>]` | スコア台帳の表示 | #5 |
-| `bin/rollback` | `[<sha>]` (既定: 直前の good) | 指定 revision へ戻してデプロイ | #6 |
-| `bin/portal` | `<subcommand>` | ポータル操作（下記） | #3 |
-| `bin/monitor` | なし | 全台のリソースを tmux で 1 画面に | #17 |
-| `bin/verify-restart` | `[--times <n>]` | ランダム順で再起動 → initialize 無しでベンチ | #7 |
-| `bin/finalize` | なし | 終盤チェックリスト | #8 |
+| `setup` | `[--only <step>]` | 鍵配布・/etc/hosts・dotfiles・計測ツール導入 | #9 #11 |
+| `deploy` | `[<git-ref>] [--dry-run]` | 指定 ref をビルドして全台へ配布・再起動 | #1 |
+| `check` | なし | ベンチ不要の検証ゲート | #12 |
+| `bench` | `[<git-ref>] [--skip-check] [--note <text>]` | 上記の通し実行 | #2 #4 |
+| `history` | `[-n <count>]` | スコア台帳の表示 | #5 |
+| `rollback` | `[<sha>]` (既定: 直前の good) | 指定 revision へ戻してデプロイ | #6 |
+| `portal` | `<subcommand>` | ポータル操作（下記） | #3 |
+| `monitor` | なし | 全台のリソースを tmux で 1 画面に | #17 |
+| `verify-restart` | `[--times <n>]` | ランダム順で再起動 → initialize 無しでベンチ | #7 |
+| `finalize` | なし | 終盤チェックリスト | #8 |
 
-### `bin/portal` のサブコマンド
+### `isuh portal` のサブコマンド
 
 | サブコマンド | 役割 |
 |---|---|
@@ -96,8 +123,8 @@ bin/bench [<git-ref>]
 | `score` | 最新の確定スコアを stdout に出す |
 
 > **ベンチ用のエンドポイントは当日にならないと分からない。**
-> URL とパラメータは `config.env` の `PORTAL_*` に集約し、当日は埋めるだけにする。
-> 事前に検証できるのは `whoami` 相当（Cookie 付き curl で認証必須ページを引く）まで。
+> URL とパラメータは `config.portal` に集約し、当日は埋めるだけにする。
+> 事前に検証できるのは `whoami` 相当（Cookie 付きで認証必須ページを引く）まで。
 
 ---
 
@@ -109,7 +136,7 @@ bin/bench [<git-ref>]
 <YYYYmmdd>-<HHMMSS>-<sha7>      例: 20261031-103512-a1b2c3d
 ```
 
-辞書順 = 時系列順になること。
+辞書順 = 時系列順になること。生成は `newRunId(sha)`。
 
 ### ディレクトリ構造
 
@@ -135,17 +162,17 @@ runs/
 
 ```json
 {
-  "run_id": "20261031-103512-a1b2c3d",
-  "started_at": "2026-10-31T10:35:12+09:00",
-  "finished_at": "2026-10-31T10:37:02+09:00",
+  "runId": "20261031-103512-a1b2c3d",
+  "startedAt": "2026-10-31T10:35:12+09:00",
+  "finishedAt": "2026-10-31T10:37:02+09:00",
   "ref": "HEAD",
   "sha": "a1b2c3d4e5f6...",
   "score": 12345,
   "status": "pass",
   "note": "add index on competition_id",
-  "bench_job_id": "4321",
-  "prev_run_id": "20261031-102011-9f8e7d6",
-  "best_run_id": "20261031-103512-a1b2c3d"
+  "benchJobId": "4321",
+  "prevRunId": "20261031-102011-9f8e7d6",
+  "bestRunId": "20261031-103512-a1b2c3d"
 }
 ```
 
@@ -154,6 +181,8 @@ runs/
 - `pass` — ベンチが完走しスコアが付いた
 - `fail` — ベンチが完走したが整合性チェック等で失敗した
 - `error` — ベンチを起動できなかった、デプロイに失敗した等
+
+この形は `src/lib/run.ts` に `RunMeta` として型で置く（#4 で追加）。
 
 ### `report.md` の見出し
 
@@ -173,7 +202,7 @@ runs/
 ## Slow query (pt-query-digest)
 
 ## CPU profile (pprof)
-<!-- PPROF_ENABLED=false なら「未取得」と書く -->
+<!-- metrics.pprofEnabled が false なら「未取得」と書く -->
 
 ## Resources
 <!-- ベンチ実行中の各ホストの CPU / mem / IO / load。どのホストが飽和したか -->
@@ -194,96 +223,94 @@ run_id	started_at	sha	ref	score	status	note
 ```
 
 - 追記のみ。既存行を書き換えない
-- `score` は `status != pass` のとき `0`
+- `score` は `status !== "pass"` のとき `0`
 - `note` にタブ・改行を含めない
 
 ---
 
 ## 5. 終了コードの契約
 
-呼び出し側が失敗理由で分岐するため、**必ずこの値を使う**。
+呼び出し側が失敗理由で分岐するため、**数値を直書きせず `EXIT` を使う**。
 
-| コード | 意味 |
-|---|---|
-| `0` | 成功 |
-| `10` | ロック取得失敗（タイムアウト） |
-| `20` | デプロイ失敗 |
-| `30` | 検証ゲート（`bin/check`）失敗 |
-| `40` | ベンチ失敗 |
-| `50` | スコア低下（`SCORE_REGRESSION_RATIO` を下回った） |
-| `64` | 引数不正 |
-| `65` | 設定不備 |
-| `70` | 未実装 |
+| 定数 | 値 | 意味 |
+|---|---|---|
+| `EXIT.OK` | `0` | 成功 |
+| `EXIT.LOCK` | `10` | ロック取得失敗（タイムアウト） |
+| `EXIT.DEPLOY` | `20` | デプロイ失敗 |
+| `EXIT.CHECK` | `30` | 検証ゲート失敗 |
+| `EXIT.BENCH` | `40` | ベンチ失敗 |
+| `EXIT.REGRESSION` | `50` | スコア低下（`bench.scoreRegressionRatio` を下回った） |
+| `EXIT.USAGE` | `64` | 引数不正 |
+| `EXIT.CONFIG` | `65` | 設定不備 |
+| `EXIT.NOT_IMPLEMENTED` | `70` | 未実装 |
 
-`bin/_common.sh` が `EX_LOCK` `EX_DEPLOY` `EX_CHECK` `EX_BENCH` `EX_REGRESSION`
-`EX_USAGE` `EX_CONFIG` `EX_NOTIMPL` として定義する。数値を直書きしない。
+失敗は `throw new HarnessError(EXIT.X, message)` で表す。`src/cli.ts` が捕まえて
+`log.error` した上で `process.exit(code)` する。**各コマンドで `process.exit` を呼ばない。**
+
+`usageError()` / `configError()` / `notImplemented(issue)` が用意してある。
 
 ---
 
 ## 6. ログ出力の契約
 
-- **stdout は機械可読な結果のみ。** `bin/portal enqueue` ならジョブ ID だけ、
-  `bin/history` なら表だけ
-- 進捗・警告・エラーは **すべて stderr**。`log_info` / `log_warn` / `log_error` / `die` を使う
+- **stdout は機械可読な結果のみ。** `isuh portal enqueue` ならジョブ ID だけ、
+  `isuh history` なら表だけ。出力には `out()` を使う
+- 進捗・警告・エラーは **すべて stderr**。`log.info` / `log.warn` / `log.error` / `log.debug` を使う
 - 形式: `[HH:MM:SS] LEVEL message`
-- `VERBOSE=1` で `log_debug` が有効になる
+- `VERBOSE=1` で `log.debug` が有効になる
 
-これを守ると `sha=$(bin/deploy HEAD)` のようなパイプ利用が安全にできる。
+これを守ると `JOB=$(isuh portal enqueue)` のようなパイプ利用が安全にできる。
 
 ---
 
 ## 7. ベンチのロックプロトコル
 
 **デプロイだけをロックしても不十分。** ベンチ実行中に別のデプロイが走れば計測は壊れる。
-`bin/bench` の 1〜10 全体が 1 つのクリティカルセクション。
+`isuh bench` の 1〜10 全体が 1 つのクリティカルセクション。
 
 ### 保持方法
 
-`ISU_PRIMARY` 上の `flock` を、**ssh セッションを開いたまま保持する**。
+`hosts.primary` 上の `flock` を、**ssh の子プロセスを生かしたまま保持する**。
 
-```sh
-ssh "$ISU_PRIMARY" "exec 9>$BENCH_LOCK_PATH; flock -w $BENCH_LOCK_TIMEOUT 9 || exit 10; \
-                    echo \"\$\$ $owner \$(date +%s)\" >&2; echo ACQUIRED; cat"
+```
+ssh <primary> "exec 9><lockPath>; flock -w <timeout> 9 || exit 10; echo ACQUIRED; cat"
 ```
 
 - 末尾の `cat` が stdin を開いたまま保つ → **ssh プロセスが生きている間だけロックが保持される**
-- ローカルの ssh プロセスを kill すると接続が切れ、flock が自動解放される
-  → **Ctrl-C でも異常終了でもロックが残らない**（#2 の完了条件）
+- 子プロセスを kill すると接続が切れ、flock が自動解放される
+- Node なら `try-finally` と `process.on("exit")` で確実に kill できるため、
+  **Ctrl-C でも異常終了でもロックが残らない**（#2 の完了条件）
 - ローカルのファイルロックではなく**サーバ側**に置く理由は、worktree・別ターミナル・
   別マシンをまたいで効かせるため
 
 ### 保持者の表示
 
-取得できなかった場合、**誰がいつから保持しているか**を stderr に出して `exit 10`。
-`$BENCH_LOCK_PATH.owner` に `ホスト名 / ユーザ / 開始時刻 / git ref` を書いておく。
+取得できなかった場合、**誰がいつから保持しているか**を stderr に出して `EXIT.LOCK`。
+`<lockPath>.owner` に `ホスト名 / ユーザ / 開始時刻 / git ref` を書いておく。
 
 ### 迂回の禁止
 
 ロックを取らずに `scp` や `systemctl restart` をすると、走っているベンチの計測が壊れる。
-**デプロイは必ず `bin/deploy` / `bin/bench` 経由。**
+**デプロイは必ず `isuh deploy` / `isuh bench` 経由。**
 
 ---
 
-## 8. `bin/_common.sh` が提供するもの
+## 8. `src/lib/` が提供するもの
 
-全スクリプトが先頭で読み込む。ここにある関数は再実装しない。
+ここにある関数は各コマンドで再実装しない。
 
-| 関数 | 役割 |
+| モジュール | 提供するもの |
 |---|---|
-| `repo_root` | リポジトリルートの絶対パス |
-| `load_config` | `config.env` を読み、必須項目を検証（不備は `exit 65`） |
-| `require_config <名前>...` | 指定した変数が空でないことを検証 |
-| `log_debug/info/warn/error` | stderr へ時刻付きで出力 |
-| `die <code> <message>` | エラーを出して指定コードで終了 |
-| `not_implemented <issue>` | 未実装である旨と担当 Issue を出して `exit 70` |
-| `on_host <host> <cmd>` | 1 ホストでコマンド実行 |
-| `on_hosts "<hosts>" <cmd>` | 複数ホストで順に実行 |
-| `resolve_sha <ref>` | git ref を完全な sha に解決 |
-| `new_run_id <sha>` | run-id を生成 |
-| `run_dir <run-id>` | `runs/<run-id>` の絶対パスを返し、無ければ作る |
-| `usage_guard "$@"` | `-h` / `--help` を処理 |
-| `lock_acquire <owner>` | ベンチのロックを取得。失敗は `exit 10`（実装 #2） |
-| `lock_release` | ロックを解放。多重呼び出し安全であること（実装 #2） |
+| `lib/exit.ts` | `EXIT` / `HarnessError` / `usageError` / `configError` / `notImplemented` |
+| `lib/log.ts` | `log.debug/info/warn/error`（stderr）、`out`（stdout） |
+| `lib/paths.ts` | `repoRoot` / `newRunId` / `runDir` / `historyFile` |
+| `lib/ssh.ts` | `onHost` / `onHosts`（並列）/ `local` |
+| `lib/git.ts` | `resolveSha`（`config.app.repoLocal` で解決） |
+| `lib/lock.ts` | `acquireLock` / `Lock.release`（実装 #2） |
+| `lib/command.ts` | `Command` インターフェース |
+| `config.ts` | `Config` 型一式 / `loadConfig` |
+
+`ssh` や `git` は必ず `execa` の配列引数で呼ぶ（シェルを経由しないので引用符の事故が起きない）。
 
 ---
 
@@ -293,11 +320,11 @@ ssh "$ISU_PRIMARY" "exec 9>$BENCH_LOCK_PATH; flock -w $BENCH_LOCK_TIMEOUT 9 || e
 
 | レーン | Issue | 主に触るファイル |
 |---|---|---|
-| A | #1 #2 | `bin/deploy` `bin/bench` `bin/_common.sh`（ロック） |
-| B | #4 #5 | `runs/` 生成まわり、`bin/history` |
+| A | #1 #2 | `src/commands/deploy.ts` `src/commands/bench.ts` `src/lib/lock.ts` |
+| B | #4 #5 | `src/lib/run.ts`（新規）`src/lib/report.ts`（新規）`src/commands/history.ts` |
 | C | #15 #19 | `docs/` のみ |
-| D | #9 #10 #11 | `bin/setup`、`conf/` |
-| E | #3 | `bin/portal`（要: 手元のブラウザ Cookie） |
+| D | #9 #10 #11 | `src/commands/setup.ts`、`conf/` |
+| E | #3 | `src/commands/portal.ts`（要: 手元のブラウザ Cookie） |
 
 第 2 波（A・B のマージ後）: #6 #12 → #7 #8 → #18。
 
@@ -305,10 +332,10 @@ ssh "$ISU_PRIMARY" "exec 9>$BENCH_LOCK_PATH; flock -w $BENCH_LOCK_TIMEOUT 9 || e
 
 ## 10. 未確定事項
 
-当日にならないと確定しないもの。**確定したら `config.env` を埋めるだけで済む**ように作る。
+当日にならないと確定しないもの。**確定したら `config.ts` を埋めるだけで済む**ように作る。
 
-- ベンチ起動のエンドポイントとパラメータ（`PORTAL_ENQUEUE_PATH` / `PORTAL_JOB_PATH`）
-- サーバの台数と役割（`ISU_*`）
-- アプリのサービス名・バイナリ名・ビルドコマンド（`APP_*`）
-- alp の URI 正規化パターン（`ALP_MATCHES`）
-- ログの出力先（`NGINX_ACCESS_LOG` / `DB_SLOW_LOG`）
+- ベンチ起動のエンドポイントとパラメータ（`portal.enqueuePath` / `portal.jobPath`）
+- サーバの台数と役割（`hosts.*`）
+- アプリのサービス名・バイナリ名・ビルドコマンド（`app.*`）
+- alp の URI 正規化パターン（`metrics.alpMatches`）
+- ログの出力先（`middleware.nginxAccessLog` / `middleware.dbSlowLog`）

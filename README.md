@@ -16,45 +16,66 @@ ISUCON2026 用の作業ハーネス。**計測 → 改善 → 検証**のルー�
 3. 計測結果を読む
 4. 良くなっていなければ戻す
 
-このリポジトリは、この 4 つを `bin/bench` 一発に畳み、**同時に走っている他の作業が
+このリポジトリは、この 4 つを `isuh bench` 一発に畳み、**同時に走っている他の作業が
 計測を汚染しないようにロックする**ことだけを目的にしている。
 
 ## クイックスタート
 
 ```sh
-cp config.env.example config.env
-$EDITOR config.env          # 当日埋める値はすべてここに集約されている
-bin/setup                   # 起動後のサーバセットアップ
-bin/bench                   # deploy → check → ベンチ → レポート生成
-bin/history                 # スコア台帳
+npm install
+cp config.example.ts config.ts
+$EDITOR config.ts           # 当日埋める値はすべてここに集約されている（型が効く）
+
+bin/isuh setup              # 起動後のサーバセットアップ
+bin/isuh bench              # deploy → check → ベンチ → レポート生成
+bin/isuh history            # スコア台帳
 ```
+
+ハーネスは**手元の PC で動かす**。競技サーバには置かない。
+
+## コマンド
+
+```
+isuh <command> [args]
+```
+
+| コマンド | 役割 | 実装 Issue |
+|---|---|---|
+| `setup` | 起動後のサーバセットアップ | #9 #11 |
+| `deploy` | 指定 ref を全台へ配布して再起動 | #1 |
+| `check` | ベンチ不要の検証ゲート | #12 |
+| `bench` | ロック取得〜ベンチ〜レポートまで通し | #2 #4 |
+| `history` | スコア台帳の表示 | #5 |
+| `rollback` | 直前の good revision へ戻す | #6 |
+| `portal` | ポータルを Cookie 付きの HTTP で操作 | #3 |
+| `monitor` | 全台のリソースを 1 画面で見る | #17 |
+| `verify-restart` | 再起動試験（失格回避） | #7 |
+| `finalize` | 終盤チェックリスト | #8 |
+
+詳細は `bin/isuh <command> --help`。
 
 ## ディレクトリ
 
 | パス | 中身 |
 |---|---|
 | `docs/DESIGN.md` | **全レーン共有の契約**。実装前に必ず読む |
-| `config.env.example` | 当日埋める値の一覧 |
-| `bin/` | 作業コマンド一式 |
+| `config.example.ts` | 当日埋める値の一覧。`config.ts` にコピーして使う |
+| `src/cli.ts` | エントリポイント。サブコマンドの振り分け |
+| `src/commands/` | 各コマンド |
+| `src/lib/` | 共通ライブラリ（ログ・終了コード・ssh・git・ロック） |
 | `runs/` | ベンチ 1 回 = 1 ディレクトリ。`history.tsv` がスコア台帳 |
 | `CLAUDE.md` | レギュレーション上の禁止事項とリポジトリの規約 |
 
-## コマンド
+## 開発
 
-| コマンド | 役割 | 実装 Issue |
-|---|---|---|
-| `bin/setup` | 起動後のサーバセットアップ | #9 |
-| `bin/deploy` | 指定 ref を全台へ配布して再起動 | #1 |
-| `bin/check` | ベンチ不要の検証ゲート | #12 |
-| `bin/bench` | ロック取得〜ベンチ〜レポートまで通し | #2 #4 |
-| `bin/history` | スコア台帳の表示 | #5 |
-| `bin/rollback` | 直前の good revision へ戻す | #6 |
-| `bin/portal` | ポータルを Cookie 付き curl で操作 | #3 |
-| `bin/monitor` | 全台のリソースを 1 画面で見る | #17 |
-| `bin/verify-restart` | 再起動試験（失格回避） | #7 |
-| `bin/finalize` | 終盤チェックリスト | #8 |
+```sh
+npm run typecheck      # tsc --noEmit
+```
+
+ビルドは不要。`tsx` が `.ts` を直接実行する。
 
 ## 現在の状態
 
 契約とスタブのみ（#21）。各コマンドの中身は担当 Issue で実装する。
-スタブは引数解釈と設定読み込みまでは通り、未実装部分は担当 Issue 番号を表示して終了する。
+スタブは引数解釈と設定読み込みまでは通り、未実装部分は担当 Issue 番号を表示して
+終了コード 70 で終わる。
