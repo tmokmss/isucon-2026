@@ -1,0 +1,12 @@
+# 当日埋める実設定（config.example.ts をコピーして使う）
+config.ts
+
+node_modules/
+
+# ベンチ実行結果。history.tsv だけは追跡する
+runs/*
+!runs/.gitkeep
+!runs/history.tsv
+
+*.log
+.DS_Store

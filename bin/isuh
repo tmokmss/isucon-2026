@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# isuh — ハーネスのエントリポイント。実体は src/cli.ts。
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TSX="$ROOT/node_modules/.bin/tsx"
+if [[ ! -x "$TSX" ]]; then
+    echo "依存が未インストールです。npm install を実行してください。" >&2
+    exit 65
+fi
+exec "$TSX" "$ROOT/src/cli.ts" "$@"

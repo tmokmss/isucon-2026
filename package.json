@@ -1,0 +1,22 @@
+{
+  "name": "isucon-harness",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ISUCON2026 用の計測→改善→検証ループを回す作業ハーネス",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "isuh": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "execa": "^10.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
