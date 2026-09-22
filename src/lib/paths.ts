@@ -14,11 +14,22 @@ export const newRunId = (sha: string, now = new Date()): string => {
   return `${stamp}-${sha.slice(0, 7)}`;
 };
 
+/**
+ * runs/ の場所。ISUH_RUNS_DIR で上書きできる（テスト用。ISUH_CONFIG と同じ考え方で、
+ * 追跡している runs/history.tsv をテストが汚さないようにするため）。
+ */
+const runsRoot = (): string => process.env["ISUH_RUNS_DIR"] ?? join(repoRoot(), "runs");
+
 /** runs/<run-id>/ の絶対パス。無ければ作る。 */
 export const runDir = (runId: string): string => {
-  const dir = join(repoRoot(), "runs", runId);
+  const dir = join(runsRoot(), runId);
   mkdirSync(dir, { recursive: true });
   return dir;
 };
 
-export const historyFile = (): string => join(repoRoot(), "runs", "history.tsv");
+/** runs/history.tsv の絶対パス。親ディレクトリは無ければ作る。 */
+export const historyFile = (): string => {
+  const root = runsRoot();
+  mkdirSync(root, { recursive: true });
+  return join(root, "history.tsv");
+};

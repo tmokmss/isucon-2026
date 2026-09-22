@@ -7,6 +7,8 @@ ROOT=$(cd .. && pwd)
 
 export ISUH_CONFIG="$TEST_DIR/config.test.ts"
 export ISUH_SSH_CONFIG="$TEST_DIR/.work/ssh_config"
+# 追跡している runs/history.tsv を汚さない
+export ISUH_RUNS_DIR="$TEST_DIR/.work/runs-lock"
 ISUH="$ROOT/bin/isuh"
 # tsx の CLI は子プロセスで node を起動してしまい、kill の検証にならない（bin/isuh と同じ理由）
 PROBE="node --import tsx"
@@ -125,7 +127,7 @@ grep -q "ロックを解放しました" "$ERR" || ng "ロックを解放して�
 ok "デプロイで落ちても finally で解放される"
 
 echo "== 5. bench が計測の生データを残す"
-dir="$ROOT/runs/$runid"
+dir="$ISUH_RUNS_DIR/$runid"
 [ -d "$dir" ] || ng "runs/$runid が作られていません"
 for f in alp.txt ptquery.txt pprof.txt bench.log; do
   [ -f "$dir/$f" ] || ng "$f がありません"

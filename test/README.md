@@ -21,6 +21,7 @@
 | `./test/smoke.sh` | deploy — 配布・古い sha への復帰・dry-run・ビルド失敗・conf 配布 |
 | `./test/lock.sh` | ロックと bench — 直列化・kill 耐性・通しの完走・計測の回収 |
 | `./test/portal.sh` | ポータル — Cookie・ログイン切れ判定・CSRF・enqueue/wait/score（コンテナ不要） |
+| `./test/report.sh` | report.md の見出しと中身・meta.json・history.tsv・スコア判定 |
 
 手で触るとき:
 
@@ -44,6 +45,7 @@ ssh -F test/.work/ssh_config isu1 'curl -s localhost:8080/version'
 | `smoke.sh` | `deploy` の通し検証 |
 | `lock.sh` | ロックと `bench` の通し検証 |
 | `portal.sh` | ポータル操作の検証 |
+| `report.sh` | レポートと台帳の検証 |
 | `fake-portal.ts` | ポータルの代役。Django 風の 302 / CSRF / ジョブ進行を返す |
 | `lock-probe.ts` | ロックの取り合いを再現するための小さなプログラム |
 | `.work/` | 生成物（鍵・ssh_config・ダミーリポジトリ）。git 管理外 |
@@ -59,7 +61,11 @@ ssh -F test/.work/ssh_config isu1 'curl -s localhost:8080/version'
 ## できること・できないこと
 
 **できる** — ssh 越しの配布、実行中バイナリの差し替え、サービス再起動、sha の記録、
-設定ファイルの配布、`flock` によるロックの取り合い、ビルド失敗時に止まること。
+設定ファイルの配布、`flock` によるロックの取り合い、ビルド失敗時に止まること、
+ポータルの Cookie/CSRF、レポートと台帳の生成、スコア低下の判定。
+
+テストは `ISUH_RUNS_DIR` を `.work/` 以下に向けるので、追跡している
+`runs/history.tsv` は汚れない。
 
 **できない** — 本物の systemd、実際の負荷、ベンチマーカー、ポータル。
 それらは過去問環境でのリハーサル（#18）で見る。
