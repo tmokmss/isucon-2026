@@ -25,6 +25,7 @@
 | `./test/metrics.sh` | ベンチ中の計測 — pprof をベンチ開始と同時に取る・top・alp の全台集計 |
 | `./test/digest.sh` | report.md の alp / pt-query-digest 節 — 列を絞った表・上位 N 件・alpMatches が空のときの警告 |
 | `./test/setup.sh` | setup — ssh・/etc/hosts・dotfiles・ツール・nginx と MySQL のログ設定・apprepo・conf の取り込み・冪等性 |
+| `./test/bench-local.sh` | `bench.runner=local` — 偽のベンチマーカーを ssh で実行し、出力からスコアと成否を読む・落ちても出力とロックが正しく残る |
 
 手で触るとき:
 

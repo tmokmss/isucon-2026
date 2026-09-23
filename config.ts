@@ -76,6 +76,14 @@ export const config: Config = {
     lockPath: "/tmp/isucon-bench.lock", // hosts.primary 上
     lockTimeoutSec: 1800,
     timeoutSec: 600,
+    // 本番は portal。過去問のリハーサルでは local（ベンチマーカーを ssh で直接実行）
+    runner: "portal",
+    // 例（ISUCON14 の AMI、アプリと同じホストで動かす）:
+    //   host: "isu1",
+    //   command: "./bench run --addr 127.0.0.1:443 --target https://isuride.xiv.isucon.net --payment-url http://127.0.0.1:12346 --payment-bind-port 12346",
+    //   scorePattern: "スコア=(\\d+)",
+    //   passPattern: "pass=true",
+    local: { host: "", command: "", scorePattern: "", passPattern: "" },
   },
 
   // isuh setup が使う。起動直後にまずここを埋めて `isuh setup` する。
