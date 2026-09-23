@@ -58,10 +58,10 @@ const server = createServer((req, res) => {
   }
 
   // トップは未ログインでも 200 を返す（本物のポータルがそうなっている）。
-  // 見分けはナビのリンク。
+  // 見分けはナビ: 未ログインならログインのリンク、ログイン済みならログアウトのフォーム。
   if (url.pathname === "/") {
     const nav = authed
-      ? '<a href="/auth/logout/">ログアウト</a>'
+      ? '<form method="post" action="/auth/logout/"><button>ログアウト</button></form>'
       : '<a href="/auth/login/">ログイン</a>';
     send(200, "text/html; charset=utf-8", `<html><head><title>ISUCON2026 Portal</title></head><body>${nav}</body></html>`);
     return;

@@ -127,7 +127,8 @@ export const portalRequest = async (
 };
 
 const LOGIN_LINK = /href="[^"]*\/auth\/login\/?"/i;
-const LOGOUT_LINK = /href="[^"]*\/auth\/logout\/?"/i;
+// 実物のポータルのログアウトはリンクではなく POST のフォーム（<form action="/auth/logout/">）
+const LOGOUT_LINK = /(?:href|action)="[^"]*\/auth\/logout\/?"/i;
 
 /**
  * ログインが切れていないか。
@@ -136,8 +137,12 @@ const LOGOUT_LINK = /href="[^"]*\/auth\/logout\/?"/i;
  * 403 は CSRF か権限。どちらも Cookie を取り直せば直るので同じ扱いにする。
  *
  * ただし **ポータルのトップは未ログインでも 200 を返す**（実物で確認済み）。
- * ステータスだけ見ると「Cookie は有効」と誤判定するので、ナビのリンクも見る。
- * 未ログインなら「ログイン」(/auth/login/)、ログイン済みならログアウトのリンクが出る。
+ * ステータスだけ見ると「Cookie は有効」と誤判定するので、HTML の中身も見る。
+ * 未ログインなら「ログイン」のリンク (/auth/login/)、ログイン済みなら
+ * ログアウトのフォーム (action="/auth/logout/") が出る。
+ *
+ * とはいえ中身の推測は壊れやすい。whoamiPath には、未ログインだと素直に 302 を返す
+ * ページ（/auth/settings/team/）を指定するのが確実で、既定値もそうしてある。
  */
 export const isLoggedOut = (response: PortalResponse): boolean => {
   if (response.status === 401 || response.status === 403) return true;
