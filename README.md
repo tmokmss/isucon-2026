@@ -23,8 +23,7 @@ ISUCON2026 用の作業ハーネス。**計測 → 改善 → 検証**のルー�
 
 ```sh
 npm install
-cp config.example.ts config.ts
-$EDITOR config.ts           # 当日埋める値はすべてここに集約されている（型が効く）
+$EDITOR config.ts           # 当日埋める値はすべてここに集約されている（型が効く）。コミットする
 
 bin/isuh setup              # 起動後のサーバセットアップ（先に config.ts の setup.addresses を埋める）
 bin/isuh bench              # deploy → check → ベンチ → レポート生成
@@ -90,7 +89,7 @@ isuh <command> [args]
 | パス | 中身 |
 |---|---|
 | `docs/DESIGN.md` | **全レーン共有の契約**。実装前に必ず読む |
-| `config.example.ts` | 当日埋める値の一覧。`config.ts` にコピーして使う |
+| `config.ts` | 当日埋める値のすべて。**コミットする**（worktree からも isuh が動くように）。秘密は書かない |
 | `src/cli.ts` | エントリポイント。サブコマンドの振り分け |
 | `src/commands/` | 各コマンド |
 | `src/lib/` | 共通ライブラリ（ログ・終了コード・ssh・git・ロック） |
