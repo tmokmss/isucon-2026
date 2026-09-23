@@ -16,7 +16,8 @@ export const config: Config = {
     all: ["isu1", "isu2", "isu3"],
     // 2 台に配ることで「ホスト間は並列・1 台でも失敗したら全体失敗」を検証する
     app: ["isu1", "isu2"],
-    nginx: ["isu1"],
+    // nginx を 2 台にして、alp が全台を集計することを確かめる
+    nginx: ["isu1", "isu2"],
     db: "isu3",
     primary: "isu1",
     user: "isucon",
@@ -47,8 +48,9 @@ export const config: Config = {
     alpSort: "sum",
     alpLimit: 30,
     ptQueryLimit: 15,
-    pprofEnabled: false,
-    pprofUrl: "",
+    pprofEnabled: true,
+    // テストのベンチは数秒で終わるので短く
+    pprofUrl: "http://localhost:8080/debug/pprof/profile?seconds=3",
     resourceIntervalSec: 1,
   },
 

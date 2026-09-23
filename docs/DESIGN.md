@@ -217,17 +217,38 @@ runs/
     ├── bench.log                     # ベンチの生出力
     ├── alp.txt
     ├── ptquery.txt
-    ├── pprof.txt
+    ├── pprof.txt                     # go tool pprof -top の出力
+    ├── cpu.pprof                     # 生のプロファイル（go tool pprof -http で後から掘る）
     └── resource/
-        ├── isu1.txt
+        ├── isu1.txt                  # vmstat（ホスト単位の CPU / mem / IO）
         ├── isu2.txt
-        └── isu3.txt
+        ├── isu3.txt
+        └── top/
+            └── isu1.txt ...          # top -b（プロセス単位の CPU）
 ```
 
 `runs/<run-id>/` は `.gitignore` 済み（`history.tsv` のみ追跡）。
 
 **誰が書くか** — 生ファイル（`alp.txt` / `ptquery.txt` / `pprof.txt` / `resource/*`）は
-`lib/collect.ts` がベンチの前後に書く。それを読んで `report.md` にまとめるのが
+`lib/collect.ts` がベンチの前後に書く。
+
+| いつ | 何を | どこで |
+|---|---|---|
+| ベンチ前 | access log / slow query log を `truncate` | `hosts.nginx` / `hosts.db` |
+| ベンチ中 | `vmstat`（ホスト単位）と `top -b`（プロセス単位）を常駐させる | `hosts.all` |
+| ベンチ中 | `/debug/pprof/profile?seconds=N` を curl する | `hosts.app[0]` |
+| ベンチ後 | `alp`（nginx が複数台なら全台、ホストごとに並べる） | `hosts.nginx` |
+| ベンチ後 | `pt-query-digest` | `hosts.db` |
+
+**pprof はベンチの開始と同時に取り始める。** `?seconds=N` は「叩いてから N 秒間」を
+測るので、ベンチの後に叩くとアイドル中を測ってしまう。N はベンチの長さに合わせ、
+止めるときは N 秒経つまで待つ（途中で切るとプロファイルが返ってこない）。
+`pprofUrl` は `hosts.app[0]` から見た URL で、そのホスト上で curl する。
+pprof のポートは外に開いていないことが多いため。
+
+`vmstat` はホスト全体の値しか出さないので、アプリと MySQL が同じホストにいると
+どちらが CPU を食っているか分からない。そのため `top -b` も並行で取り、
+`report.md` の Resources 節で「どのプロセスが食っているか」まで要約する。それを読んで `report.md` にまとめるのが
 `lib/report.ts`、`meta.json` と `history.tsv` が `lib/run.ts`。
 
 `runs/` の場所は `ISUH_RUNS_DIR` で上書きできる（テスト用。`ISUH_CONFIG` と同じ考え方で、
@@ -476,6 +497,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 ./test/lock.sh    # ロックと bench（直列化・kill 耐性・通しの完走）
 ./test/portal.sh  # ポータル（コンテナ不要。fake-portal を立てる）
 ./test/report.sh  # report.md / meta.json / history.tsv / スコア判定
+./test/metrics.sh # ベンチ中の計測（pprof の開始時機・top・alp の全台集計）
 ```
 
 - 設定は `test/config.test.ts`（`ISUH_CONFIG` で指す）
