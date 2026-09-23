@@ -142,14 +142,15 @@ grep -q "version.go" "$DIR3/report.md" || ng "git diff --stat が出ていませ
 grep -q "$RUN2" "$DIR3/report.md" || ng "比較対象の run-id がありません"
 ok "前回と sha が違えば何を変えたかが出る"
 
-echo "== 9. スコアが落ちたら exit 50 で止まる"
+echo "== 9. スコアが落ちても止めず、判定は report.md に任せる"
 echo 1000 >"$WORK/fake-score"
 run bench main --note "regression"
-[ "$rc" = 50 ] || ng "exit=$rc (50 のはず)"
-grep -q "スコアが低下しました" "$ERR" || ng "低下の説明がありません"
-grep -q "isuh deploy" "$ERR" || ng "戻し方が案内されていません"
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず。良し悪しは判定しない)"
+[ "$out" = "1000" ] || ng "stdout='$out'"
+RUN_LOW=$(run_id_from_err)
+grep -q "| ベスト比 | -20000" "$ISUH_RUNS_DIR/$RUN_LOW/report.md" || ng "ベスト比が出ていません"
 [ "$(wc -l <"$HISTORY" | tr -d ' ')" = "5" ] || ng "低下したランが台帳に残っていません"
-ok "ベスト × scoreRegressionRatio を下回れば 50（戻し方つき）"
+ok "低下しても exit 0。前回比・ベスト比が report.md に出る"
 
 echo "== 10. 失敗したランも台帳とレポートに残る"
 run bench broken

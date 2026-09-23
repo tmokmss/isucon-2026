@@ -16,7 +16,6 @@ import { newRunId, runDir } from "../lib/paths.js";
 import { asJson, pick } from "../lib/portal.js";
 import { writeReport } from "../lib/report.js";
 import {
-  type HistoryRow,
   type RunMeta,
   appendHistory,
   bestRun,
@@ -100,7 +99,7 @@ export const command: Command = {
    6. portal でベンチを登録 → 完了待ち
    7. 計測停止・ログ収集（alp / pt-query-digest / pprof / リソース）
    8. runs/<run-id>/ に report.md と meta.json を生成、history.tsv に追記
-   9. スコア判定（bench.scoreRegressionRatio を下回れば exit 50）
+   9. （スコアの良し悪しは判定しない。report.md の前回比・ベスト比を読む）
   10. ロック解放（try-finally で異常終了時も必ず実行）
 
 途中で失敗しても 7〜10 は必ず走る。落ちたランのログこそ次の手がかりになる。
@@ -110,7 +109,7 @@ export const command: Command = {
 
 stdout にはスコアだけを出す。読むべきものは runs/<run-id>/report.md。
 
-終了コード: 0 / 10 ロック / 20 デプロイ / 30 check / 40 ベンチ / 50 スコア低下`,
+終了コード: 0 / 10 ロック / 20 デプロイ / 30 check / 40 ベンチ`,
 
   async run(argv) {
     let ref = "HEAD";
@@ -224,24 +223,8 @@ stdout にはスコアだけを出す。読むべきものは runs/<run-id>/repo
 
     if (failure !== undefined) throw failure;
 
-    const passed = outcome as BenchOutcome;
-    checkRegression(cfg, passed.score, best);
-    out(String(passed.score));
+    // 良くなったか悪くなったかの判定はしない。前回比・ベスト比は report.md に載っているので、
+    // 読む側（人かエージェント）が判断する。閾値で機械的に決めるとスコアのブレを誤判定する。
+    out(String((outcome as BenchOutcome).score));
   },
-};
-
-/**
- * 9. スコア判定。ベストから落ちすぎていたら止める。
- * 自動では戻さない。次のベンチが自分の ref をデプロイし直すので、戻す意味が薄い。
- */
-const checkRegression = (cfg: Config, score: number, best: HistoryRow | undefined): void => {
-  if (best === undefined) return;
-  const threshold = best.score * cfg.bench.scoreRegressionRatio;
-  if (score >= threshold) return;
-
-  throw new HarnessError(
-    EXIT.REGRESSION,
-    `スコアが低下しました: ${score} < ベスト ${best.score} × ${cfg.bench.scoreRegressionRatio} = ${threshold.toFixed(0)}\n` +
-      `  戻すなら: isuh deploy ${best.sha.slice(0, 12)}（ベスト時の revision）`,
-  );
 };

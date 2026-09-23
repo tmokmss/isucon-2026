@@ -8,7 +8,6 @@ export const EXIT = {
   DEPLOY: 20, // デプロイ失敗
   CHECK: 30, // 検証ゲート失敗
   BENCH: 40, // ベンチ失敗
-  REGRESSION: 50, // スコア低下
   USAGE: 64, // 引数不正
   CONFIG: 65, // 設定不備
   NOT_IMPLEMENTED: 70, // 未実装

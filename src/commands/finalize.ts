@@ -18,7 +18,7 @@ export const command: Command = {
 
 その後、最終ベンチ → verify-restart まで流す。
 
-終了コード: 0 成功 / 40 ベンチ失敗 / 50 スコア低下`,
+終了コード: 0 成功 / 40 ベンチ失敗`,
 
   async run(argv) {
     if (argv.length > 0) throw usageError(`引数は取らない: ${argv.join(" ")}`);

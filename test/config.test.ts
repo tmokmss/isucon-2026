@@ -69,6 +69,5 @@ export const config: Config = {
     lockPath: "/tmp/isucon-bench.lock",
     lockTimeoutSec: 3,
     timeoutSec: 60,
-    scoreRegressionRatio: 0.9,
   },
 };

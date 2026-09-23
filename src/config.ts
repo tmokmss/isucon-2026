@@ -91,8 +91,6 @@ export interface BenchConfig {
   lockPath: string;
   lockTimeoutSec: number;
   timeoutSec: number;
-  /** ベストスコアに対してこの割合を下回ったら「スコア低下」と判定する */
-  scoreRegressionRatio: number;
 }
 
 export interface Config {

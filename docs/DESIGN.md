@@ -51,9 +51,13 @@ isuh bench [<git-ref>]
  ├─ 6. portal でベンチ登録 → 完了待ち .... 失敗 → exit 40
  ├─ 7. 計測停止・ログ収集（alp / pt-query-digest / pprof / リソース）
  ├─ 8. runs/<run-id>/ に report.md と meta.json を生成、history.tsv に追記
- ├─ 9. スコア判定 ........................ 低下 → exit 50（自動では戻さない）
+ ├─ 9. （スコアの良し悪しは判定しない。report.md の前回比・ベスト比を読む）
  └─ 10. ロック解放（try-finally で異常終了時も必ず実行）
 ```
+
+**スコアの良し悪しは判定しない。** 前回比・ベスト比は `report.md` の Summary に
+載っているので、読む側（人かエージェント）が判断する。閾値で機械的に「低下」と
+決めると、数 % 〜 10 % あるスコアのブレを誤判定する。
 
 **戻すコマンドは持たない。** 「4. 戻す」は `isuh history` で sha を見て
 `isuh deploy <sha>` する（ビルドはキャッシュされるので速い）。自動でも戻さない。
@@ -342,7 +346,6 @@ run_id	started_at	sha	ref	score	status	note
 | `EXIT.DEPLOY` | `20` | デプロイ失敗 |
 | `EXIT.CHECK` | `30` | 検証ゲート失敗 |
 | `EXIT.BENCH` | `40` | ベンチ失敗 |
-| `EXIT.REGRESSION` | `50` | スコア低下（`bench.scoreRegressionRatio` を下回った） |
 | `EXIT.USAGE` | `64` | 引数不正 |
 | `EXIT.CONFIG` | `65` | 設定不備 |
 | `EXIT.NOT_IMPLEMENTED` | `70` | 未実装 |
