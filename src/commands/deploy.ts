@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { hostname, userInfo } from "node:os";
 import { join, sep } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -94,6 +94,69 @@ const buildBinary = async (cfg: Config, sha: string, tree: string): Promise<stri
   }
   log.info(`build: 完了 ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
   return binary;
+};
+
+// ---------------------------------------------------------------------------
+// アプリのバイナリ以外のファイル（スキーマ・スクリプト・テンプレートなど）
+// ---------------------------------------------------------------------------
+
+/** バイナリの app.localDir からの相対パス。同期から外す（pushBinary が原子的に差し替えるため）。 */
+const binaryRelPath = (cfg: Config): string => `${cfg.app.langDir.replace(/\/+$/, "")}/${cfg.app.binary}`;
+
+/** app.localDir 以下を固めた tar。ツリーと同じ場所に sha ごとにキャッシュする。 */
+const APP_TAR = ".isuh-app.tar";
+
+/**
+ * app.localDir 以下を sha の中身で tar に固める。
+ *
+ * `git archive <sha>:<localDir>` を使うので、中身は sha と一致し、実行ビット（sql/init.sh 等）も
+ * git の記録どおりになる。取り出したツリーを手元の tar（macOS は bsdtar）で固め直さないのは、
+ * 拡張属性などのヘッダを混ぜてサーバの GNU tar に警告を出させないため。
+ */
+const appTarFor = async (cfg: Config, sha: string, tree: string): Promise<string> => {
+  const tar = join(tree, APP_TAR);
+  if (existsSync(tar)) return tar;
+  const localDir = cfg.app.localDir.replace(/\/+$/, "");
+  const treeish = localDir === "" || localDir === "." ? sha : `${sha}:${localDir}`;
+  const partial = `${tar}.${process.pid}.partial`;
+  try {
+    await local("git", ["-C", cfg.app.repoLocal, "archive", "--format=tar", "-o", partial, treeish]);
+  } catch (error) {
+    rmSync(partial, { force: true });
+    const detail = error instanceof Error && "stderr" in error ? String(error.stderr) : String(error);
+    throw deployError(`${cfg.app.localDir} を取り出せません (at ${sha.slice(0, 7)})\n${detail.trimEnd()}`);
+  }
+  renameSync(partial, tar);
+  return tar;
+};
+
+/**
+ * app.localDir 以下を app.dir へ同期する（上書きのみ。削除はしない）。
+ *
+ * - 削除しないのは、サーバ側にしか無いもの（gitignore されたビルド成果物・node_modules・
+ *   rust/target・アップロードされた画像など）を消さないため。リポジトリで消したファイルは残る
+ * - 毎回すべて書き直すので、mtime の比較による取りこぼしは起きない
+ * - バイナリは外す。実行中のファイルを上書きすると ETXTBSY になるため
+ * - rsync ではなく tar にしているのは、サーバに追加の道具が要らないため（検証用コンテナにも
+ *   rsync は無い）。手元の rsync も macOS では openrsync で、GNU rsync と挙動が揃わない
+ */
+const syncAppFiles = async (cfg: Config, host: string, appTar: string): Promise<void> => {
+  const dir = cfg.app.dir.replace(/\/$/, "");
+  const staged = `/tmp/isuh-app-${process.pid}.tar`;
+  const exclude = binaryRelPath(cfg);
+  await copyTo(host, appTar, staged);
+  // 実行ビットは git の記録から残る（root 以外の展開は umask を掛けるだけ。0664 → 0644、0775 → 0755）。
+  // -m: mtime は今にする（commit 時刻で古く見えないように）
+  // --no-overwrite-dir: 既存ディレクトリの権限を変えない
+  const script =
+    `mkdir -p ${shQuote(dir)} && ` +
+    `tar -x -m --no-overwrite-dir -f ${shQuote(staged)} -C ${shQuote(dir)} ` +
+    `--anchored --exclude=${shQuote(exclude)} --exclude=${shQuote(`./${exclude}`)}`;
+  try {
+    await onHostShell(host, script);
+  } finally {
+    await onHost(host, ["rm", "-f", staged], { allowFailure: true });
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -274,7 +337,12 @@ export const deploy = async (cfg: Config, opts: DeployOptions = {}): Promise<str
     log.info(`[dry-run] ref=${ref} sha=${sha.slice(0, 7)}`);
     log.info(`[dry-run] build: ${cfg.app.buildCommand} (in ${join(cfg.app.localDir, cfg.app.langDir)})`);
     for (const host of hosts) {
-      if (appHosts.has(host)) log.info(`[dry-run] ${host}: ${remoteBinaryPath(cfg)} を差し替え`);
+      if (appHosts.has(host)) {
+        log.info(
+          `[dry-run] ${host}: ${cfg.app.localDir}/ を ${cfg.app.dir} へ同期（上書きのみ・${binaryRelPath(cfg)} は除く）`,
+        );
+        log.info(`[dry-run] ${host}: ${remoteBinaryPath(cfg)} を差し替え`);
+      }
       const confFiles = confFilesFor(tree, host);
       for (const file of confFiles) log.info(`[dry-run] ${host}: ${file.remotePath} を配布`);
       for (const { service, action } of reloadsFor(cfg, confFiles.map((f) => f.remotePath))) {
@@ -286,6 +354,7 @@ export const deploy = async (cfg: Config, opts: DeployOptions = {}): Promise<str
   }
 
   const binary = await buildBinary(cfg, sha, tree);
+  const appTar = await appTarFor(cfg, sha, tree);
 
   // ホストごとに直列（配布 → 再起動）、ホスト間は並列。
   // 1 台でも失敗したら全体を失敗にする（後続のベンチを走らせないため）。
@@ -297,6 +366,7 @@ export const deploy = async (cfg: Config, opts: DeployOptions = {}): Promise<str
         await pushConf(cfg, host, confFiles);
       }
       if (appHosts.has(host)) {
+        await syncAppFiles(cfg, host, appTar);
         await pushBinary(cfg, host, binary);
         await restartApp(cfg, host);
       }
@@ -326,6 +396,8 @@ export const command: Command = {
   usage: `usage: isuh deploy [<git-ref>] [--dry-run]
 
 指定した git ref のアプリをビルドし、hosts.app へ配布して再起動する。
+バイナリ以外の app.localDir 以下（sql/・スクリプト・テンプレート等）も app.dir へ上書きで
+同期する。削除はしないので、リポジトリで消したファイルはサーバに残る。
 ref は app.repoLocal（通常はこのリポジトリ）で解決する。既定は HEAD。
 
   <git-ref>   デプロイする ref
