@@ -1,0 +1,147 @@
+---
+name: isucon-improve
+description: ISUCON のアプリを 1 周改善する手順（report.md を読んでボトルネックを決める → webapp/ か conf/ を直してコミット → isuh bench → スコアで採否を決める）。スコアを上げる作業を始めるとき、ベンチ結果の読み方に迷ったとき、競技開始直後の計測の準備（alpMatches・pprof）をするときに使う。
+---
+
+# ISUCON の改善ループ
+
+このリポジトリは ISUCON2026 専用で、アプリ（`webapp/`）・サーバの設定（`conf/<host>/`）・
+ハーネス（`bin/isuh`）が 1 つにまとまっている。計測はすべて `isuh bench` が行う。
+**自分で ssh してログを見たり、サーバで設定を直接いじったりしない。**
+
+1 周 = 「report.md を読む → 1 つ直す → コミット → `isuh bench` → 採否を決める」。
+1 周で直すのは **1 つだけ**（2 つ同時に変えると、どちらが効いたか分からない）。
+
+## 0. 競技開始直後に 1 回だけ（誰か 1 人がやる）
+
+`isuh setup` が済んでいる前提（`webapp/` と `conf/` がある）。
+
+### alpMatches を作る
+
+`config.ts` の `metrics.alpMatches` が空だと、`/api/user/1` と `/api/user/2` が別の行に割れて
+alp の集計が役に立たない（report.md の Access log 節に警告が出る）。
+
+1. アプリのルーティング定義を読む（Go なら `webapp/go/main.go` 付近の `e.GET(...)` / `r.Get(...)` 等）
+2. パスパラメータを含むルートごとに正規表現を書く。`:id` / `{id}` → `[^/]+`
+
+   ```ts
+   alpMatches: [
+     "^/api/user/[^/]+$",
+     "^/api/user/[^/]+/icon$",
+     "^/api/competition/[^/]+/ranking$",
+   ],
+   ```
+3. **長い（具体的な）パターンを先に**書く。alp は最初に当たったものに寄せる
+4. コミットする（`config.ts` はコミット対象）
+
+### pprof を仕込む（Go）
+
+```go
+import (
+	"net/http"
+	_ "net/http/pprof"
+)
+
+func main() {
+	go func() { _ = http.ListenAndServe("localhost:6060", nil) }()
+	// ...
+}
+```
+
+- `localhost` で待ち受ける（外に開かない。ハーネスは `hosts.app[0]` 上で curl する）
+- `config.ts` の `metrics.pprofEnabled: true`。`pprofUrl` の `?seconds=N` はベンチの長さ（通常 60）に合わせる
+- 本番の最後に外す（finalize #8 が確認する）
+
+## 1. report.md を読む
+
+最新のランは `bin/isuh history` の**最後の行**（run-id）。レポートは `runs/<run-id>/report.md`。
+**report.md だけ読めば判断できるように作ってある。** 生ファイル（`alp.txt` / `ptquery.txt` /
+`cpu.pprof`）は、表で当たりを付けた後に深掘りするときだけ読む。
+
+読む順番:
+
+1. **Summary** — `status` が `pass` 以外なら、まず直す（「4. 採否を決める」の「失敗した」）
+2. **Resources** — **どのホストの何が詰まっているか**。ここで方針が決まる
+   - `isu1（CPU が飽和、主に mysqld）` → DB が詰まっている → Slow query を見る
+   - `主に isuports`（アプリ）→ CPU profile と Access log を見る
+   - `IO 待ちが重い` → DB のディスク（インデックス無し・`innodb_buffer_pool_size`・fsync）
+   - どこも飽和していない → アプリの待ち（ロック・外部呼び出し・`sleep`）や nginx の設定を疑う
+3. **Slow query** — `share` が大きい順に見る
+   - `rows_examined_avg` が `rows_sent_avg` よりずっと大きい → **インデックスが効いていない**。
+     `webapp/sql/` のスキーマに `ALTER TABLE ... ADD INDEX` / `CREATE INDEX` を足す
+   - `calls` が桁違いに多い → **N+1**。アプリ側で JOIN / `IN (...)` にまとめる
+   - 下の「上位の実例」はそのまま `EXPLAIN` に使える
+4. **Access log** — `share`（合計時間の割合）が大きいエンドポイントから
+   - `5xx` / `4xx` が出ている → 先にそれを直す（スコアの減点・失敗の原因）
+   - `avg_bytes` が大きい → 帯域。画像などの静的ファイルは nginx に配らせる
+5. **CPU profile** — アプリの中のどの関数か。`flat` が大きい関数を探す
+6. **Diff from previous run** — 前回から何を変えたか（スコアの増減の理由付け）
+
+## 2. 直す
+
+- **アプリ**は `webapp/` を、**nginx / MySQL / systemd の設定**は `conf/<host>/...` を編集する
+  - サーバの `/etc` を直接編集しない。deploy で配られず、`deploy <古い sha>` でも戻らない
+  - 参考: `setup/templates/`（nginx・mysqld のチューニングの定番）。**計測で必要と分かってから**写す
+- スキーマの変更は、初期化（`/initialize` の SQL）と整合させる
+- 直したら**コミットする**。配られるのは commit の中身だけ（未コミットの変更は警告されるが配られない）
+
+```sh
+git add webapp conf && git commit -m "users.email にインデックス（slow query 1 位、rows_examined 10000 → 1）"
+```
+
+コミットメッセージに**根拠にした計測値**を書く（どの表の何が悪かったか）。
+
+## 3. ベンチを回す
+
+```sh
+bin/isuh bench --note "users.email にインデックス"
+```
+
+- デプロイ → ベンチ → 計測 → report.md までを 1 本でやる。stdout はスコアだけ
+- 他のエージェントがベンチ中なら**ロック待ちで止まる**（同時に 2 本走らせない仕組み）。それで正常
+- 数分かかる。完了したら stderr の `レポート: runs/<run-id>/report.md` を読む
+
+| 終了コード | 意味 | 次にやること |
+|---|---|---|
+| 0 | 完走 | report.md を読んで採否を決める |
+| 10 | ロックが取れない（誰かが長く握っている） | 保持者が表示される。待つか、その人に確認 |
+| 20 | デプロイ失敗（ビルドエラー・起動しない） | stderr のエラーを直す |
+| 30 | 検証ゲート失敗 | 壊れている。直す |
+| 40 | ベンチ失敗 | report.md の Bench 節を全文読む |
+
+## 4. 採否を決める
+
+report.md の Summary に**前回比・ベスト比**が出る。ハーネスは良し悪しを判定しない。
+
+- **スコアのブレは数 % 〜 10 % ある。** 1 回の小さな増減で判断しない。迷ったら同じ sha でもう 1 回回す
+  （`bin/isuh bench <sha> --note "再計測"`）
+- **良くなった** → そのまま次の周へ
+- **悪くなった・変わらない** → 戻す。コミットを revert してから次へ
+
+  ```sh
+  git revert --no-edit HEAD        # 戻したものも履歴に残す
+  bin/isuh deploy                  # サーバも戻す（ビルドはキャッシュされるので速い）
+  ```
+- **失敗した**（status が fail / error）→ Bench 節を全文読み、整合性チェックで落ちたなら
+  レスポンスが変わっていないか確認する（下の禁止事項）
+
+スコアの一覧は `bin/isuh history`（ベストに `*`、前回からの差）。
+
+## やってはいけないこと（失格・事故）
+
+詳細は CLAUDE.md §2・§3。改善で踏みやすいもの:
+
+- **レスポンスの形を変えない。** JSON のキーの追加・削除・型の変更、HTML の DOM、JS / CSS / 画像の中身。
+  「使っていないフィールドを返さない」も不可
+- **`/initialize` に頼らない。** キャッシュのウォームアップを initialize の中だけでやると、
+  再起動後の追試（initialize 無し）で壊れる。**起動時にも**温める
+- **オンメモリ化・キャッシュは、再起動後もデータが取れること。** ベンチで書かれたデータが
+  再起動で消える実装は失格。DB に書いてからキャッシュする
+- **起動順に依存しない。** アプリが DB より先に上がっても落ちない（接続のリトライ）
+- **計測せずに推測で最適化しない。** 根拠の無い変更は、効いたかどうかも判断できない
+
+## 並列で作業するとき
+
+- 1 エージェント = 1 worktree = 1 ブランチ。触る場所（エンドポイント・テーブル）を分ける
+- `isuh bench <ref>` はそのブランチの ref を渡す。ロックで直列化されるので、計測は混ざらない
+- 良かった変更は main に取り込み、他のエージェントは main を取り込んでから次の周へ
