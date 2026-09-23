@@ -292,18 +292,26 @@ export const startResourceSampling = async (
 // ベンチ後
 // ---------------------------------------------------------------------------
 
+const ALP_URI_LIMIT = 100000;
+
 const alpOn = async (cfg: Config, host: string): Promise<string> => {
   const args = [
     "sudo",
     "alp",
     cfg.metrics.alpFormat,
+    // 機械向けの TSV。report.md では src/lib/digest.ts が列を絞った表に畳む
+    "--format",
+    "tsv",
     "--file",
     cfg.middleware.nginxAccessLog,
     "--sort",
     cfg.metrics.alpSort,
     "-r",
+    // alp の --limit は「表示する行数」ではなく「許容する URI の種類数」で、超えると
+    // `Too many URI's` で集計ごと落ちる。alpMatches を埋める前（ID 入りのパスがばらける）でも
+    // 取れるよう大きくしておき、上位 alpLimit 件への絞り込みは report.md 側で行う。
     "--limit",
-    String(cfg.metrics.alpLimit),
+    String(ALP_URI_LIMIT),
   ];
   if (cfg.metrics.alpMatches.length > 0) args.push("-m", cfg.metrics.alpMatches.join(","));
 
@@ -349,6 +357,9 @@ const collectSlowQuery = async (cfg: Config, runDir: string): Promise<void> => {
   const args = [
     "sudo",
     "pt-query-digest",
+    // 機械向けの JSON。report.md では src/lib/digest.ts が 1 行 1 クエリの表に畳む
+    "--output",
+    "json",
     "--limit",
     String(cfg.metrics.ptQueryLimit),
     cfg.middleware.dbSlowLog,

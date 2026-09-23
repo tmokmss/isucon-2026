@@ -8,7 +8,7 @@ echo "### typecheck"
 echo "  ok"
 echo
 
-for suite in smoke lock portal report metrics setup; do
+for suite in smoke lock portal report metrics setup digest; do
   echo "### $suite"
   "./$suite.sh"
   echo
