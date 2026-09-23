@@ -71,6 +71,14 @@ export const config: Config = {
     lockPath: "/tmp/isucon-bench.lock",
     lockTimeoutSec: 3,
     timeoutSec: 60,
+    // bench-local.sh が ISUH_TEST_RUNNER=local で切り替える。偽のベンチマーカーは isu1 の ~/fake-bench.sh
+    runner: process.env["ISUH_TEST_RUNNER"] === "local" ? "local" : "portal",
+    local: {
+      host: "isu1",
+      command: "sh fake-bench.sh",
+      scorePattern: "スコア=(\\d+)",
+      passPattern: "pass=true",
+    },
   },
 
   // 手元からは 127.0.0.1 の転送ポート、サーバ間は docker-compose.yml で固定したアドレス

@@ -92,11 +92,30 @@ export interface PortalConfig {
   scorePath: string;
 }
 
+/**
+ * ベンチマーカーを ssh で直接実行する（過去問のリハーサル用）。
+ * 過去問の AMI にはポータルが無く、ベンチマーカーがサーバ上に置かれている。
+ */
+export interface LocalBenchConfig {
+  /** ベンチマーカーを実行するホスト（~/.ssh/config 上の別名） */
+  host: string;
+  /** そのホストで実行するシェルのコマンド。hosts.user のホームディレクトリで実行される */
+  command: string;
+  /** 出力（stdout と stderr を合わせたもの）からスコアを抜く正規表現。1 つ目の捕獲グループがスコア */
+  scorePattern: string;
+  /** 出力にこれが当たれば pass。当たらなければ fail */
+  passPattern: string;
+}
+
 export interface BenchConfig {
   /** hosts.primary 上のロックファイル */
   lockPath: string;
   lockTimeoutSec: number;
   timeoutSec: number;
+  /** ベンチの起動方法。本番は "portal"。過去問のリハーサルは "local" */
+  runner: "portal" | "local";
+  /** runner が "local" のときだけ使う */
+  local: LocalBenchConfig;
 }
 
 export interface HostAddress {
@@ -133,6 +152,12 @@ const validate = (cfg: Config): void => {
   if (!cfg.app.repoLocal) missing.push("app.repoLocal");
   if (!cfg.app.dir) missing.push("app.dir");
   if (!cfg.app.service) missing.push("app.service");
+  if (cfg.bench.runner === "local") {
+    if (!cfg.bench.local.host) missing.push("bench.local.host");
+    if (!cfg.bench.local.command) missing.push("bench.local.command");
+    if (!cfg.bench.local.scorePattern) missing.push("bench.local.scorePattern");
+    if (!cfg.bench.local.passPattern) missing.push("bench.local.passPattern");
+  }
   if (missing.length > 0) {
     throw configError(`config.ts に未設定の項目があります: ${missing.join(", ")}`);
   }

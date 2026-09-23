@@ -1,5 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { execa } from "execa";
 import { type Config, loadConfig } from "../config.js";
 import {
   type ResourceSampler,
@@ -15,6 +16,7 @@ import { log, out } from "../lib/log.js";
 import { newRunId, runDir } from "../lib/paths.js";
 import { asJson, pick } from "../lib/portal.js";
 import { writeReport } from "../lib/report.js";
+import { sshOpts } from "../lib/ssh.js";
 import {
   type RunMeta,
   appendHistory,
@@ -30,27 +32,27 @@ import { deploy } from "./deploy.js";
 import { SCORE_KEYS, STATUS_KEYS, enqueueBench, isPassStatus, waitBench } from "./portal.js";
 
 interface BenchOutcome {
+  /** ポータルのジョブ ID。local では "local" */
   jobId: string;
-  /** ポータルが返した生の状態 */
+  /** ポータルが返した生の状態（local では pass / fail / exit=<n>） */
   rawStatus: string;
   /** docs/DESIGN.md §4 の status */
   status: "pass" | "fail";
   score: number;
 }
 
+const withNewline = (text: string): string => (text.endsWith("\n") ? text : `${text}\n`);
+
 /**
- * ベンチを起動して完了まで待つ。
+ * ポータルでベンチを起動して完了まで待つ。
  *
  * ポータルのエンドポイントは当日まで分からないので、パスは config.portal に集約し、
  * ここでは「登録 → 完了待ち → 生出力を bench.log に落とす」だけを行う。
  */
-const runBenchmark = async (cfg: Config, dir: string): Promise<BenchOutcome> => {
+const runPortalBenchmark = async (cfg: Config, dir: string): Promise<BenchOutcome> => {
   const jobId = await enqueueBench(cfg);
   const response = await waitBench(cfg, jobId);
-  writeFileSync(
-    join(dir, "bench.log"),
-    response.body.endsWith("\n") ? response.body : `${response.body}\n`,
-  );
+  writeFileSync(join(dir, "bench.log"), withNewline(response.body));
 
   const json = asJson(response);
   const rawStatus = (pick(json, STATUS_KEYS) ?? "unknown").toLowerCase();
@@ -62,6 +64,47 @@ const runBenchmark = async (cfg: Config, dir: string): Promise<BenchOutcome> => 
     score: Number.isFinite(parsed) ? parsed : 0,
   };
 };
+
+/**
+ * ベンチマーカーを ssh で直接実行して、出力からスコアと成否を読む（過去問のリハーサル用）。
+ *
+ * 出力は stdout と stderr を混ぜた順のまま bench.log に落とす。
+ * スコアを読めない・passPattern が当たらない・終了コードが 0 でない、のどれかなら fail。
+ */
+const runLocalBenchmark = async (cfg: Config, dir: string): Promise<BenchOutcome> => {
+  const { host, command, scorePattern, passPattern } = cfg.bench.local;
+  log.info(`ベンチマーカーを実行します host=${host}`);
+  log.debug(`ssh ${host} -- ${command}`);
+  const result = await execa("ssh", [...sshOpts(), host, command], {
+    reject: false,
+    all: true,
+    timeout: cfg.bench.timeoutSec * 1000,
+  });
+  const output = result.all ?? "";
+  writeFileSync(join(dir, "bench.log"), withNewline(output));
+
+  if (result.timedOut) {
+    throw new HarnessError(EXIT.BENCH, `ベンチが ${cfg.bench.timeoutSec}s で終わりませんでした`);
+  }
+  const exitCode = result.exitCode ?? -1;
+  const scoreText = new RegExp(scorePattern, "m").exec(output)?.[1];
+  const parsed = Number(scoreText ?? Number.NaN);
+  const passed = new RegExp(passPattern, "m").test(output);
+  const readable = Number.isFinite(parsed);
+  if (!readable) log.warn(`ベンチの出力からスコアを読めません（bench.local.scorePattern を確認）`);
+
+  const pass = exitCode === 0 && passed && readable;
+  return {
+    jobId: "local",
+    rawStatus: exitCode !== 0 ? `exit=${exitCode}` : pass ? "pass" : "fail",
+    status: pass ? "pass" : "fail",
+    score: readable ? parsed : 0,
+  };
+};
+
+/** ベンチを起動して完了まで待つ。起動方法は bench.runner で選ぶ。 */
+const runBenchmark = (cfg: Config, dir: string): Promise<BenchOutcome> =>
+  cfg.bench.runner === "local" ? runLocalBenchmark(cfg, dir) : runPortalBenchmark(cfg, dir);
 
 /**
  * check を挟む。deploy の「後」に走らせるのは、新しいコードが載った状態を検証するため。
@@ -96,7 +139,8 @@ export const command: Command = {
    3. deploy <sha>
    4. check                        ← deploy の後。落ちたらベンチを起動しない
    5. ログのリセット + リソース計測開始
-   6. portal でベンチを登録 → 完了待ち
+   6. ベンチを起動して完了待ち（bench.runner が portal ならポータルに登録、
+      local なら bench.local.host でベンチマーカーを ssh で直接実行）
    7. 計測停止・ログ収集（alp / pt-query-digest / pprof / リソース）
    8. runs/<run-id>/ に report.md と meta.json を生成、history.tsv に追記
    9. （スコアの良し悪しは判定しない。report.md の前回比・ベスト比を読む）

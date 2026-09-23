@@ -48,7 +48,8 @@ isuh bench [<git-ref>]
  ├─ 3. deploy <sha> ...................... 失敗 → exit 20
  ├─ 4. check ............................. 失敗 → exit 30（ベンチを起動しない）
  ├─ 5. ログのリセット + リソース計測開始
- ├─ 6. portal でベンチ登録 → 完了待ち .... 失敗 → exit 40
+ ├─ 6. ベンチ起動 → 完了待ち .............. 失敗 → exit 40
+ │     （bench.runner: portal ならポータルに登録、local ならベンチマーカーを ssh で実行）
  ├─ 7. 計測停止・ログ収集（alp / pt-query-digest / pprof / リソース）
  ├─ 8. runs/<run-id>/ に report.md と meta.json を生成、history.tsv に追記
  ├─ 9. （スコアの良し悪しは判定しない。report.md の前回比・ベスト比を読む）
@@ -119,6 +120,20 @@ bench は毎回自分の ref をデプロイし直すので、悪い版が載っ
 |---|---|
 | `app.repoLocal` | アプリと `conf/` を含む git リポジトリ。通常はこのリポジトリ |
 | `app.localDir` | その中で、サーバの `app.dir` を写したディレクトリ（`webapp`） |
+
+ベンチの起動方法は `bench.runner` で選ぶ。本番は `portal`。過去問のリハーサルは、
+ポータルが無くベンチマーカーがサーバ上にあるので `local` にする。
+
+| フィールド | 意味 |
+|---|---|
+| `bench.runner` | `"portal"`（ポータルに登録して完了を待つ）/ `"local"`（ベンチマーカーを ssh で直接実行） |
+| `bench.local.host` | ベンチマーカーを実行するホスト別名 |
+| `bench.local.command` | そのホストで実行するシェルのコマンド（`hosts.user` のホームで実行） |
+| `bench.local.scorePattern` | 出力（stdout + stderr）からスコアを抜く正規表現。1 つ目の捕獲グループ |
+| `bench.local.passPattern` | 出力にこれが当たれば pass |
+
+`local` では、終了コードが 0・`passPattern` が当たる・スコアが読める、の 3 つが揃えば pass。
+それ以外は fail（exit 40）。出力はそのまま `bench.log` に残る。
 
 ---
 
@@ -287,7 +302,7 @@ runs/
 └── 20261031-103512-a1b2c3d/
     ├── report.md                     # 人間と AI が読む唯一のファイル
     ├── meta.json                     # 機械が読む
-    ├── bench.log                     # ベンチの生出力
+    ├── bench.log                     # ベンチの生出力（portal: ジョブの応答 / local: ベンチマーカーの出力）
     ├── alp.txt                       # alp --format tsv の全行（nginx が複数台なら == host == の節ごと）
     ├── ptquery.txt                   # pt-query-digest --output json
     ├── pprof.txt                     # go tool pprof -top の出力
@@ -357,6 +372,8 @@ pprof のポートは外に開いていないことが多いため。
   "bestRunId": "20261031-103512-a1b2c3d"
 }
 ```
+
+`benchJobId` はポータルのジョブ ID。`bench.runner` が `local` のときは `"local"`。
 
 `status` は `pass` / `fail` / `error` のいずれか。
 
@@ -588,6 +605,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 ./test/metrics.sh # ベンチ中の計測（pprof の開始時機・top・alp の全台集計）
 ./test/digest.sh  # report.md の alp / pt-query-digest の節が列を絞った表になるか
 ./test/setup.sh   # setup（本物の nginx / MySQL に設定を入れ、alp / pt-query-digest で読む）
+./test/bench-local.sh # bench.runner=local（偽のベンチマーカーを ssh で実行し、出力からスコアを読む）
 ```
 
 - 設定は `test/config.test.ts`（`ISUH_CONFIG` で指す）
