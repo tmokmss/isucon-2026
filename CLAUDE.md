@@ -53,7 +53,8 @@ TypeScript / Node + tsx。エントリポイントは `bin/isuh`。
   サーバ上の `/etc/nginx` や `/etc/mysql` を直接編集しない（履歴が残らず、`deploy <古い sha>` で戻らない）。
   配られるのは commit の中身だけ
 - **当日埋める値は `config.ts` に集約する。** ホスト名やサービス名をソースに直書きしない。
-  項目を増やすときは `src/config.ts` の型と `config.example.ts` を同時に更新する
+  項目を増やすときは `src/config.ts` の型と `config.ts` を同時に更新する。
+  `config.ts` はコミットする（worktree からも isuh を動かすため）。秘密は書かない
 - **失敗は `throw new HarnessError(EXIT.X, msg)`。** 各コマンドで `process.exit` を呼ばない
   （`src/cli.ts` が捕まえて終了コードにする）。数値の直書きもしない
 - **stdout は機械可読な結果のみ**（`out()`）。進捗・警告・エラーは stderr（`log.*`）

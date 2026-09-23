@@ -144,7 +144,7 @@ export const loadConfig = async (): Promise<Config> => {
   const path = override ? resolve(override) : join(repoRoot(), "config.ts");
   if (!existsSync(path)) {
     throw configError(
-      `設定ファイルがありません: ${path}\n  cp config.example.ts config.ts して埋めてください。`,
+      `設定ファイルがありません: ${path}\n  リポジトリ直下の config.ts（コミット済み）を確認してください。`,
     );
   }
   const mod: { config?: Config; default?: Config } = await import(pathToFileURL(path).href);

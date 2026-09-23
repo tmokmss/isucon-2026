@@ -4,7 +4,9 @@ import type { Config } from "./src/config.js";
 
 /**
  * isucon-harness 設定
- *   cp config.example.ts config.ts して埋める。config.ts は .gitignore 済み。
+ *   このリポジトリは ISUCON2026 専用・private なので、実設定をそのままコミットする。
+ *   エージェントが作る worktree にもこのファイルが入り、どこからでも isuh が動く。
+ *   秘密（ポータルの Cookie）はここに書かない。portal.cookieFile が指す別ファイルに置く。
  *   当日埋める値は「すべて」このファイルに集約する。ソースに直書きしない。
  */
 export const config: Config = {

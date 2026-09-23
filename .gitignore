@@ -1,6 +1,3 @@
-# 当日埋める実設定（config.example.ts をコピーして使う）
-# 先頭の / が無いと src/config.ts まで無視されるので必ず付ける
-/config.ts
 
 node_modules/
 

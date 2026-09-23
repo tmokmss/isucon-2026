@@ -73,7 +73,9 @@ bench は毎回自分の ref をデプロイし直すので、悪い版が載っ
 
 - 当日埋める値は **すべて** `config.ts` に置く。ソースに直書きしない
 - 型は `src/config.ts` の `Config` インターフェースが唯一の定義。
-  **項目を増やすときは型と `config.example.ts` を同時に更新する**
+  **項目を増やすときは型と `config.ts` を同時に更新する**
+- `config.ts` は**コミットする**。エージェントが作る worktree にも入り、どこからでも `isuh` が動く。
+  秘密（ポータルの Cookie）は書かず、`portal.cookieFile` が指す別ファイルに置く
 - 読み込みは `loadConfig()` が行う。各コマンドは自前で読まない
 - 必須項目が空なら `EXIT.CONFIG`(65) で落ちる
 - `ISUH_CONFIG` 環境変数で場所を上書きできる（テスト用）
