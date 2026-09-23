@@ -1,6 +1,7 @@
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { homedir, tmpdir } from "node:os";
-import { join, posix } from "node:path";
+import { dirname, join, posix } from "node:path";
 import { type Config, loadConfig } from "../config.js";
 import type { Command } from "../lib/command.js";
 import { configError, EXIT, HarnessError, usageError } from "../lib/exit.js";
@@ -307,18 +308,62 @@ const stepDotfiles = async (cfg: Config): Promise<void> => {
 };
 
 // ---------------------------------------------------------------------------
-// tools: 計測ツール（オフライン同梱を優先）
+// tools: 計測ツール（alp は GitHub のリリース、pt-query-digest は同梱）
 // ---------------------------------------------------------------------------
 
 const ALP_VERSION = "1.0.21";
-/** 同梱が無いもの。入らなくても計測は回る（vmstat / top は procps にある）ので警告だけ */
+/** リリースの alp_<version>_checksums.txt と同じ値。取ってきたものが違えば使わない */
+const ALP_SHA256: Record<Arch, string> = {
+  amd64: "890628b2fe5307b637e4f875fd854a737f787d9ebc73d5f36554cfeaa7acd00d",
+  arm64: "ce3b82c0279f0439928c892dfb158de9f8c8eba5e4ea992f6a014b9e6c1e790c",
+};
+/** apt で入れるもの。入らなくても計測は回る（vmstat / top は procps にある）ので警告だけ */
 const APT_EXTRAS = ["htop", "sysstat"];
 
-const archOf = async (host: string): Promise<"amd64" | "arm64" | null> => {
+type Arch = "amd64" | "arm64";
+
+const archOf = async (host: string): Promise<Arch | null> => {
   const m = (await onHost(host, ["uname", "-m"])).stdout.trim();
   if (m === "x86_64" || m === "amd64") return "amd64";
   if (m === "aarch64" || m === "arm64") return "arm64";
   return null;
+};
+
+const sha256Of = (data: Uint8Array): string => createHash("sha256").update(data).digest("hex");
+
+/**
+ * alp のリリースを手元に取ってくる。サーバでは取らない。
+ *
+ * 手元で取って scp で配るのは、競技サーバの外向きの通信が細い・遅いことがあるため。
+ * .isuh/tools/ にキャッシュするので、リハーサルで 1 回取っておけば当日は GitHub に行かない。
+ * ホストを並列に処理するので、同じアーキテクチャのダウンロードは 1 回にまとめる。
+ */
+const alpDownloads = new Map<Arch, Promise<string>>();
+const fetchAlp = (arch: Arch): Promise<string> => {
+  const pending = alpDownloads.get(arch);
+  if (pending) return pending;
+  const job = (async () => {
+    const name = `alp_linux_${arch}.tar.gz`;
+    const cached = join(repoRoot(), ".isuh", "tools", `alp_${ALP_VERSION}_linux_${arch}.tar.gz`);
+    if (existsSync(cached) && sha256Of(readFileSync(cached)) === ALP_SHA256[arch]) return cached;
+
+    const url = `https://github.com/tkuchiki/alp/releases/download/v${ALP_VERSION}/${name}`;
+    log.info(`tools: ${url} を取得しています`);
+    const res = await fetch(url, { signal: AbortSignal.timeout(120_000) }).catch((error: unknown) => {
+      throw setupError(`alp を取得できません: ${url}\n${String(error)}`);
+    });
+    if (!res.ok) throw setupError(`alp を取得できません: ${url} (HTTP ${res.status})`);
+    const data = new Uint8Array(await res.arrayBuffer());
+    const got = sha256Of(data);
+    if (got !== ALP_SHA256[arch]) {
+      throw setupError(`alp のチェックサムが一致しません: ${name}\n  期待 ${ALP_SHA256[arch]}\n  実際 ${got}`);
+    }
+    mkdirSync(dirname(cached), { recursive: true });
+    writeFileSync(cached, data);
+    return cached;
+  })();
+  alpDownloads.set(arch, job);
+  return job;
 };
 
 const installTools = async (host: string): Promise<void> => {
@@ -329,8 +374,8 @@ const installTools = async (host: string): Promise<void> => {
     log.info(`${host}: alp ${ALP_VERSION} は導入済み`);
   } else {
     const arch = await archOf(host);
-    if (arch === null) throw setupError(`${host}: 同梱の alp が無いアーキテクチャです`);
-    await copyTo(host, join(bin, `alp_linux_${arch}.tar.gz`), "/tmp/isuh-alp.tar.gz");
+    if (arch === null) throw setupError(`${host}: alp のリリースが無いアーキテクチャです`);
+    await copyTo(host, await fetchAlp(arch), "/tmp/isuh-alp.tar.gz");
     await onHostShell(
       host,
       "rm -rf /tmp/isuh-alp && mkdir /tmp/isuh-alp && tar -xzf /tmp/isuh-alp.tar.gz -C /tmp/isuh-alp" +
@@ -628,7 +673,7 @@ steps（この順で実行する）:
              サーバ間の鍵を配って isu1 → 全台に ssh できるようにする
   hosts      全台の /etc/hosts に private アドレスを書く
   dotfiles   .bashrc / .tmux.conf / .vimrc / .inputrc の配置
-  tools      alp / pt-query-digest の導入（リポジトリ同梱のものを配る）。htop / sysstat は apt で試す
+  tools      alp（GitHub のリリースを手元で取って配る）と pt-query-digest（同梱）の導入。htop / sysstat は apt で試す
   logs       nginx の access log を LTSV に、MySQL の slow query log を long_query_time=0 で有効に
   apprepo    hosts.app[0] の app.dir を手元の app.repoLocal に取り込んで git 化し、setup.appRemote へ push
 

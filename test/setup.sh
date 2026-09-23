@@ -55,6 +55,12 @@ $UP isu1 'mkdir -p ~/webapp/go ~/webapp/sql
   truncate -s 60M ~/webapp/big.bin'
 # 前回の実行の名残（nginx のロールバック検証用ファイル）を消す
 $UP isu1 'sudo rm -f /etc/nginx/conf.d/zz-broken.conf'
+# alp をリリースから取ってくる経路を毎回通す。手元のキャッシュは壊れた中身にしておき、
+# チェックサムが合わないキャッシュは使わずに取り直すことを見る
+for h in isu1 isu2 isu3; do $UP "$h" 'sudo rm -f /usr/local/bin/alp'; done
+TOOLS="$ROOT/.isuh/tools"
+mkdir -p "$TOOLS"
+for a in amd64 arm64; do printf 'broken' >"$TOOLS/alp_1.0.21_linux_$a.tar.gz"; done
 
 echo "== 1. 引数と設定の検証"
 run --only bogus
@@ -105,7 +111,10 @@ ok "dotfiles が配られ、対話シェルで読まれる"
 echo "== 7. 計測ツール"
 $SSH isu2 'sudo alp --version' | grep -q "1.0.21" || ng "alp 1.0.21 が入っていません"
 $SSH isu3 'sudo pt-query-digest --version' | grep -q "pt-query-digest" || ng "pt-query-digest が動きません"
-ok "alp / pt-query-digest が sudo で動く"
+grep -q "alp を取得しています\|releases/download/v1.0.21" "$ERR" || ng "alp をリリースから取得していません"
+[ "$(wc -c <"$TOOLS/alp_1.0.21_linux_$($UP isu1 'uname -m | sed "s/x86_64/amd64/; s/aarch64/arm64/"').tar.gz" | tr -d ' ')" -gt 1000000 ] ||
+  ng "壊れたキャッシュが取り直されていません"
+ok "alp をリリースから取得して配り（壊れたキャッシュは取り直す）、pt-query-digest と共に sudo で動く"
 
 echo "== 8. nginx の access log が LTSV になり、alp が読める"
 [ "$($SSH isu1 "grep -c '^[[:space:]]*access_log /var/log/nginx/access.log;' /etc/nginx/nginx.conf || true")" = 0 ] ||

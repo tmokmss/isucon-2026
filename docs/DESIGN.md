@@ -212,7 +212,7 @@ conf/isu1/etc/nginx/nginx.conf          → isu1 の /etc/nginx/nginx.conf
 | `ssh` | `~/.ssh/isuh_config` を生成して `~/.ssh/config` の先頭から `Include`。サーバ間の鍵を配り、1 台目から全台へ入れることを確認 | 手元の `~/.ssh`、全台の `~/.ssh` |
 | `hosts` | 全台の `/etc/hosts` に private アドレス | 全台 |
 | `dotfiles` | `setup/dotfiles/` を配る。`.bashrc` は置き換えず `~/.isuh.bashrc` を読み込ませる | 全台 |
-| `tools` | 同梱の alp / pt-query-digest を `/usr/local/bin` へ。htop / sysstat は apt で試す（失敗しても止めない） | 全台 |
+| `tools` | alp（GitHub のリリース）と pt-query-digest（同梱）を `/usr/local/bin` へ。htop / sysstat は apt で試す（失敗しても止めない） | 全台 |
 | `logs` | nginx の既存 `access_log` を無効化して `conf.d/isuh-log.conf`（LTSV）を置く。MySQL に `zz-isuh-slowlog.cnf`（`long_query_time = 0`）を置いて restart | `hosts.nginx`、`hosts.db` |
 | `apprepo` | `hosts.app[0]` の `app.dir` を手元の `app.repoLocal` に取り込んで git 化し、`setup.appRemote` へ push | 手元 |
 
@@ -226,7 +226,9 @@ conf/isu1/etc/nginx/nginx.conf          → isu1 の /etc/nginx/nginx.conf
   サーバ側に git も GitHub の鍵も要らない。取り込みは 50MB を超えるファイル・
   ビルド成果物・`node_modules` / `target` を除き、除いたものは `.gitignore` に書く。
   手元の初回コミットがそのまま元の状態の控えになる
-- 必要なツールはリポジトリの `setup/bin/` に同梱している（当日 GitHub や apt が遅くても入る）
+- **alp は GitHub のリリースを手元で取り、scp で配る。** サーバの外向きの通信は細いことがあるため、サーバでは取らない。
+  チェックサムを固定していて、一致しなければ使わない。`.isuh/tools/` にキャッシュするので、リハーサルで 1 回取っておけば当日は GitHub に行かない
+- pt-query-digest は perl の単体スクリプトなので `setup/bin/` に同梱している
 
 **ポートフォワード** — `ssh` ステップの後は別名が使えるので、手元からは次で足りる。
 
