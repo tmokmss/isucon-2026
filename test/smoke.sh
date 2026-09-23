@@ -49,6 +49,7 @@ BROKEN=$(git -C "$APP" rev-parse broken)
 cleanup() {
   git -C "$APP" checkout -q -f main 2>/dev/null || true
   git -C "$APP" branch -q -D with-conf 2>/dev/null || true
+  git -C "$APP" branch -q -D with-sql 2>/dev/null || true
   git -C "$APP" checkout -q -- harness.txt 2>/dev/null || true
 }
 cleanup
@@ -141,6 +142,51 @@ run deploy --dry-run main
 [ "$rc" = 0 ] || ng "exit=$rc"
 grep -q "未コミット" "$ERR" && ng "配らないファイルの変更で警告しています"
 ok "警告の対象はアプリと conf/ だけ"
+
+echo "== 10. バイナリ以外の webapp/ も同じ sha の中身で app.dir へ届く"
+git -C "$APP" checkout -q -f main
+git -C "$APP" checkout -q -- harness.txt
+git -C "$APP" checkout -q -b with-sql main
+mkdir -p "$APP/webapp/sql"
+echo "-- schema v1" >"$APP/webapp/sql/1-schema.sql"
+printf '#!/bin/sh\necho init-ok\n' >"$APP/webapp/sql/init.sh"
+chmod +x "$APP/webapp/sql/init.sh"
+git -C "$APP" add webapp/sql
+git -C "$APP" commit -qm "sql v1"
+SQL1=$(git -C "$APP" rev-parse HEAD)
+echo "-- schema v2 (index)" >"$APP/webapp/sql/1-schema.sql"
+git -C "$APP" commit -qam "sql v2"
+SQL2=$(git -C "$APP" rev-parse HEAD)
+# サーバにしか無いもの（gitignore されたビルド成果物・node_modules 等）の代わり
+for h in isu1 isu2; do
+  $SSH "$h" 'rm -rf ~/webapp/sql && mkdir -p ~/webapp/node_modules && echo keep >~/webapp/node_modules/x'
+  # 手元より新しい mtime を持つ古いファイル。mtime の比較で取りこぼさないことを見る
+  $SSH "$h" 'mkdir -p ~/webapp/sql && echo stale >~/webapp/sql/1-schema.sql && touch -d 2099-01-01 ~/webapp/sql/1-schema.sql'
+done
+
+run deploy --dry-run with-sql
+[ "$rc" = 0 ] || ng "exit=$rc"
+grep -q "isu1: webapp/ を /home/isucon/webapp へ同期" "$ERR" || ng "dry-run に app.dir への同期が出ていない"
+grep -q "isu3: webapp/" "$ERR" && ng "dry-run でアプリの無いホストへ同期しようとしている"
+[ "$($SSH isu1 'cat ~/webapp/sql/1-schema.sql')" = "stale" ] || ng "dry-run なのに同期された"
+
+run deploy with-sql
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
+[ "$out" = "$SQL2" ] || ng "stdout='$out'"
+for h in isu1 isu2; do
+  [ "$($SSH $h 'cat ~/webapp/sql/1-schema.sql')" = "-- schema v2 (index)" ] || ng "$h に sha の schema が届いていない"
+  [ "$($SSH $h '~/webapp/sql/init.sh')" = "init-ok" ] || ng "$h の init.sh が実行できない（実行ビット）"
+  [ "$($SSH $h 'cat ~/webapp/node_modules/x')" = "keep" ] || ng "$h のサーバにしか無いファイルが消えた"
+  [ "$(version_on $h)" = "v2" ] || ng "$h のバイナリが動いていない"
+  [ "$($SSH $h 'test -e ~/webapp/go/isuapp.isuh-new && echo yes || echo no')" = "no" ] || ng "$h に途中のバイナリが残っている"
+done
+[ "$($SSH isu3 'test -e ~/webapp/sql && echo yes || echo no')" = "no" ] || ng "isu3 に webapp/ を配った"
+
+run deploy "$SQL1"
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
+[ "$($SSH isu1 'cat ~/webapp/sql/1-schema.sql')" = "-- schema v1" ] || ng "古い sha で schema が戻らない"
+for h in isu1 isu2; do $SSH "$h" 'rm -rf ~/webapp/sql ~/webapp/node_modules'; done
+ok "sql/ が sha の中身で届き（mtime によらず上書き・実行ビット維持）、サーバ側だけのファイルは残る"
 
 echo
 echo "全 $passed 件パス"

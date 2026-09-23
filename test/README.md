@@ -18,7 +18,7 @@
 
 | | 確かめること |
 |---|---|
-| `./test/smoke.sh` | deploy — 配布・古い sha への復帰・dry-run・ビルド失敗・conf を同じ sha から全台へ配布 |
+| `./test/smoke.sh` | deploy — 配布・古い sha への復帰・dry-run・ビルド失敗・conf を同じ sha から全台へ配布・バイナリ以外の webapp/（sql/ 等）の同期 |
 | `./test/lock.sh` | ロックと bench — 直列化・kill 耐性・通しの完走・計測の回収 |
 | `./test/portal.sh` | ポータル — Cookie・ログイン切れ判定・CSRF・enqueue/wait/score（コンテナ不要） |
 | `./test/report.sh` | report.md の見出しと中身・meta.json・history.tsv・スコア判定 |
