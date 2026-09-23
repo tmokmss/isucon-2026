@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -21,7 +20,6 @@ type chairPostChairsResponse struct {
 }
 
 func chairPostChairs(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	req := &chairPostChairsRequest{}
 	if err := bindJSON(r, req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -32,28 +30,23 @@ func chairPostChairs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	owner := &Owner{}
-	if err := db.GetContext(ctx, owner, "SELECT * FROM owners WHERE chair_register_token = ?", req.ChairRegisterToken); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusUnauthorized, errors.New("invalid chair_register_token"))
-			return
-		}
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-
 	chairID := ulid.Make().String()
 	accessToken := secureRandomStr(32)
 
-	_, err := db.ExecContext(
-		ctx,
-		"INSERT INTO chairs (id, owner_id, name, model, is_active, access_token) VALUES (?, ?, ?, ?, ?, ?)",
-		chairID, owner.ID, req.Name, req.Model, false, accessToken,
-	)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+	store.mu.Lock()
+	owner := store.ownersByRegister[req.ChairRegisterToken]
+	if owner == nil {
+		store.mu.Unlock()
+		writeError(w, http.StatusUnauthorized, errors.New("invalid chair_register_token"))
 		return
 	}
+	t := now()
+	store.addChair(&Chair{
+		ID: chairID, OwnerID: owner.ID, Name: req.Name, Model: req.Model,
+		IsActive: false, AccessToken: accessToken, CreatedAt: t, UpdatedAt: t,
+	})
+	dirty.Store(true)
+	store.mu.Unlock()
 
 	http.SetCookie(w, &http.Cookie{
 		Path:  "/",
@@ -81,11 +74,13 @@ func chairPostActivity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := db.ExecContext(ctx, "UPDATE chairs SET is_active = ? WHERE id = ?", req.IsActive, chair.ID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
+	store.mu.Lock()
+	if chair.IsActive != req.IsActive {
+		chair.IsActive = req.IsActive
+		chair.UpdatedAt = now()
+		dirty.Store(true)
 	}
+	store.mu.Unlock()
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -104,65 +99,27 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 
 	chair := ctx.Value("chair").(*Chair)
 
-	tx, err := db.Beginx()
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	defer tx.Rollback()
+	store.mu.Lock()
+	recordedAt := now()
+	store.addLocation(chair.ID, req.Latitude, req.Longitude, recordedAt)
 
-	chairLocationID := ulid.Make().String()
-	if _, err := tx.ExecContext(
-		ctx,
-		`INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)`,
-		chairLocationID, chair.ID, req.Latitude, req.Longitude,
-	); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	location := &ChairLocation{}
-	if err := tx.GetContext(ctx, location, `SELECT * FROM chair_locations WHERE id = ?`, chairLocationID); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	ride := &Ride{}
-	if err := tx.GetContext(ctx, ride, `SELECT * FROM rides WHERE chair_id = ? ORDER BY updated_at DESC LIMIT 1`, chair.ID); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
-	} else {
-		status, err := getLatestRideStatus(ctx, tx, ride.ID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
+	if ride := store.latestRideOfChair(chair.ID); ride != nil {
+		status, _ := store.latestStatus(ride.ID)
 		if status != "COMPLETED" && status != "CANCELED" {
 			if req.Latitude == ride.PickupLatitude && req.Longitude == ride.PickupLongitude && status == "ENROUTE" {
-				if _, err := tx.ExecContext(ctx, "INSERT INTO ride_statuses (id, ride_id, status) VALUES (?, ?, ?)", ulid.Make().String(), ride.ID, "PICKUP"); err != nil {
-					writeError(w, http.StatusInternalServerError, err)
-					return
-				}
+				store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: ride.ID, Status: "PICKUP", CreatedAt: now()})
 			}
 
 			if req.Latitude == ride.DestinationLatitude && req.Longitude == ride.DestinationLongitude && status == "CARRYING" {
-				if _, err := tx.ExecContext(ctx, "INSERT INTO ride_statuses (id, ride_id, status) VALUES (?, ?, ?)", ulid.Make().String(), ride.ID, "ARRIVED"); err != nil {
-					writeError(w, http.StatusInternalServerError, err)
-					return
-				}
+				store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: ride.ID, Status: "ARRIVED", CreatedAt: now()})
 			}
 		}
 	}
-
-	if err := tx.Commit(); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
+	dirty.Store(true)
+	store.mu.Unlock()
 
 	writeJSON(w, http.StatusOK, &chairPostCoordinateResponse{
-		RecordedAt: location.CreatedAt.UnixMilli(),
+		RecordedAt: recordedAt.UnixMilli(),
 	})
 }
 
@@ -188,63 +145,44 @@ func chairGetNotification(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	chair := ctx.Value("chair").(*Chair)
 
-	tx, err := db.Beginx()
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+	store.mu.Lock()
+	ride := store.latestRideOfChair(chair.ID)
+	if ride == nil {
+		store.mu.Unlock()
+		writeJSON(w, http.StatusOK, &chairGetNotificationResponse{
+			RetryAfterMs: 30,
+		})
 		return
 	}
-	defer tx.Rollback()
-	ride := &Ride{}
-	yetSentRideStatus := RideStatus{}
+
+	var yetSent *RideStatus
+	for _, st := range store.statuses[ride.ID] {
+		if st.ChairSentAt == nil {
+			yetSent = st
+			break
+		}
+	}
 	status := ""
-
-	if err := tx.GetContext(ctx, ride, `SELECT * FROM rides WHERE chair_id = ? ORDER BY updated_at DESC LIMIT 1`, chair.ID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeJSON(w, http.StatusOK, &chairGetNotificationResponse{
-				RetryAfterMs: 30,
-			})
-			return
-		}
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	if err := tx.GetContext(ctx, &yetSentRideStatus, `SELECT * FROM ride_statuses WHERE ride_id = ? AND chair_sent_at IS NULL ORDER BY created_at ASC LIMIT 1`, ride.ID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			status, err = getLatestRideStatus(ctx, tx, ride.ID)
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, err)
-				return
-			}
-		} else {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
+	if yetSent != nil {
+		status = yetSent.Status
 	} else {
-		status = yetSentRideStatus.Status
+		status, _ = store.latestStatus(ride.ID)
 	}
 
-	user := &User{}
-	err = tx.GetContext(ctx, user, "SELECT * FROM users WHERE id = ? FOR SHARE", ride.UserID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+	user := store.users[ride.UserID]
+	if user == nil {
+		store.mu.Unlock()
+		writeError(w, http.StatusInternalServerError, errors.New("sql: no rows in result set"))
 		return
 	}
 
-	if yetSentRideStatus.ID != "" {
-		_, err := tx.ExecContext(ctx, `UPDATE ride_statuses SET chair_sent_at = CURRENT_TIMESTAMP(6) WHERE id = ?`, yetSentRideStatus.ID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
+	if yetSent != nil {
+		t := now()
+		yetSent.ChairSentAt = &t
+		dirty.Store(true)
 	}
 
-	if err := tx.Commit(); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, &chairGetNotificationResponse{
+	res := &chairGetNotificationResponse{
 		Data: &chairGetNotificationResponseData{
 			RideID: ride.ID,
 			User: simpleUser{
@@ -262,7 +200,10 @@ func chairGetNotification(w http.ResponseWriter, r *http.Request) {
 			Status: status,
 		},
 		RetryAfterMs: 30,
-	})
+	}
+	store.mu.Unlock()
+
+	writeJSON(w, http.StatusOK, res)
 }
 
 type postChairRidesRideIDStatusRequest struct {
@@ -281,20 +222,12 @@ func chairPostRideStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := db.Beginx()
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	defer tx.Rollback()
+	store.mu.Lock()
+	defer store.mu.Unlock()
 
-	ride := &Ride{}
-	if err := tx.GetContext(ctx, ride, "SELECT * FROM rides WHERE id = ? FOR UPDATE", rideID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, errors.New("ride not found"))
-			return
-		}
-		writeError(w, http.StatusInternalServerError, err)
+	ride := store.rides[rideID]
+	if ride == nil {
+		writeError(w, http.StatusNotFound, errors.New("ride not found"))
 		return
 	}
 
@@ -306,33 +239,20 @@ func chairPostRideStatus(w http.ResponseWriter, r *http.Request) {
 	switch req.Status {
 	// Acknowledge the ride
 	case "ENROUTE":
-		if _, err := tx.ExecContext(ctx, "INSERT INTO ride_statuses (id, ride_id, status) VALUES (?, ?, ?)", ulid.Make().String(), ride.ID, "ENROUTE"); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
+		store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: ride.ID, Status: "ENROUTE", CreatedAt: now()})
 	// After Picking up user
 	case "CARRYING":
-		status, err := getLatestRideStatus(ctx, tx, ride.ID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
+		status, _ := store.latestStatus(ride.ID)
 		if status != "PICKUP" {
 			writeError(w, http.StatusBadRequest, errors.New("chair has not arrived yet"))
 			return
 		}
-		if _, err := tx.ExecContext(ctx, "INSERT INTO ride_statuses (id, ride_id, status) VALUES (?, ?, ?)", ulid.Make().String(), ride.ID, "CARRYING"); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
+		store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: ride.ID, Status: "CARRYING", CreatedAt: now()})
 	default:
 		writeError(w, http.StatusBadRequest, errors.New("invalid status"))
-	}
-
-	if err := tx.Commit(); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+	dirty.Store(true)
 
 	w.WriteHeader(http.StatusNoContent)
 }
