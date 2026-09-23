@@ -1,5 +1,6 @@
 # 当日埋める実設定（config.example.ts をコピーして使う）
-config.ts
+# 先頭の / が無いと src/config.ts まで無視されるので必ず付ける
+/config.ts
 
 node_modules/
 
@@ -7,6 +8,12 @@ node_modules/
 runs/*
 !runs/.gitkeep
 !runs/history.tsv
+
+# deploy のビルドキャッシュ
+.isuh/
+
+# test/ のコンテナ環境が生成するもの（鍵・ssh_config・作業用リポジトリ）
+test/.work/
 
 *.log
 .DS_Store

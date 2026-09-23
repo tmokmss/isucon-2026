@@ -126,6 +126,39 @@ isuh bench [<git-ref>]
 > URL とパラメータは `config.portal` に集約し、当日は埋めるだけにする。
 > 事前に検証できるのは `whoami` 相当（Cookie 付きで認証必須ページを引く）まで。
 
+### `isuh deploy` が配るもの
+
+**アプリのバイナリ** — `app.repoLocal` で ref を sha に解決し、`git archive` で取り出した
+ツリーをビルドして `hosts.app` へ配る。作業ツリーの内容ではない（未コミットの変更が
+あれば警告する）。配布は `<path>.isuh-new` へ置いてから `mv` で差し替える。
+実行中のバイナリを直接上書きすると `ETXTBSY` になるため。
+
+ビルド結果は `.isuh/build/<sha>-<設定のハッシュ>/` にキャッシュする。
+同じ sha の再デプロイ（= ロールバック）はビルドを丸ごと省く。
+
+**アプリ以外の設定ファイル** — `conf/` 以下を、サーバ上の絶対パスへそのまま写す。
+
+```
+conf/_all/etc/sysctl.d/99-isucon.conf   → 全ホストの /etc/sysctl.d/99-isucon.conf
+conf/isu1/etc/nginx/nginx.conf          → isu1 の /etc/nginx/nginx.conf
+```
+
+同じパスが両方にあればホスト指定側が勝つ。配った後に反映が要るものは自動で叩く。
+
+| 配ったパス | 反映 |
+|---|---|
+| `/etc/nginx/**` | `middleware.nginxService` を reload |
+| `/etc/mysql/**`、`/etc/my.cnf` | `middleware.dbService` を restart |
+| `/etc/systemd/**` | `daemon-reload`（その後アプリを restart） |
+
+`conf/` の中身をサーバから取り込んで管理下に置く仕組みは #10。
+
+**デプロイの記録** — 各ホストの `$HOME/.deployed_sha` に
+`sha <TAB> ref <TAB> ISO8601 <TAB> 実行者` を 1 行で書く。
+`rollback`(#6) と `report`(#4) はここを読んで「今どの版が載っているか」を知る。
+
+`isuh deploy` は stdout にデプロイした sha だけを出す（`SHA=$(isuh deploy)` が使える）。
+
 ---
 
 ## 4. 成果物の契約 — `runs/`
@@ -304,13 +337,25 @@ ssh <primary> "exec 9><lockPath>; flock -w <timeout> 9 || exit 10; echo ACQUIRED
 | `lib/exit.ts` | `EXIT` / `HarnessError` / `usageError` / `configError` / `notImplemented` |
 | `lib/log.ts` | `log.debug/info/warn/error`（stderr）、`out`（stdout） |
 | `lib/paths.ts` | `repoRoot` / `newRunId` / `runDir` / `historyFile` |
-| `lib/ssh.ts` | `onHost` / `onHosts`（並列）/ `local` |
+| `lib/ssh.ts` | `onHost` / `onHostShell` / `onHosts`（並列）/ `copyTo`（scp）/ `local` / `shQuote` |
 | `lib/git.ts` | `resolveSha`（`config.app.repoLocal` で解決） |
 | `lib/lock.ts` | `acquireLock` / `Lock.release`（実装 #2） |
 | `lib/command.ts` | `Command` インターフェース |
 | `config.ts` | `Config` 型一式 / `loadConfig` |
 
-`ssh` や `git` は必ず `execa` の配列引数で呼ぶ（シェルを経由しないので引用符の事故が起きない）。
+`ssh` や `git` は必ず `execa` の配列引数で呼ぶ。手元のシェルを経由しないので、
+ローカルでの引用符の事故が起きない。
+
+**ただし ssh のリモート側は別。** ssh は残りの引数を空白で連結した 1 本の文字列を
+リモートのログインシェルに渡すため、配列で渡しても**リモートでは必ず再パースされる**。
+そのため `onHost` は各要素を `shQuote` してから連結する。
+
+- `onHost(host, ["echo", "a b"])` → リモートで `echo 'a b'`（argv として正しく届く）
+- リダイレクト・パイプ・`$HOME` の展開が要るときだけ `onHostShell(host, script)` を使い、
+  設定由来の値は `shQuote` で囲む
+
+`ISUH_SSH_CONFIG` を設定すると `ssh` / `scp` に `-F <path>` が付く。
+手元の `~/.ssh/config` を汚さずにホスト別名を定義したいときに使う（`test/` がこれを使う）。
 
 ---
 
@@ -339,3 +384,27 @@ ssh <primary> "exec 9><lockPath>; flock -w <timeout> 9 || exit 10; echo ACQUIRED
 - アプリのサービス名・バイナリ名・ビルドコマンド（`app.*`）
 - alp の URI 正規化パターン（`metrics.alpMatches`）
 - ログの出力先（`middleware.nginxAccessLog` / `middleware.dbSlowLog`）
+
+---
+
+## 11. 検証環境 — `test/`
+
+当日まで本物のサーバが無い。**一度も動かしたことがないコードを当日持ち込まない**ために、
+`sshd` コンテナ 3 台（`isu1` / `isu2` / `isu3`）を立てて実際に `isuh` を走らせる。
+
+```sh
+./test/up.sh      # コンテナ + 鍵 + ssh_config + ダミーのアプリリポジトリ
+./test/smoke.sh   # 通しで検証
+./test/down.sh
+```
+
+- 設定は `test/config.test.ts`（`ISUH_CONFIG` で指す）
+- ホスト別名は `test/.work/ssh_config`（`ISUH_SSH_CONFIG` で指す）。`~/.ssh/config` は触らない
+- `systemd` は動かさない。`start` / `stop` / `restart` / `is-active` だけを模した
+  スタブを置いている。`deploy` と `bench` が確かめたいのは ssh 越しの配布・差し替え・
+  再起動と `flock` なので、systemd の再現度そのものは要らない
+
+**確かめられないもの** — 本物の systemd、実際の負荷、ベンチマーカー、ポータル。
+それらは過去問環境でのリハーサル（#18）で見る。
+
+新しいコマンドを実装したら `test/smoke.sh` にケースを足す。
