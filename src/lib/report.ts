@@ -125,10 +125,86 @@ const summarizeVmstat = (host: string, text: string): VmstatResult => {
   };
 };
 
+// ---------------------------------------------------------------------------
+// top の要約（プロセス単位の CPU）
+// ---------------------------------------------------------------------------
+
+interface ProcessCpu {
+  command: string;
+  /** フレーム平均の %CPU。100% = 1 コア */
+  cpu: number;
+}
+
+/** 自分たちが走らせている計測プロセスは除く。 */
+const OWN_PROCESSES = new Set(["top", "vmstat", "curl"]);
+
+/**
+ * top -b の出力から「どのプロセスが CPU を食っていたか」を出す。
+ *
+ * フレームは `top - ` で始まる。最初のフレームは起動からの累積に近い値なので捨てる。
+ * 同じコマンド名のプロセス（nginx の worker 等）はフレームごとに合算してから平均する。
+ * 列位置は環境で変わるのでヘッダ行（PID ... %CPU ... COMMAND）から引く。
+ */
+export const summarizeTop = (text: string, limit = 5): ProcessCpu[] | undefined => {
+  const frames: Map<string, number>[] = [];
+  let current: Map<string, number> | undefined;
+  let cpuIndex = -1;
+  let commandIndex = -1;
+
+  for (const line of text.split("\n")) {
+    if (line.startsWith("top - ")) {
+      current = new Map();
+      frames.push(current);
+      cpuIndex = -1;
+      continue;
+    }
+    const tokens = line.trim().split(/\s+/);
+    if (tokens[0] === "PID" && tokens.includes("%CPU") && tokens.includes("COMMAND")) {
+      cpuIndex = tokens.indexOf("%CPU");
+      commandIndex = tokens.indexOf("COMMAND");
+      continue;
+    }
+    if (current === undefined || cpuIndex < 0 || !/^\d+$/.test(tokens[0] ?? "")) continue;
+
+    const cpu = Number((tokens[cpuIndex] ?? "").replace(",", "."));
+    const command = tokens.slice(commandIndex).join(" ");
+    if (!Number.isFinite(cpu) || command === "" || OWN_PROCESSES.has(command)) continue;
+    current.set(command, (current.get(command) ?? 0) + cpu);
+  }
+
+  const samples = frames.slice(1);
+  if (samples.length === 0) return undefined;
+
+  const totals = new Map<string, number>();
+  for (const frame of samples) {
+    for (const [command, cpu] of frame) totals.set(command, (totals.get(command) ?? 0) + cpu);
+  }
+  return [...totals]
+    .map(([command, total]) => ({ command, cpu: total / samples.length }))
+    .filter((p) => p.cpu >= 1)
+    .sort((a, b) => b.cpu - a.cpu)
+    .slice(0, limit);
+};
+
+const topByHost = (resourceDir: string): Map<string, ProcessCpu[] | undefined> => {
+  const result = new Map<string, ProcessCpu[] | undefined>();
+  const topDir = join(resourceDir, "top");
+  if (!existsSync(topDir)) return result;
+  for (const file of readdirSync(topDir).sort()) {
+    if (!file.endsWith(".txt")) continue;
+    result.set(file.replace(/\.txt$/, ""), summarizeTop(readFileSync(join(topDir, file), "utf8")));
+  }
+  return result;
+};
+
+const formatProcesses = (processes: ProcessCpu[]): string =>
+  processes.map((p) => `${p.command} ${p.cpu.toFixed(0)}%`).join(" / ");
+
 const resourceSection = (dir: string): string => {
   const resourceDir = join(dir, "resource");
   if (!existsSync(resourceDir)) return "未取得: リソース計測の結果がありません。";
 
+  const processes = topByHost(resourceDir);
   const summaries: ResourceSummary[] = [];
   const insufficient: string[] = [];
   const unparsed: string[] = [];
@@ -161,9 +237,28 @@ const resourceSection = (dir: string): string => {
         "どのホストも飽和していない。**ボトルネックはアプリのロジックか DB のクエリ側**にある可能性が高い。",
       );
     } else {
+      // 飽和したホストで一番 CPU を食っていたプロセスまで名指しする
+      const culprit = (host: string): string => {
+        const first = processes.get(host)?.[0];
+        return first === undefined ? "" : `、主に ${first.command}`;
+      };
       parts.push(
-        `**${hot.map((s) => `${s.host}（${s.problem}）`).join("、")}**。ここから手を付ける。`,
+        `**${hot.map((s) => `${s.host}（${s.problem}${culprit(s.host)}）`).join("、")}**。ここから手を付ける。`,
       );
+    }
+  }
+
+  if (processes.size > 0) {
+    parts.push("", "**CPU を食っているプロセス**（ベンチ中の平均 %CPU。100% = 1 コア）", "");
+    parts.push("| host | 上位プロセス |", "|---|---|");
+    for (const [host, list] of processes) {
+      const cell =
+        list === undefined
+          ? "未取得（top のサンプルが足りない）"
+          : list.length === 0
+            ? "目立つプロセス無し"
+            : formatProcesses(list);
+      parts.push(`| ${host} | ${cell} |`);
     }
   }
   if (insufficient.length > 0) {

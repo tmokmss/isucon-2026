@@ -45,7 +45,8 @@ export const config: Config = {
     alpLimit: 30,
     ptQueryLimit: 15,
     pprofEnabled: false, // アプリに pprof を仕込んだら true
-    pprofUrl: "http://isu1:6060/debug/pprof/profile?seconds=30",
+    // hosts.app[0] 上で curl する URL。seconds はベンチの長さ（通常 60 秒）に合わせる。
+    pprofUrl: "http://localhost:6060/debug/pprof/profile?seconds=60",
     resourceIntervalSec: 1,
   },
 

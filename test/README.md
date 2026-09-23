@@ -23,6 +23,7 @@
 | `./test/portal.sh` | ポータル — Cookie・ログイン切れ判定・CSRF・enqueue/wait/score（コンテナ不要） |
 | `./test/report.sh` | report.md の見出しと中身・meta.json・history.tsv・スコア判定 |
 | `./test/rollback.sh` | 戻し先の決定・ロック・スコア低下とベンチ失敗での自動ロールバック |
+| `./test/metrics.sh` | ベンチ中の計測 — pprof をベンチ開始と同時に取る・top・alp の全台集計 |
 
 手で触るとき:
 
@@ -48,6 +49,8 @@ ssh -F test/.work/ssh_config isu1 'curl -s localhost:8080/version'
 | `portal.sh` | ポータル操作の検証 |
 | `report.sh` | レポートと台帳の検証 |
 | `rollback.sh` | ロールバックの検証 |
+| `metrics.sh` | ベンチ中の計測の検証 |
+| `top-probe.ts` | top の要約ロジックの確認 |
 | `fake-portal.ts` | ポータルの代役。Django 風の 302 / CSRF / ジョブ進行を返す |
 | `lock-probe.ts` | ロックの取り合いを再現するための小さなプログラム |
 | `.work/` | 生成物（鍵・ssh_config・ダミーリポジトリ）。git 管理外 |

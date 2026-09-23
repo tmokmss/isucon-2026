@@ -75,7 +75,8 @@ expected="# run $RUN1
 ## CPU profile (pprof)
 ## Resources
 ## Diff from previous run"
-actual=$(grep -E '^#{1,2} ' "$DIR1/report.md")
+# コードブロックの中（pt-query-digest の出力は # で始まる行だらけ）は見出しではない
+actual=$(awk '/^```/ { fenced = !fenced; next } !fenced && /^#{1,2} /' "$DIR1/report.md")
 [ "$actual" = "$expected" ] || ng "見出しが違います:
 --- 実際 ---
 $actual
