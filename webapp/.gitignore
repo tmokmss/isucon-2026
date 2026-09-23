@@ -1,0 +1,5 @@
+# isuh setup apprepo が生成
+/go/isuride
+*.isuh-new
+node_modules/
+target/
