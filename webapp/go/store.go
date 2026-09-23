@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -17,8 +18,8 @@ import (
 
 // データはすべてメモリに持つ。MySQL は使わない。
 //
-// 永続化は「変更があれば定期的にスナップショットを書く」+「停止シグナルで同期的に書く」。
-// 書き込みのたびにはディスクへ触らない。kill -9・OOM・電源断では最後のスナップショット以降が失われる。
+// 永続化は「変更があれば 1 秒ごとにスナップショットを fsync まで書く」+「停止シグナルで同期的に書く」。
+// 書き込みのたびにはディスクへ触らない。kill -9・OOM・電源断では最後のスナップショット以降（最大 1 秒）が失われる。
 // 起動時はスナップショットがあれば読み、無ければ初期データ（../sql/3-initial-data.sql.gz）を読む。
 // /api/initialize には依存しない。
 
@@ -388,10 +389,25 @@ func writeSnapshot(snap *snapshot) error {
 		f.Close()
 		return err
 	}
+	// innodb_flush_log_at_trx_commit=0 と同じ水準（1 秒ごとに fsync まで）にする。
+	// カーネルの書き戻し（最大 30 秒ほど遅れる）に任せると、ハードリブートで失う幅が広がる
+	if err := f.Sync(); err != nil {
+		f.Close()
+		return err
+	}
 	if err := f.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmp, path)
+	if err := os.Rename(tmp, path); err != nil {
+		return err
+	}
+	// rename 自体をディスクに確定させる
+	dir, err := os.Open(filepath.Dir(path))
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	return dir.Sync()
 }
 
 func loadSnapshot() (*snapshot, error) {
