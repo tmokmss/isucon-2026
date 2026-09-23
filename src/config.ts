@@ -54,6 +54,8 @@ export interface MiddlewareConfig {
 }
 
 export interface MetricsConfig {
+  /** nginx のログ形式に合わせた alp のサブコマンド。ltsv にしておくのが楽 */
+  alpFormat: "ltsv" | "json";
   /** alp の -m に渡す URI 正規化パターン。当日のエンドポイントに合わせる */
   alpMatches: string[];
   alpSort: "sum" | "avg" | "max" | "count";

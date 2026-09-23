@@ -1,9 +1,37 @@
-import { loadConfig } from "../config.js";
+import { type Config, loadConfig } from "../config.js";
+import { type ResourceSampler, collectMetrics, resetLogs, startResourceSampling } from "../lib/collect.js";
 import type { Command } from "../lib/command.js";
-import { notImplemented, usageError } from "../lib/exit.js";
+import { NotImplementedError, notImplemented, usageError } from "../lib/exit.js";
 import { resolveSha } from "../lib/git.js";
+import { acquireLock } from "../lib/lock.js";
 import { log } from "../lib/log.js";
-import { newRunId } from "../lib/paths.js";
+import { newRunId, runDir } from "../lib/paths.js";
+import { command as checkCommand } from "./check.js";
+import { deploy } from "./deploy.js";
+
+/**
+ * ベンチを起動して完了まで待つ。
+ *
+ * ポータルのエンドポイントは当日まで分からないので、ここは #3（isuh portal）に委ねる。
+ * 戻り値はスコアとベンチの生出力。
+ */
+const runBenchmark = async (_cfg: Config, _dir: string): Promise<never> => notImplemented(3);
+
+/**
+ * check を挟む。deploy の「後」に走らせるのは、新しいコードが載った状態を検証するため。
+ * 落ちたらベンチを起動せず、貴重なベンチ枠を消費しない。
+ */
+const runCheck = async (): Promise<void> => {
+  try {
+    await checkCommand.run([]);
+  } catch (error) {
+    if (error instanceof NotImplementedError) {
+      log.warn("check は未実装のため飛ばしました（実装は #12）。構造を壊していないか自分で確認すること");
+      return;
+    }
+    throw error;
+  }
+};
 
 export const command: Command = {
   summary: "ロック取得からレポート生成までの通し実行",
@@ -28,6 +56,9 @@ export const command: Command = {
    9. スコア判定（bench.autoRollback なら低下時に戻す）
   10. ロック解放（try-finally で異常終了時も必ず実行）
 
+ロックは ssh の子プロセスが握っている。Ctrl-C でも異常終了でも、プロセスが
+死ねば接続が切れてリモートの flock が解放されるので、ロックは残らない。
+
 終了コード: 0 / 10 ロック / 20 デプロイ / 30 check / 40 ベンチ / 50 スコア低下`,
 
   async run(argv) {
@@ -48,13 +79,51 @@ export const command: Command = {
         ref = arg;
       }
     }
+
     const cfg = await loadConfig();
     const sha = await resolveSha(cfg.app.repoLocal, ref);
     const runId = newRunId(sha);
     log.info(
       `bench runId=${runId} ref=${ref} sha=${sha.slice(0, 7)} skipCheck=${skipCheck} note='${note}'`,
     );
-    // 実装時は try-finally で必ず lock.release() すること（docs/DESIGN.md §7）
-    notImplemented(2);
+
+    // ここから 10 までが 1 つのクリティカルセクション。
+    const lock = await acquireLock(`bench ${runId} ref=${ref}`, cfg);
+    const dir = runDir(runId);
+    let sampler: ResourceSampler | undefined;
+
+    try {
+      await deploy(cfg, { ref: sha });
+      if (skipCheck) {
+        log.warn("check を省略しました（--skip-check）");
+      } else {
+        await runCheck();
+      }
+
+      await resetLogs(cfg);
+      sampler = await startResourceSampling(cfg, dir);
+
+      await runBenchmark(cfg, dir);
+
+      // 8. レポート生成と台帳追記は #4 / #5。
+      // 9. スコア判定とロールバックは #5 / #6。
+    } finally {
+      // 失敗しても計測は回収する。落ちたランのログこそ次の手がかりになる。
+      if (sampler !== undefined) {
+        try {
+          await sampler.stop();
+          await collectMetrics(cfg, dir);
+        } catch (error) {
+          log.warn(`計測の回収に失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        log.info(`計測の生データ: ${dir}`);
+        log.info("report.md と history.tsv の生成は #4 / #5 で実装する");
+      }
+      try {
+        await lock.release();
+      } catch (error) {
+        log.error(`ロックの解放に失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
   },
 };

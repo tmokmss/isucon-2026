@@ -83,6 +83,23 @@ export const copyTo = async (host: string, localPath: string, remotePath: string
   await execa("scp", [...sshOpts(), "-q", localPath, `${host}:${remotePath}`]);
 };
 
+/** ホスト上のファイルを手元へ持ってくる。取れなければ false（allowFailure 時）。 */
+export const copyFrom = async (
+  host: string,
+  remotePath: string,
+  localPath: string,
+  opts: { allowFailure?: boolean } = {},
+): Promise<boolean> => {
+  log.debug(`scp ${host}:${remotePath} ${localPath}`);
+  try {
+    await execa("scp", [...sshOpts(), "-q", `${host}:${remotePath}`, localPath]);
+    return true;
+  } catch (error) {
+    if (opts.allowFailure) return false;
+    throw error;
+  }
+};
+
 /** ローカルでコマンドを実行する。こちらは本当にシェルを経由しない。 */
 export const local = async (
   file: string,

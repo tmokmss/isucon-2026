@@ -36,6 +36,8 @@ export const config: Config = {
   },
 
   metrics: {
+    // nginx の log_format に合わせる。conf/ で ltsv にしておくと楽。
+    alpFormat: "ltsv",
     // 当日のエンドポイントに合わせる。
     // 例: ["/api/player/competition/[^/]+/ranking", "/api/player/player/[^/]+"]
     alpMatches: [],
