@@ -49,7 +49,7 @@ export const config: Config = {
     alpFormat: "ltsv",
     // 当日のエンドポイントに合わせる。
     // 例: ["/api/player/competition/[^/]+/ranking", "/api/player/player/[^/]+"]
-    alpMatches: ["^/api/app/rides/[^/]+/evaluation$", "^/api/chair/rides/[^/]+/status$"],
+    alpMatches: ["^/api/app/rides/[^/]+/evaluation$", "^/api/chair/rides/[^/]+/status$", "^/api/owner/sales"],
     alpSort: "sum",
     alpLimit: 30,
     ptQueryLimit: 15,
