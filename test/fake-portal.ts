@@ -9,10 +9,23 @@
  * 「Cookie を付けて叩けるか」「ログイン切れを見分けられるか」「CSRF が通るか」
  * の 3 点だけ。
  */
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 
 const PORT = Number(process.env["ISUH_FAKE_PORTAL_PORT"] ?? "18080");
 const VALID_SESSION = "valid-session";
+
+/** 返すスコア。テストから .work/fake-score を書き換えて変えられる。 */
+const SCORE_FILE = new URL(".work/fake-score", import.meta.url);
+const currentScore = (): number => {
+  try {
+    const value = Number(readFileSync(SCORE_FILE, "utf8").trim());
+    if (Number.isFinite(value)) return value;
+  } catch {
+    /* 無ければ既定値 */
+  }
+  return 12345;
+};
 
 /** job-id → status を返した回数。3 回目で done にする。 */
 const polls = new Map<string, number>();
@@ -78,6 +91,9 @@ const server = createServer((req, res) => {
   }
 
   if (url.pathname === "/api/bench/enqueue" && req.method === "POST") {
+    // 登録のたびに進行をリセットする。毎回 pending → running → done を辿らせて、
+    // ベンチがある程度の時間続く状況（= リソース計測が意味を持つ状況）を作る。
+    polls.delete("4321");
     json(200, { job_id: "4321", status: "pending" });
     return;
   }
@@ -88,7 +104,7 @@ const server = createServer((req, res) => {
     const seen = (polls.get(id) ?? 0) + 1;
     polls.set(id, seen);
     if (seen >= 3) {
-      json(200, { job_id: id, status: "done", score: 12345, reason: "" });
+      json(200, { job_id: id, status: "done", score: currentScore(), reason: "" });
       return;
     }
     json(200, { job_id: id, status: seen === 1 ? "pending" : "running" });
@@ -96,7 +112,7 @@ const server = createServer((req, res) => {
   }
 
   if (url.pathname === "/api/score") {
-    json(200, { team: "7", score: 12345 });
+    json(200, { team: "7", score: currentScore() });
     return;
   }
 

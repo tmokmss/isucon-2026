@@ -73,8 +73,8 @@ isuh <command> [args]
 | `setup` | 起動後のサーバセットアップ | #9 #11 |
 | `deploy` | 指定 ref を全台へ配布して再起動 | #1 ✅ |
 | `check` | ベンチ不要の検証ゲート | #12 |
-| `bench` | ロック取得〜ベンチ〜レポートまで通し | #2 ✅ / #4 |
-| `history` | スコア台帳の表示 | #5 |
+| `bench` | ロック取得〜ベンチ〜レポートまで通し | #2 ✅ #4 ✅ |
+| `history` | スコア台帳の表示 | #5 ✅ |
 | `rollback` | 直前の good revision へ戻す | #6 |
 | `portal` | ポータルを Cookie 付きの HTTP で操作 | #3 ✅ |
 | `monitor` | 全台のリソースを 1 画面で見る | #17 |
@@ -114,9 +114,12 @@ npm run typecheck      # tsc --noEmit
 
 ## 現在の状態
 
-`deploy`、`bench` のクリティカルセクション（ロック・ログのリセット・リソース計測・
-計測の回収）、`portal` が実装済み。
-`report.md` と `history.tsv` の生成は #4 / #5 で入る。
+**中核ループ（deploy → bench → report → history）が通しで動く。**
+`isuh bench` 一発で、ロック取得・デプロイ・ログのリセット・リソース計測・
+ベンチ実行・計測の回収・`report.md` の生成・台帳への追記・スコア判定まで走る。
+
+残っているのは `check`(#12)、`rollback`(#6)、`setup`(#9 #11)、
+`verify-restart`(#7)、`finalize`(#8)、`monitor`(#17)。
 ベンチ起動のエンドポイントは当日 `config.ts` に埋める。
 
 他のコマンドはスタブで、引数解釈と設定読み込みまでは通り、

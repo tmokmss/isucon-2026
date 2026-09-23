@@ -219,8 +219,11 @@ runs/
 `runs/<run-id>/` は `.gitignore` 済み（`history.tsv` のみ追跡）。
 
 **誰が書くか** — 生ファイル（`alp.txt` / `ptquery.txt` / `pprof.txt` / `resource/*`）は
-`lib/collect.ts` がベンチの前後に書く。それを読んで `report.md` と `meta.json` に
-まとめるのが #4（`lib/report.ts`）、`history.tsv` への追記が #5。
+`lib/collect.ts` がベンチの前後に書く。それを読んで `report.md` にまとめるのが
+`lib/report.ts`、`meta.json` と `history.tsv` が `lib/run.ts`。
+
+`runs/` の場所は `ISUH_RUNS_DIR` で上書きできる（テスト用。`ISUH_CONFIG` と同じ考え方で、
+追跡している `runs/history.tsv` をテストが汚さないようにするため）。
 
 計測ツールが入っていない場合（導入は #11）、`collect.ts` はランを失敗させず、
 そのファイルに **「未取得」と理由と再現コマンド** を書く。ベンチ 1 回は高価なので、
@@ -250,7 +253,7 @@ runs/
 - `fail` — ベンチが完走したが整合性チェック等で失敗した
 - `error` — ベンチを起動できなかった、デプロイに失敗した等
 
-この形は `src/lib/run.ts` に `RunMeta` として型で置く（#4 で追加）。
+この形は `src/lib/run.ts` の `RunMeta`。
 
 ### `report.md` の見出し
 
@@ -280,7 +283,14 @@ runs/
 ```
 
 **`report.md` 単体を読めば次に何を直すべきか判断できること**が唯一の品質基準。
-これがそのまま Claude Code に渡される。
+これがそのまま Claude Code に渡される。だから:
+
+- 生ログを貼るだけにしない。`Resources` は `vmstat` を要約して
+  **飽和しているホストを名指しする**（CPU 飽和 / IO 待ち / run queue）
+- 長いものは切り詰め、元ファイルの場所を書く。読む側の予算は有限
+- `Summary` に前回比とベスト比、`Diff from previous run` に
+  `git diff --stat` とスコアの増減を必ず載せる
+- 計測ツールが無くても「未取得」と理由を書いて欠測を明示する
 
 ### `history.tsv`
 
@@ -395,6 +405,8 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 | `lib/lock.ts` | `acquireLock` / `Lock.release` |
 | `lib/collect.ts` | `resetLogs` / `startResourceSampling` / `collectMetrics` |
 | `lib/portal.ts` | `loadCookie` / `portalRequest` / `assertLoggedIn` / `asJson` / `pick` |
+| `lib/run.ts` | `RunMeta` / `writeMeta` / `readHistory` / `appendHistory` / `bestRun` / `lastGoodRun` / `localIso` |
+| `lib/report.ts` | `writeReport` |
 | `lib/command.ts` | `Command` インターフェース |
 | `config.ts` | `Config` 型一式 / `loadConfig` |
 
@@ -456,6 +468,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 ./test/smoke.sh   # deploy
 ./test/lock.sh    # ロックと bench（直列化・kill 耐性・通しの完走）
 ./test/portal.sh  # ポータル（コンテナ不要。fake-portal を立てる）
+./test/report.sh  # report.md / meta.json / history.tsv / スコア判定
 ```
 
 - 設定は `test/config.test.ts`（`ISUH_CONFIG` で指す）
