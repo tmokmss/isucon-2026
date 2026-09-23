@@ -24,7 +24,7 @@ const DEPLOYED_SHA_FILE = "$HOME/.deployed_sha";
 /**
  * ビルド成果物の置き場。sha + ビルド設定ごとにキャッシュする。
  *
- * 同じ sha を再度デプロイするとき（= ロールバック）にビルドを丸ごと省ける。
+ * 同じ sha を再度デプロイするとき（= 前の版へ戻すとき）にビルドを丸ごと省ける。
  * 終盤に「とにかく速く直前の状態へ戻す」のが効くので、ここは効かせておく価値がある。
  */
 const buildDirFor = (cfg: Config, sha: string): string => {
@@ -210,7 +210,7 @@ const recordSha = async (cfg: Config, host: string, sha: string, ref: string): P
   await onHostShell(host, `printf '%s\\n' ${shQuote(line)} > "${DEPLOYED_SHA_FILE}"`);
 };
 
-/** そのホストで今動いている sha。未記録なら null。rollback(#6) / report(#4) から使う。 */
+/** そのホストで今動いている sha。未記録なら null。 */
 export const deployedSha = async (host: string): Promise<string | null> => {
   const result = await onHostShell(host, `cat "${DEPLOYED_SHA_FILE}" 2>/dev/null || true`, {
     allowFailure: true,

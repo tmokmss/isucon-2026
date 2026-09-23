@@ -230,19 +230,18 @@ stdout にはスコアだけを出す。読むべきものは runs/<run-id>/repo
   },
 };
 
-/** 9. スコア判定。ベストから落ちすぎていたら止める。自動ロールバックは #6。 */
+/**
+ * 9. スコア判定。ベストから落ちすぎていたら止める。
+ * 自動では戻さない。次のベンチが自分の ref をデプロイし直すので、戻す意味が薄い。
+ */
 const checkRegression = (cfg: Config, score: number, best: HistoryRow | undefined): void => {
   if (best === undefined) return;
   const threshold = best.score * cfg.bench.scoreRegressionRatio;
   if (score >= threshold) return;
 
-  const hint = cfg.bench.autoRollback
-    ? `  bench.autoRollback が有効ですが、自動ロールバックは未実装です（#6）。\n`
-    : "";
   throw new HarnessError(
     EXIT.REGRESSION,
     `スコアが低下しました: ${score} < ベスト ${best.score} × ${cfg.bench.scoreRegressionRatio} = ${threshold.toFixed(0)}\n` +
-      hint +
       `  戻すなら: isuh deploy ${best.sha.slice(0, 12)}（ベスト時の revision）`,
   );
 };

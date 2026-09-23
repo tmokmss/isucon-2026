@@ -89,8 +89,6 @@ export interface BenchConfig {
   timeoutSec: number;
   /** ベストスコアに対してこの割合を下回ったら「スコア低下」と判定する */
   scoreRegressionRatio: number;
-  /** スコア低下時に自動でロールバックするか（序盤 false、終盤 true 推奨） */
-  autoRollback: boolean;
 }
 
 export interface Config {

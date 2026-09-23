@@ -15,7 +15,7 @@ export const command: Command = {
 
 runs/history.tsv を読んでスコア台帳を表示する。ベスト更新を強調する。
 「どの変更でスコアがどう動いたか」が一目で分かることが目的で、
-rollback が戻し先を決めるための材料にもなる。
+前の版へ戻すときの材料にもなる（sha を見て isuh deploy <sha>）。
 
   -n <count>   表示する件数（既定: 全件）
 
