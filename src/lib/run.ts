@@ -6,7 +6,7 @@ import { historyFile, runDir } from "./paths.js";
  * ラン 1 回分の記録 — docs/DESIGN.md §4
  *
  * meta.json が機械の読むもの、history.tsv が「どの変更でスコアがどう動いたか」の台帳。
- * rollback(#6) はこの台帳から戻し先を決める。
+ * 前の版へ戻したいときは、ここ（isuh history）で sha を見て isuh deploy <sha> する。
  */
 
 export type RunStatus = "pass" | "fail" | "error";
@@ -148,13 +148,4 @@ export const bestRun = (rows: readonly HistoryRow[]): HistoryRow | undefined => 
     if (best === undefined || row.score > best.score) best = row;
   }
   return best;
-};
-
-/** 戻し先にできる直近のラン。rollback(#6) が使う。 */
-export const lastGoodRun = (rows: readonly HistoryRow[]): HistoryRow | undefined => {
-  for (let i = rows.length - 1; i >= 0; i--) {
-    const row = rows[i]!;
-    if (row.status === "pass") return row;
-  }
-  return undefined;
 };

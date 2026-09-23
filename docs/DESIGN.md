@@ -51,9 +51,18 @@ isuh bench [<git-ref>]
  ├─ 6. portal でベンチ登録 → 完了待ち .... 失敗 → exit 40
  ├─ 7. 計測停止・ログ収集（alp / pt-query-digest / pprof / リソース）
  ├─ 8. runs/<run-id>/ に report.md と meta.json を生成、history.tsv に追記
- ├─ 9. スコア判定 ........................ 低下 → exit 50（autoRollback なら戻す）
+ ├─ 9. （スコアの良し悪しは判定しない。report.md の前回比・ベスト比を読む）
  └─ 10. ロック解放（try-finally で異常終了時も必ず実行）
 ```
+
+**スコアの良し悪しは判定しない。** 前回比・ベスト比は `report.md` の Summary に
+載っているので、読む側（人かエージェント）が判断する。閾値で機械的に「低下」と
+決めると、数 % 〜 10 % あるスコアのブレを誤判定する。
+
+**戻すコマンドは持たない。** 「4. 戻す」は `isuh history` で sha を見て
+`isuh deploy <sha>` する（ビルドはキャッシュされるので速い）。自動でも戻さない。
+bench は毎回自分の ref をデプロイし直すので、悪い版が載ったままでも次の計測は汚れない。
+載っている版が問題になるのは競技終了時だけで、それは終盤の手順（#8）で明示的に扱う。
 
 **`check` は deploy の後に走る。** 新しいコードが載った状態を検証するため。
 落ちた場合はベンチを起動せず、貴重なベンチ枠を消費しない。
@@ -107,7 +116,6 @@ isuh bench [<git-ref>]
 | `check` | なし | ベンチ不要の検証ゲート | #12 |
 | `bench` | `[<git-ref>] [--skip-check] [--note <text>]` | 上記の通し実行 | #2 #4 |
 | `history` | `[-n <count>]` | スコア台帳の表示 | #5 |
-| `rollback` | `[<sha>]` (既定: 直前の good) | 指定 revision へ戻してデプロイ | #6 |
 | `portal` | `<subcommand>` | ポータル操作（下記） | #3 |
 | `monitor` | なし | 全台のリソースを tmux で 1 画面に | #17 |
 | `verify-restart` | `[--times <n>]` | ランダム順で再起動 → initialize 無しでベンチ | #7 |
@@ -161,7 +169,7 @@ POST は Django の CSRF を通すため、Cookie の `csrftoken` を `X-CSRFTok
 実行中のバイナリを直接上書きすると `ETXTBSY` になるため。
 
 ビルド結果は `.isuh/build/<sha>-<設定のハッシュ>/` にキャッシュする。
-同じ sha の再デプロイ（= ロールバック）はビルドを丸ごと省く。
+同じ sha の再デプロイ（= 前の版へ戻すとき）はビルドを丸ごと省く。
 
 **アプリ以外の設定ファイル** — `conf/` 以下を、サーバ上の絶対パスへそのまま写す。
 
@@ -182,7 +190,7 @@ conf/isu1/etc/nginx/nginx.conf          → isu1 の /etc/nginx/nginx.conf
 
 **デプロイの記録** — 各ホストの `$HOME/.deployed_sha` に
 `sha <TAB> ref <TAB> ISO8601 <TAB> 実行者` を 1 行で書く。
-`rollback`(#6) と `report`(#4) はここを読んで「今どの版が載っているか」を知る。
+「今どの版が載っているか」を知りたいときはここを読む。
 
 `isuh deploy` は stdout にデプロイした sha だけを出す（`SHA=$(isuh deploy)` が使える）。
 
@@ -317,7 +325,6 @@ run_id	started_at	sha	ref	score	status	note
 | `EXIT.DEPLOY` | `20` | デプロイ失敗 |
 | `EXIT.CHECK` | `30` | 検証ゲート失敗 |
 | `EXIT.BENCH` | `40` | ベンチ失敗 |
-| `EXIT.REGRESSION` | `50` | スコア低下（`bench.scoreRegressionRatio` を下回った） |
 | `EXIT.USAGE` | `64` | 引数不正 |
 | `EXIT.CONFIG` | `65` | 設定不備 |
 | `EXIT.NOT_IMPLEMENTED` | `70` | 未実装 |
@@ -405,7 +412,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 | `lib/lock.ts` | `acquireLock` / `Lock.release` |
 | `lib/collect.ts` | `resetLogs` / `startResourceSampling` / `collectMetrics` |
 | `lib/portal.ts` | `loadCookie` / `portalRequest` / `assertLoggedIn` / `asJson` / `pick` |
-| `lib/run.ts` | `RunMeta` / `writeMeta` / `readHistory` / `appendHistory` / `bestRun` / `lastGoodRun` / `localIso` |
+| `lib/run.ts` | `RunMeta` / `writeMeta` / `readHistory` / `appendHistory` / `bestRun` / `localIso` |
 | `lib/report.ts` | `writeReport` |
 | `lib/command.ts` | `Command` インターフェース |
 | `config.ts` | `Config` 型一式 / `loadConfig` |

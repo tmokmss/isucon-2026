@@ -62,7 +62,7 @@ ssh -F test/.work/ssh_config isu1 'curl -s localhost:8080/version'
 
 **できる** — ssh 越しの配布、実行中バイナリの差し替え、サービス再起動、sha の記録、
 設定ファイルの配布、`flock` によるロックの取り合い、ビルド失敗時に止まること、
-ポータルの Cookie/CSRF、レポートと台帳の生成、スコア低下の判定。
+ポータルの Cookie/CSRF、レポートと台帳の生成。
 
 テストは `ISUH_RUNS_DIR` を `.work/` 以下に向けるので、追跡している
 `runs/history.tsv` は汚れない。

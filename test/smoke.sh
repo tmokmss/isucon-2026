@@ -71,7 +71,7 @@ for h in isu1 isu2; do
   [ "$(version_on $h)" = "v1" ] || ng "$h が v1 に戻っていない"
   [ "$(deployed_on $h)" = "$V1" ] || ng "$h の .deployed_sha が v1 でない"
 done
-ok "古い sha へ戻せる（= ロールバックの土台）"
+ok "古い sha へ戻せる（前の版へ戻すのも deploy でやる）"
 
 echo "== 3. --dry-run は何も変えない"
 run deploy main --dry-run

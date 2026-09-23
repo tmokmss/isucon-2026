@@ -68,7 +68,5 @@ export const config: Config = {
     lockPath: "/tmp/isucon-bench.lock", // hosts.primary 上
     lockTimeoutSec: 1800,
     timeoutSec: 600,
-    scoreRegressionRatio: 0.9,
-    autoRollback: false, // 序盤 false、終盤 true を推奨
   },
 };

@@ -5,7 +5,6 @@ import { command as finalize } from "./commands/finalize.js";
 import { command as history } from "./commands/history.js";
 import { command as monitor } from "./commands/monitor.js";
 import { command as portal } from "./commands/portal.js";
-import { command as rollback } from "./commands/rollback.js";
 import { command as setup } from "./commands/setup.js";
 import { command as verifyRestart } from "./commands/verifyRestart.js";
 import type { Command } from "./lib/command.js";
@@ -19,7 +18,6 @@ const COMMANDS: ReadonlyArray<readonly [string, Command]> = [
   ["check", check],
   ["bench", bench],
   ["history", history],
-  ["rollback", rollback],
   ["portal", portal],
   ["monitor", monitor],
   ["verify-restart", verifyRestart],
