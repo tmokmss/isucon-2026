@@ -3,6 +3,9 @@
 ISUCON2026（**2026-10-31(土) 10:00-18:00 JST**）用の作業ハーネス。
 TypeScript / Node + tsx。エントリポイントは `bin/isuh`。
 
+**スコアを上げる作業（report.md を読む → 直す → `isuh bench`）は、スキル `isucon-improve`
+（`.claude/skills/isucon-improve/SKILL.md`）の手順で回す。**
+
 ---
 
 ## 1. 契約を勝手に変えない
