@@ -1,0 +1,18 @@
+# チューニングの定番。**参考用で、自動では入れない。**
+# 計測して MySQL がボトルネックだと分かってから、conf/<db ホスト>/etc/mysql/mysql.conf.d/ の mysqld.cnf に写す
+# （CLAUDE.md「計測せずに推測で最適化しない」）。
+[mysqld]
+# 物理メモリの 6〜7 割（DB 専用ホストのとき）。アプリと同居なら控えめに
+innodb_buffer_pool_size = 1G
+# コミットごとの fsync をやめる。**クラッシュ時に直近 1 秒を失いうる**。
+# 「再起動後もデータが取得できること」はレギュレーション上の要件。正常な再起動なら問題ないが、
+# 採用するなら再起動試験（#7）を必ず通す
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT
+innodb_log_file_size = 256M
+# バイナリログは競技では不要（レプリケーションしない）
+disable_log_bin
+# 接続数。アプリの DB プールと合わせる
+max_connections = 1000
+# 別ホストのアプリから繋ぐとき
+bind-address = 0.0.0.0

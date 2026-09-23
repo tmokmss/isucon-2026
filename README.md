@@ -84,6 +84,9 @@ isuh <command> [args]
 
 ## ディレクトリ
 
+**このリポジトリは ISUCON2026 専用。** アプリ（`webapp/`）・ハーネス・構成管理（`conf/`）を
+1 つにまとめ、コードと設定を同じ commit で変えて同じ sha でデプロイする。
+
 | パス | 中身 |
 |---|---|
 | `docs/DESIGN.md` | **全レーン共有の契約**。実装前に必ず読む |
@@ -91,7 +94,9 @@ isuh <command> [args]
 | `src/cli.ts` | エントリポイント。サブコマンドの振り分け |
 | `src/commands/` | 各コマンド |
 | `src/lib/` | 共通ライブラリ（ログ・終了コード・ssh・git・ロック） |
-| `conf/` | サーバへ配る設定ファイル。`isuh deploy` が絶対パスへ写す |
+| `webapp/` | 競技のアプリ（サーバの `~/webapp`）。`isuh setup` が取り込む |
+| `conf/` | サーバの設定ファイル。`isuh setup` が取り込み、`isuh deploy` がアプリと同じ sha のものを絶対パスへ写す |
+| `setup/` | setup が配るもの（dotfiles・ログ設定）と、チューニングの参考テンプレ |
 | `test/` | sshd コンテナ 3 台の検証環境。実サーバ無しで動作確認する |
 | `runs/` | ベンチ 1 回 = 1 ディレクトリ。`history.tsv` がスコア台帳 |
 | `CLAUDE.md` | レギュレーション上の禁止事項とリポジトリの規約 |

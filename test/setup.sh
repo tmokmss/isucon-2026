@@ -3,7 +3,7 @@
 #   - 生成した ssh 設定だけで全台に入れ、サーバ間でも ssh できること
 #   - /etc/hosts・dotfiles・計測ツール・ログ設定が入り、alp / pt-query-digest が本物のログを読めること
 #   - nginx -t が落ちたら変更を戻すこと
-#   - ~/webapp が手元のリポジトリになり、大きいファイルとビルド成果物は入らないこと
+#   - ~/webapp が webapp/ に、サーバの設定が conf/<host>/ に取り込まれること（大きいファイル・秘密は入れない）
 #   - 2 回流しても同じ結果になること（冪等）
 set -eu
 cd "$(dirname "$0")"
@@ -43,8 +43,16 @@ run() {
 count_on() { $SSH "$1" "grep -cxF '$2' $3 || true"; }
 
 rm -f "$ISUH_SSH_CONFIG"
-rm -rf "$WORK/apprepo-setup" "$WORK/app-remote.git"
-git init -q --bare -b main "$WORK/app-remote.git"
+# 取り込み先 = アプリ・ハーネス・conf/ を 1 つにまとめたリポジトリ（ハーネス側のファイルだけある状態）
+REPO="$WORK/apprepo-setup"
+rm -rf "$REPO" "$WORK/app-remote.git"
+mkdir -p "$REPO"
+git -C "$REPO" init -q -b main
+git -C "$REPO" config user.email isuh-test@example.invalid
+git -C "$REPO" config user.name "isuh test"
+echo harness >"$REPO/harness.txt"
+git -C "$REPO" add -A
+git -C "$REPO" commit -qm "harness"
 
 # サーバの webapp を当日っぽくする: ソース・ビルド成果物・巨大ファイル
 UP="ssh -F $WORK/ssh_config"
@@ -86,6 +94,8 @@ $SSH isu1 'sudo rm -f /etc/nginx/conf.d/zz-broken.conf; sudo nginx -t' 2>/dev/nu
 ok "nginx -t が落ちたら exit 60 で、置いた設定を戻す"
 
 echo "== 3. 全ステップを通す"
+# ハーネス側の未コミットの変更。apprepo / conf のコミットに巻き込まないことを後で見る
+echo dirty >>"$REPO/harness.txt"
 run
 [ "$rc" = 0 ] || ng "exit=$rc"
 ok "isuh setup が完走した"
@@ -133,19 +143,38 @@ $SSH isu3 'sudo pt-query-digest /var/log/mysql/mysql-slow.log' | grep -q "isuh_s
   ng "pt-query-digest がクエリを拾えません"
 ok "long_query_time=0 で記録され、pt-query-digest が読める"
 
-echo "== 10. apprepo"
-REPO="$WORK/apprepo-setup"
-git -C "$REPO" ls-files --error-unmatch go/main.go sql/init.sql >/dev/null 2>&1 || ng "ソースが取り込まれていません"
-git -C "$REPO" ls-files --error-unmatch big.bin >/dev/null 2>&1 && ng "60MB のファイルが入っています"
-git -C "$REPO" ls-files --error-unmatch go/isuapp >/dev/null 2>&1 && ng "ビルド成果物が入っています"
-grep -qx "/big.bin" "$REPO/.gitignore" || ng "大きいファイルが .gitignore にありません"
-[ "$(git -C "$REPO" rev-parse HEAD)" = "$(git -C "$WORK/app-remote.git" rev-parse main)" ] || ng "push されていません"
-ok "ソースだけを取り込み、appRemote へ push した"
+echo "== 10. apprepo — webapp/ に取り込む"
+git -C "$REPO" ls-files --error-unmatch webapp/go/main.go webapp/sql/init.sql >/dev/null 2>&1 || ng "ソースが取り込まれていません"
+git -C "$REPO" ls-files --error-unmatch webapp/big.bin >/dev/null 2>&1 && ng "60MB のファイルが入っています"
+git -C "$REPO" ls-files --error-unmatch webapp/go/isuapp >/dev/null 2>&1 && ng "ビルド成果物が入っています"
+grep -qx "/big.bin" "$REPO/webapp/.gitignore" || ng "大きいファイルが webapp/.gitignore にありません"
+[ "$(git -C "$REPO" log --format=%s | grep -c 'webapp/ に取り込む')" = 1 ] || ng "取り込みのコミットがありません"
+ok "ソースだけを webapp/ に取り込んでコミットした"
 
-echo "== 11. 2 回目も通り、何も増えない"
+echo "== 11. conf — サーバの設定を conf/<host>/ に取り込む"
+C="$REPO/conf"
+[ -f "$C/isu1/etc/nginx/nginx.conf" ] || ng "nginx.conf がありません"
+grep -q "# isuh: access_log" "$C/isu1/etc/nginx/nginx.conf" || ng "取り込んだ nginx.conf がサーバの今の状態ではありません"
+[ -f "$C/isu1/etc/nginx/sites-enabled/default" ] || ng "sites-enabled（シンボリックリンク）の中身がありません"
+[ -f "$C/isu3/etc/mysql/mysql.conf.d/mysqld.cnf" ] || ng "mysqld.cnf がありません"
+[ -f "$C/isu1/etc/systemd/system/isuapp.go.service" ] || ng "アプリの systemd unit がありません"
+grep -qx "ISUCON_DB_HOST=isu3" "$C/isu1/home/isucon/env.sh" || ng "unit が読む env ファイルがありません"
+[ -e "$C/isu3/etc/systemd/system/isuapp.go.service" ] && ng "アプリの無いホストの unit まで取り込んでいます"
+[ -n "$(find "$C" -name 'debian.cnf')" ] && ng "パスワードを含む debian.cnf を取り込んでいます"
+[ -n "$(find "$C" -name 'zz-isuh-*' -o -name 'isuh-log.conf')" ] && ng "setup logs が置いた計測用の設定を取り込んでいます"
+cmp -s "$C/isu1/home/isucon/env.sh" /dev/stdin <<EOF || ng "中身がバイト単位で一致しません（末尾の改行など）"
+ISUCON_DB_HOST=isu3
+ISUCON_DB_USER=isucon
+EOF
+git -C "$REPO" ls-files --error-unmatch conf/isu3/etc/mysql/mysql.conf.d/mysqld.cnf >/dev/null 2>&1 || ng "conf/ がコミットされていません"
+[ "$(git -C "$REPO" status --porcelain -- harness.txt)" = " M harness.txt" ] || ng "他のファイルの変更を巻き込んでコミットしています"
+ok "nginx / MySQL / unit / env を取り込み、秘密と計測用の設定は除いてコミットした"
+
+echo "== 12. 2 回目も通り、何も増えない"
 run
 [ "$rc" = 0 ] || ng "2 回目 exit=$rc"
 grep -q "取り込みを飛ばします" "$ERR" || ng "apprepo が 2 回目も取り込もうとしています"
+[ "$(git -C "$REPO" status --porcelain -- conf)" = "" ] || ng "2 回目の conf で差分が出ています"
 for h in isu1 isu3; do
   [ "$(count_on "$h" '# >>> isuh >>>' /etc/hosts)" = 1 ] || ng "$h の /etc/hosts のブロックが 1 つではありません"
   [ "$(count_on "$h" '# >>> isuh >>>' '~/.bashrc')" = 1 ] || ng "$h の ~/.bashrc のブロックが 1 つではありません"
@@ -154,7 +183,15 @@ done
   ng "authorized_keys に鍵が重複しています"
 ok "2 回目も exit 0 で、管理ブロックと鍵は 1 つのまま"
 
-echo "== 12. 手元の ~/.ssh の書き換え（Include の挿入・退避・冪等）"
+echo "== 13. 手元で編集した conf は、取り込み直しで潰さない"
+echo "# edited locally" >>"$C/isu1/etc/nginx/nginx.conf"
+run --only conf
+[ "$rc" = 0 ] || ng "exit=$rc"
+tail -1 "$C/isu1/etc/nginx/nginx.conf" | grep -qx "# edited locally" || ng "手元の編集が消えました"
+grep -q "上書きしない" "$ERR" || ng "上書きしなかったことが出ていません"
+ok "既にあるファイルは上書きしない"
+
+echo "== 14. 手元の ~/.ssh の書き換え（Include の挿入・退避・冪等）"
 set +e
 cases=$(node --import tsx setup-probe.ts 2>"$ERR")
 rc=$?

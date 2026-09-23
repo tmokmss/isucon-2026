@@ -45,11 +45,13 @@ V2=$(git -C "$APP" rev-parse main)
 V1=$(git -C "$APP" rev-parse main~1)
 BROKEN=$(git -C "$APP" rev-parse broken)
 
-# conf/ は #10 が育てる場所。既にあるなら壊さないようにテストを飛ばす。
-CONF="$ROOT/conf"
-CONF_TEST=1
-[ -e "$CONF" ] && CONF_TEST=0
-cleanup() { [ "$CONF_TEST" = 1 ] && rm -rf "$CONF"; }
+# conf/ の検証はアプリと同じリポジトリの別ブランチで行い、終わったら main に戻す
+cleanup() {
+  git -C "$APP" checkout -q -f main 2>/dev/null || true
+  git -C "$APP" branch -q -D with-conf 2>/dev/null || true
+  git -C "$APP" checkout -q -- harness.txt 2>/dev/null || true
+}
+cleanup
 trap cleanup EXIT
 
 echo "== 1. deploy main (v2)"
@@ -100,24 +102,45 @@ run deploy no-such-ref-xyz
 [ "$rc" = 64 ] || ng "exit=$rc (64 のはず)"
 ok "引数不正は 64"
 
-if [ "$CONF_TEST" = 1 ]; then
-  echo "== 7. conf/ の配布とサービス再読込"
-  mkdir -p "$CONF/_all/etc/isuh-smoke" "$CONF/isu2/etc/isuh-smoke" "$CONF/isu1/etc/nginx"
-  echo from-all >"$CONF/_all/etc/isuh-smoke/common.conf"
-  echo from-isu2 >"$CONF/isu2/etc/isuh-smoke/common.conf"
-  echo "# isuh smoke" >"$CONF/isu1/etc/nginx/isuh-smoke.conf"
+echo "== 7. conf/ はバイナリと同じ sha から配られる"
+git -C "$APP" checkout -q -b with-conf main
+CONF="$APP/conf"
+mkdir -p "$CONF/_all/etc/isuh-smoke" "$CONF/isu2/etc/isuh-smoke" "$CONF/isu1/etc/nginx" "$CONF/isu3/etc/isuh-smoke"
+echo from-all >"$CONF/_all/etc/isuh-smoke/common.conf"
+echo from-isu2 >"$CONF/isu2/etc/isuh-smoke/common.conf"
+echo "# isuh smoke" >"$CONF/isu1/etc/nginx/isuh-smoke.conf"
+echo from-isu3 >"$CONF/isu3/etc/isuh-smoke/db.conf"
+git -C "$APP" add conf
+git -C "$APP" commit -qm "conf"
+WITH_CONF=$(git -C "$APP" rev-parse HEAD)
+# コミットしていない変更は配られない（配るのは sha の中身）
+echo uncommitted >"$CONF/_all/etc/isuh-smoke/common.conf"
+$SSH isu3 'sudo rm -f /etc/isuh-smoke/db.conf'
 
-  run deploy main
-  [ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
-  [ "$($SSH isu1 'cat /etc/isuh-smoke/common.conf')" = "from-all" ] || ng "isu1 に _all が届いていない"
-  [ "$($SSH isu2 'cat /etc/isuh-smoke/common.conf')" = "from-isu2" ] || ng "isu2 でホスト指定が優先されていない"
-  [ "$($SSH isu1 'test -f /etc/nginx/isuh-smoke.conf && echo yes')" = "yes" ] || ng "nginx 設定が届いていない"
-  [ "$($SSH isu2 'test -f /etc/nginx/isuh-smoke.conf && echo yes || echo no')" = "no" ] || ng "isu2 に余計な配布がされている"
-  [ "$(active_on isu1 nginx.service)" = "active" ] || ng "nginx が reload されていない"
-  ok "conf/_all と conf/<host> が配られ、nginx が reload される"
-else
-  echo "== 7. conf/ が既にあるため設定配布のテストは飛ばします"
-fi
+run deploy with-conf
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
+[ "$out" = "$WITH_CONF" ] || ng "stdout='$out'"
+grep -q "未コミットの変更が 1 件" "$ERR" || ng "conf/ の未コミットの変更を警告していません"
+[ "$($SSH isu1 'cat /etc/isuh-smoke/common.conf')" = "from-all" ] || ng "isu1 に sha の中身ではないものが届いた"
+[ "$($SSH isu2 'cat /etc/isuh-smoke/common.conf')" = "from-isu2" ] || ng "isu2 でホスト指定が優先されていない"
+[ "$($SSH isu1 'test -f /etc/nginx/isuh-smoke.conf && echo yes')" = "yes" ] || ng "nginx 設定が届いていない"
+[ "$($SSH isu2 'test -f /etc/nginx/isuh-smoke.conf && echo yes || echo no')" = "no" ] || ng "isu2 に余計な配布がされている"
+[ "$(active_on isu1 nginx.service)" = "active" ] || ng "nginx が reload されていない"
+ok "conf/_all と conf/<host> が sha の中身で配られ、nginx が reload される"
+
+echo "== 8. アプリの無いホスト（DB）にも conf/ が配られる"
+[ "$($SSH isu3 'cat /etc/isuh-smoke/db.conf')" = "from-isu3" ] || ng "isu3 に conf/isu3 が届いていない"
+[ "$($SSH isu3 'test -f /home/isucon/webapp/go/isuapp.isuh-new && echo yes || echo no')" = "no" ] || ng "isu3 にバイナリを配ろうとした"
+grep -q "isu3: restart isuapp" "$ERR" && ng "isu3 でアプリを再起動しようとした"
+ok "conf/isu3 は isu3 へ。バイナリと再起動はアプリのホストだけ"
+
+echo "== 9. ハーネス側だけの変更は警告しない"
+git -C "$APP" checkout -q -f main
+echo changed >>"$APP/harness.txt"
+run deploy --dry-run main
+[ "$rc" = 0 ] || ng "exit=$rc"
+grep -q "未コミット" "$ERR" && ng "配らないファイルの変更で警告しています"
+ok "警告の対象はアプリと conf/ だけ"
 
 echo
 echo "全 $passed 件パス"

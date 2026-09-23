@@ -52,27 +52,30 @@ for h in isu1 isu2 isu3; do
 done
 
 # --- ダミーアプリリポジトリ ------------------------------------------------
+# 本番と同じく「アプリ（webapp/）・ハーネス・conf/ が 1 つのリポジトリ」の形にする。
+# ハーネス側の変更に見立てたファイル（harness.txt）も置く。
 APP="$WORK/app-repo"
-if [ ! -d "$APP/.git" ]; then
+if [ ! -d "$APP/webapp" ]; then
   rm -rf "$APP"
-  mkdir -p "$APP"
-  cp -R fixtures/app/. "$APP/"
+  mkdir -p "$APP/webapp"
+  cp -R fixtures/app/. "$APP/webapp/"
+  echo "harness" >"$APP/harness.txt"
 
   git -C "$APP" init -q -b main
   git -C "$APP" config user.email isuh-test@example.invalid
   git -C "$APP" config user.name "isuh test"
 
-  printf 'package main\n\nconst version = "v1"\n' >"$APP/go/version.go"
+  printf 'package main\n\nconst version = "v1"\n' >"$APP/webapp/go/version.go"
   git -C "$APP" add -A
   git -C "$APP" commit -qm "v1"
 
-  printf 'package main\n\nconst version = "v2"\n' >"$APP/go/version.go"
+  printf 'package main\n\nconst version = "v2"\n' >"$APP/webapp/go/version.go"
   git -C "$APP" add -A
   git -C "$APP" commit -qm "v2"
 
   # ビルドが通らないブランチ。deploy が非ゼロで落ちることの確認に使う。
   git -C "$APP" checkout -q -b broken
-  printf 'package main\n\nthis is not go\n' >"$APP/go/version.go"
+  printf 'package main\n\nthis is not go\n' >"$APP/webapp/go/version.go"
   git -C "$APP" add -A
   git -C "$APP" commit -qm "broken"
   git -C "$APP" checkout -q main

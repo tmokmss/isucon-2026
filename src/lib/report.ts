@@ -340,13 +340,16 @@ const diffSection = async (ctx: ReportContext): Promise<string> => {
 
   const result = await local(
     "git",
-    ["-C", cfg.app.repoLocal, "diff", "--stat", prev.sha, meta.sha],
+    // 配ったもの（アプリと conf/）だけ。同じリポジトリにあるハーネスや runs/ の変更は混ぜない
+    ["-C", cfg.app.repoLocal, "diff", "--stat", prev.sha, meta.sha, "--", cfg.app.localDir, "conf"],
     { allowFailure: true },
   );
   const stat =
     result.exitCode === 0 && result.stdout.trim() !== ""
       ? fence(clip(result.stdout.trimEnd(), "git diff", 60))
-      : `差分を取れなかった（${prev.sha.slice(0, 7)}..${meta.sha.slice(0, 7)}）。`;
+      : result.exitCode === 0
+        ? "アプリと conf/ に差分は無い（ハーネスなど、配らないものだけが変わった）。"
+        : `差分を取れなかった（${prev.sha.slice(0, 7)}..${meta.sha.slice(0, 7)}）。`;
 
   return `${scoreLine}\n\n\`${prev.sha.slice(0, 7)}..${meta.sha.slice(0, 7)}\`\n\n${stat}`;
 };

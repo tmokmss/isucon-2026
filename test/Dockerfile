@@ -27,6 +27,14 @@ COPY systemctl /usr/local/bin/systemctl
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 0755 /usr/local/bin/systemctl /usr/local/bin/entrypoint.sh
 
+# 本物の systemd unit と env ファイル（競技環境の形）。setup conf が取り込む対象。
+# 起動には使わない（起動は下の /etc/isuh-units）。
+RUN install -d /etc/systemd/system \
+ && printf '[Unit]\nDescription=isuapp\n\n[Service]\nWorkingDirectory=/home/isucon/webapp/go\nEnvironmentFile=/home/isucon/env.sh\nExecStart=/home/isucon/webapp/go/isuapp\n\n[Install]\nWantedBy=multi-user.target\n' \
+      > /etc/systemd/system/isuapp.go.service \
+ && printf 'ISUCON_DB_HOST=isu3\nISUCON_DB_USER=isucon\n' > /home/isucon/env.sh \
+ && chown isucon:isucon /home/isucon/env.sh
+
 # ユニット定義 = 起動コマンドを 1 行書いたファイル。先頭の as-root は root のまま動かす印
 # （nginx は 80 番を、mysqld は自分で mysql ユーザへ切り替えるため）。
 RUN printf '/home/isucon/webapp/go/isuapp\n' > /etc/isuh-units/isuapp.go.service \

@@ -24,7 +24,9 @@ export const config: Config = {
   },
 
   app: {
+    // 本番はこのリポジトリ自身。テストはハーネスを汚さないよう別のリポジトリを使う（up.sh が作る）
     repoLocal: join(here, ".work", "app-repo"),
+    localDir: "webapp",
     dir: "/home/isucon/webapp",
     langDir: "go",
     binary: "isuapp",
@@ -79,6 +81,5 @@ export const config: Config = {
       isu3: { public: "127.0.0.1", port: 22103, private: "10.99.0.13" },
     },
     identityFile: join(here, ".work", "id_ed25519"),
-    appRemote: join(here, ".work", "app-remote.git"),
   },
 };

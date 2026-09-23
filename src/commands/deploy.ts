@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { hostname, userInfo } from "node:os";
 import { join, sep } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -29,43 +29,49 @@ const DEPLOYED_SHA_FILE = "$HOME/.deployed_sha";
  */
 const buildDirFor = (cfg: Config, sha: string): string => {
   const key = createHash("sha256")
-    .update([cfg.app.langDir, cfg.app.binary, cfg.app.buildCommand].join("\u0000"))
+    .update([cfg.app.localDir, cfg.app.langDir, cfg.app.binary, cfg.app.buildCommand].join("\u0000"))
     .digest("hex")
     .slice(0, 8);
   return join(repoRoot(), ".isuh", "build", `${sha.slice(0, 12)}-${key}`);
 };
 
+/** 取り出しが最後まで終わった印。途中で落ちたツリーを使わないため。 */
+const TREE_DONE = ".isuh-tree-done";
+
 /**
- * 指定 sha のツリーを取り出す。
+ * 指定 sha のツリーを取り出す（取り出し済みならそれを使う）。
  *
- * 作業ツリーではなく `git archive` の出力を使う。並列にアプリを編集していても
- * デプロイされる内容が sha と一致することを保証するため。
+ * 作業ツリーではなく `git archive` の出力を使う。並列に編集していても
+ * デプロイされる内容（アプリも conf/ も）が sha と一致することを保証するため。
  */
-const exportTree = async (repoLocal: string, sha: string, dest: string): Promise<void> => {
+const treeFor = async (cfg: Config, sha: string): Promise<string> => {
+  const dest = buildDirFor(cfg, sha);
+  if (existsSync(join(dest, TREE_DONE))) return dest;
+  log.info(`build: ${sha.slice(0, 7)} を取り出しています`);
   rmSync(dest, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });
   const tar = `${dest}.tar`;
-  await local("git", ["-C", repoLocal, "archive", "--format=tar", "-o", tar, sha]);
+  await local("git", ["-C", cfg.app.repoLocal, "archive", "--format=tar", "-o", tar, sha]);
   await local("tar", ["-xf", tar, "-C", dest]);
   rmSync(tar, { force: true });
+  writeFileSync(join(dest, TREE_DONE), sha);
+  return dest;
 };
 
 /** ビルドして、成果物のローカルパスを返す。 */
-const buildBinary = async (cfg: Config, sha: string): Promise<string> => {
-  const dir = buildDirFor(cfg, sha);
-  const binary = join(dir, cfg.app.langDir, cfg.app.binary);
+const buildBinary = async (cfg: Config, sha: string, tree: string): Promise<string> => {
+  const cwd = join(tree, cfg.app.localDir, cfg.app.langDir);
+  const binary = join(cwd, cfg.app.binary);
   if (existsSync(binary)) {
     log.info(`build: キャッシュを使用 ${binary}`);
     return binary;
   }
 
-  log.info(`build: ${sha.slice(0, 7)} を取り出しています`);
-  await exportTree(cfg.app.repoLocal, sha, dir);
-
-  const cwd = join(dir, cfg.app.langDir);
   if (!existsSync(cwd)) {
-    rmSync(dir, { recursive: true, force: true });
-    throw deployError(`app.langDir がリポジトリにありません: ${cfg.app.langDir} (at ${sha.slice(0, 7)})`);
+    throw deployError(
+      `アプリのディレクトリがリポジトリにありません: ${join(cfg.app.localDir, cfg.app.langDir)} (at ${sha.slice(0, 7)})\n` +
+        `  app.localDir / app.langDir を確認するか、isuh setup --only apprepo で取り込んでください。`,
+    );
   }
 
   log.info(`build: ${cfg.app.buildCommand}`);
@@ -76,12 +82,11 @@ const buildBinary = async (cfg: Config, sha: string): Promise<string> => {
     await execa(cfg.app.buildCommand, { cwd, shell: true, stdout: "pipe", stderr: "pipe" });
   } catch (error) {
     const detail = error instanceof Error && "stderr" in error ? String(error.stderr) : String(error);
-    rmSync(dir, { recursive: true, force: true });
+    rmSync(binary, { force: true });
     throw deployError(`ビルドに失敗しました\n${detail.trimEnd()}`);
   }
 
   if (!existsSync(binary)) {
-    rmSync(dir, { recursive: true, force: true });
     throw deployError(
       `ビルドは成功しましたが成果物がありません: ${cfg.app.binary}\n` +
         `  app.binary と app.buildCommand の出力先が一致しているか確認してください。`,
@@ -101,7 +106,9 @@ const buildBinary = async (cfg: Config, sha: string): Promise<string> => {
  *   conf/_all/etc/sysctl.d/99-isucon.conf  → 全ホストの /etc/sysctl.d/99-isucon.conf
  *   conf/isu1/etc/nginx/nginx.conf         → isu1 の /etc/nginx/nginx.conf
  *
- * 同じパスが両方にあればホスト指定側が勝つ。中身の git 管理（サーバからの取り込み）は #10。
+ * 同じパスが両方にあればホスト指定側が勝つ。読むのは app.repoLocal の作業ツリーではなく、
+ * バイナリと同じ sha のツリー（deploy <古い sha> で設定も一緒に戻る）。
+ * 中身はサーバから `isuh setup --only conf` で取り込む。
  */
 interface ConfFile {
   localPath: string;
@@ -119,10 +126,10 @@ const walkFiles = (dir: string, prefix = ""): string[] => {
   return found;
 };
 
-const confFilesFor = (host: string): ConfFile[] => {
+const confFilesFor = (tree: string, host: string): ConfFile[] => {
   const byRemote = new Map<string, ConfFile>();
   for (const scope of ["_all", host]) {
-    const base = join(repoRoot(), "conf", scope);
+    const base = join(tree, "conf", scope);
     if (!existsSync(base)) continue;
     for (const rel of walkFiles(base)) {
       const remotePath = `/${rel.split(sep).join("/")}`;
@@ -156,13 +163,21 @@ const pushConf = async (cfg: Config, host: string, files: readonly ConfFile[]): 
     const staged = `/tmp/isuh-conf-${index}`;
     await copyTo(host, file.localPath, staged);
     // install -D なら親ディレクトリごと作る。/etc 配下なので sudo が要る。
-    await onHost(host, ["sudo", "install", "-D", "-m", "0644", staged, file.remotePath]);
+    // /home 配下（systemd unit が読む env ファイルなど）は作業ユーザの持ち物のままにする
+    const owner = file.remotePath.startsWith("/home/") ? ["-o", cfg.hosts.user, "-g", cfg.hosts.user] : [];
+    await onHost(host, ["sudo", "install", "-D", "-m", "0644", ...owner, staged, file.remotePath]);
     await onHost(host, ["rm", "-f", staged]);
   }
 
   const paths = files.map((f) => f.remotePath);
   if (paths.some((p) => p.startsWith("/etc/systemd/"))) {
     await onHost(host, ["sudo", "systemctl", "daemon-reload"]);
+  }
+  if (paths.some((p) => p === "/etc/sysctl.conf" || p.startsWith("/etc/sysctl.d/"))) {
+    log.info(`${host}: sysctl --system`);
+    // 一部のキーが書けない環境（コンテナ等）でも、配布そのものは済んでいるので止めない
+    const applied = await onHost(host, ["sudo", "sysctl", "--system"], { allowFailure: true });
+    if (applied.exitCode !== 0) log.warn(`${host}: sysctl --system が一部失敗しました\n${applied.stderr.trim()}`);
   }
   for (const { service, action } of reloadsFor(cfg, paths)) {
     log.info(`${host}: ${action} ${service}`);
@@ -232,48 +247,59 @@ export interface DeployOptions {
 export const deploy = async (cfg: Config, opts: DeployOptions = {}): Promise<string> => {
   const ref = opts.ref ?? "HEAD";
   const sha = await resolveSha(cfg.app.repoLocal, ref);
-  const hosts = cfg.hosts.app;
+  const appHosts = new Set(cfg.hosts.app);
   const startedAt = Date.now();
 
-  const dirty = await local("git", ["-C", cfg.app.repoLocal, "status", "--porcelain"], {
-    allowFailure: true,
-  });
+  // 見るのは配るものだけ。ハーネスと同じリポジトリなので、runs/history.tsv などは常に動いている
+  const dirty = await local(
+    "git",
+    ["-C", cfg.app.repoLocal, "status", "--porcelain", "--", cfg.app.localDir, "conf"],
+    { allowFailure: true },
+  );
   if (dirty.stdout.trim() !== "") {
     const files = dirty.stdout.trim().split("\n").length;
     log.warn(
-      `アプリリポジトリに未コミットの変更が ${files} 件あります。` +
+      `アプリか conf/ に未コミットの変更が ${files} 件あります。` +
         `デプロイされるのは ${sha.slice(0, 7)} の内容だけです。`,
     );
   }
 
+  const tree = await treeFor(cfg, sha);
+  // バイナリは hosts.app へ、conf/ はそのホスト宛てがあれば全台へ（DB ホストの my.cnf など）
+  const hosts = [...new Set([...cfg.hosts.all, ...cfg.hosts.app])].filter(
+    (h) => appHosts.has(h) || confFilesFor(tree, h).length > 0,
+  );
+
   if (opts.dryRun) {
     log.info(`[dry-run] ref=${ref} sha=${sha.slice(0, 7)}`);
-    log.info(`[dry-run] build: ${cfg.app.buildCommand} (in ${cfg.app.langDir})`);
+    log.info(`[dry-run] build: ${cfg.app.buildCommand} (in ${join(cfg.app.localDir, cfg.app.langDir)})`);
     for (const host of hosts) {
-      log.info(`[dry-run] ${host}: ${remoteBinaryPath(cfg)} を差し替え`);
-      const confFiles = confFilesFor(host);
+      if (appHosts.has(host)) log.info(`[dry-run] ${host}: ${remoteBinaryPath(cfg)} を差し替え`);
+      const confFiles = confFilesFor(tree, host);
       for (const file of confFiles) log.info(`[dry-run] ${host}: ${file.remotePath} を配布`);
       for (const { service, action } of reloadsFor(cfg, confFiles.map((f) => f.remotePath))) {
         log.info(`[dry-run] ${host}: ${action} ${service}`);
       }
-      log.info(`[dry-run] ${host}: restart ${cfg.app.service}`);
+      if (appHosts.has(host)) log.info(`[dry-run] ${host}: restart ${cfg.app.service}`);
     }
     return sha;
   }
 
-  const binary = await buildBinary(cfg, sha);
+  const binary = await buildBinary(cfg, sha, tree);
 
   // ホストごとに直列（配布 → 再起動）、ホスト間は並列。
   // 1 台でも失敗したら全体を失敗にする（後続のベンチを走らせないため）。
   const results = await Promise.allSettled(
     hosts.map(async (host) => {
-      const confFiles = confFilesFor(host);
+      const confFiles = confFilesFor(tree, host);
       if (confFiles.length > 0) {
         log.info(`${host}: 設定ファイル ${confFiles.length} 件を配布`);
         await pushConf(cfg, host, confFiles);
       }
-      await pushBinary(cfg, host, binary);
-      await restartApp(cfg, host);
+      if (appHosts.has(host)) {
+        await pushBinary(cfg, host, binary);
+        await restartApp(cfg, host);
+      }
       await recordSha(cfg, host, sha, ref);
       log.info(`${host}: ok`);
     }),
@@ -300,7 +326,7 @@ export const command: Command = {
   usage: `usage: isuh deploy [<git-ref>] [--dry-run]
 
 指定した git ref のアプリをビルドし、hosts.app へ配布して再起動する。
-ref は app.repoLocal（手元のアプリリポジトリ）で解決する。既定は HEAD。
+ref は app.repoLocal（通常はこのリポジトリ）で解決する。既定は HEAD。
 
   <git-ref>   デプロイする ref
   --dry-run   何をするかを表示して実行しない
@@ -309,7 +335,7 @@ ref は app.repoLocal（手元のアプリリポジトリ）で解決する。�
 未コミットの変更があれば警告するが、配られはしない。
 
 各ホストの $HOME/.deployed_sha に「sha / ref / 時刻 / 実行者」を記録する。
-conf/_all/** と conf/<host>/** はサーバ上の絶対パスへそのまま配布し、
+同じ sha の conf/_all/** と conf/<host>/** をサーバ上の絶対パスへそのまま配布し、
 nginx / MySQL の設定を含む場合は該当サービスを reload / restart する。
 
 stdout にはデプロイした sha だけを出す（SHA=$(isuh deploy) が使える）。
