@@ -85,10 +85,12 @@ export const config: Config = {
     //   command: "./bench run --addr 127.0.0.1:443 --target https://isuride.xiv.isucon.net --payment-url http://127.0.0.1:12346 --payment-bind-port 12346",
     //   scorePattern: "スコア=(\\d+)",
     //   passPattern: "pass=true",
+    // ベンチマーカーは空いている isu2 で動かす（isu1 で動かすと isu1 の CPU を 62% 食う）。
+    // ベンチマーカーは決済サーバも兼ねるので、isu1 のアプリから isu2:12346 に届く URL を渡す
     local: {
-      host: "isu1",
+      host: "isu2",
       command:
-        "./bench run --addr 127.0.0.1:443 --target https://isuride.xiv.isucon.net --payment-url http://127.0.0.1:12346 --payment-bind-port 12346",
+        "./bench run --addr isu1:443 --target https://isuride.xiv.isucon.net --payment-url http://isu2:12346 --payment-bind-port 12346",
       scorePattern: "スコア=(\\d+)",
       passPattern: "pass=true",
     },
