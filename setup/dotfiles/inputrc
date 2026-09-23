@@ -1,0 +1,6 @@
+$include /etc/inputrc
+
+# 上下キーで「入力中の文字列から始まる履歴」を辿る
+"\e[A": history-search-backward
+"\e[B": history-search-forward
+set completion-ignore-case on

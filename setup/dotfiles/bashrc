@@ -1,0 +1,19 @@
+# isuh setup が ~/.isuh.bashrc に置き、~/.bashrc から読み込む。
+# ~/.bashrc 本体は書き換えない（Ubuntu の既定を残す）。
+
+HISTSIZE=100000
+HISTFILESIZE=100000
+HISTCONTROL=ignoreboth
+shopt -s histappend
+
+alias ll='ls -alF'
+alias la='ls -A'
+
+# 3 台を行き来するので、プロンプトのホスト名を色付きで目立たせる
+__isuh_branch() { git branch 2>/dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/'; }
+PS1='\[\033[01;33m\]\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]$(__isuh_branch)\$ '
+
+# 調査でよく打つもの
+alias jf='sudo journalctl -f -u' # jf isuports.go.service
+alias ngt='sudo nginx -t'
+alias myq='sudo mysql'

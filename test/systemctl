@@ -51,13 +51,15 @@ start_unit() {
   # 競技環境に合わせてサービスは isucon として動かす（restart は sudo 経由で来る）
   # setpriv は fork せず exec するので、$! がそのままサービスの PID になる
   # （runuser や su は間にプロセスが挟まり、pidfile と実体がずれる）
-  if [ "$(id -u)" = 0 ]; then
+  cmd=$(cat "$def")
+  if [ "$(id -u)" = 0 ] && [ "${cmd#as-root }" = "$cmd" ]; then
     launch="setpriv --reuid=isucon --regid=isucon --clear-groups -- sh -c"
   else
     launch="sh -c"
   fi
+  cmd=${cmd#as-root }
   # ssh セッションが閉じてもプロセスを残すため、stdin/stdout を切り離す
-  nohup $launch "exec $(cat "$def")" </dev/null >>"$logfile" 2>&1 &
+  nohup $launch "exec $cmd" </dev/null >>"$logfile" 2>&1 &
   echo $! >"$pidfile"
   sleep 0.5
   if ! running; then

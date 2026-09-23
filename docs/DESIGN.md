@@ -91,6 +91,14 @@ bench は毎回自分の ref をデプロイし直すので、悪い版が載っ
 | `hosts.db` | DB のホスト。slow query log の収集元 |
 | `hosts.primary` | ベンチのリクエスト先。**ロックの保持先** |
 
+ホスト別名そのもの（`~/.ssh/config` の定義）は `isuh setup` が `config.setup` から作る。
+
+| フィールド | 意味 |
+|---|---|
+| `setup.addresses` | ホスト別名 → `{ public, private, port? }`。当日 CloudFormation の出力から埋める |
+| `setup.identityFile` | 手元から入る鍵（ポータルに公開鍵を登録したもの） |
+| `setup.appRemote` | `setup apprepo` が作ったアプリリポジトリの push 先。空なら push しない |
+
 アプリのコードは**このハーネスとは別のリポジトリ**にある。
 `isuh deploy <git-ref>` や `isuh bench <git-ref>` の ref は `config.app.repoLocal`
 （手元のアプリリポジトリのチェックアウト）で解決する。ハーネス自身のリポジトリではない。
@@ -111,7 +119,7 @@ bench は毎回自分の ref をデプロイし直すので、悪い版が載っ
 
 | コマンド | 引数 | 役割 | 実装 |
 |---|---|---|---|
-| `setup` | `[--only <step>]` | 鍵配布・/etc/hosts・dotfiles・計測ツール導入 | #9 #11 |
+| `setup` | `[--only <step>[,<step>...]]` | 鍵配布・/etc/hosts・dotfiles・計測ツールとログ設定・アプリの git 化（下記） | #9 #11 |
 | `deploy` | `[<git-ref>] [--dry-run]` | 指定 ref をビルドして全台へ配布・再起動 | #1 |
 | `check` | なし | ベンチ不要の検証ゲート | #12 |
 | `bench` | `[<git-ref>] [--skip-check] [--note <text>]` | 上記の通し実行 | #2 #4 |
@@ -193,6 +201,43 @@ conf/isu1/etc/nginx/nginx.conf          → isu1 の /etc/nginx/nginx.conf
 「今どの版が載っているか」を知りたいときはここを読む。
 
 `isuh deploy` は stdout にデプロイした sha だけを出す（`SHA=$(isuh deploy)` が使える）。
+
+### `isuh setup` がやること
+
+起動直後にまず `config.setup.addresses`（各ホストの public / private アドレス）を埋めて
+`isuh setup` を流す。**どのステップも冪等**（何度流しても同じ結果）。途中で落ちたら直して流し直す。
+
+| ステップ | やること | 触る場所 |
+|---|---|---|
+| `ssh` | `~/.ssh/isuh_config` を生成して `~/.ssh/config` の先頭から `Include`。サーバ間の鍵を配り、1 台目から全台へ入れることを確認 | 手元の `~/.ssh`、全台の `~/.ssh` |
+| `hosts` | 全台の `/etc/hosts` に private アドレス | 全台 |
+| `dotfiles` | `setup/dotfiles/` を配る。`.bashrc` は置き換えず `~/.isuh.bashrc` を読み込ませる | 全台 |
+| `tools` | alp（GitHub のリリース）と pt-query-digest（同梱）を `/usr/local/bin` へ。htop / sysstat は apt で試す（失敗しても止めない） | 全台 |
+| `logs` | nginx の既存 `access_log` を無効化して `conf.d/isuh-log.conf`（LTSV）を置く。MySQL に `zz-isuh-slowlog.cnf`（`long_query_time = 0`）を置いて restart | `hosts.nginx`、`hosts.db` |
+| `apprepo` | `hosts.app[0]` の `app.dir` を手元の `app.repoLocal` に取り込んで git 化し、`setup.appRemote` へ push | 手元 |
+
+- **既存のファイルは管理ブロックだけを書き換える。** `~/.bashrc` / `/etc/hosts` /
+  サーバの `~/.ssh/config` は `# >>> isuh >>>` 〜 `# <<< isuh <<<` の間だけを置き換える
+- **計測用の設定は `isuh-` の名前で別ファイルにする。** 本番の最後に `finalize`（#8）が
+  このファイルを消せば元に戻る
+- **`nginx -t` が落ちたら置いたものを戻して exit 60。** 無効化した `access_log` の元の
+  ファイルは `/var/backups/isuh/` に退避する（`sites-enabled/` に置くと読み込まれてしまうため）
+- **サーバの webapp は git にしない。** deploy は手元から `git archive` で配るので、
+  サーバ側に git も GitHub の鍵も要らない。取り込みは 50MB を超えるファイル・
+  ビルド成果物・`node_modules` / `target` を除き、除いたものは `.gitignore` に書く。
+  手元の初回コミットがそのまま元の状態の控えになる
+- **alp は GitHub のリリースを手元で取り、scp で配る。** サーバの外向きの通信は細いことがあるため、サーバでは取らない。
+  チェックサムを固定していて、一致しなければ使わない。`.isuh/tools/` にキャッシュするので、リハーサルで 1 回取っておけば当日は GitHub に行かない
+- pt-query-digest は perl の単体スクリプトなので `setup/bin/` に同梱している
+
+**ポートフォワード** — `ssh` ステップの後は別名が使えるので、手元からは次で足りる。
+
+```sh
+ssh -N -L 8080:localhost:80 isu1              # アプリを手元のブラウザで見る
+ssh -N -L 6060:localhost:6060 isu1            # pprof（go tool pprof -http=:8081 http://localhost:6060/...）
+ssh -N -L 13306:localhost:3306 isu2           # MySQL を手元のクライアントで
+ssh -N -L 8080:<isu1 の private>:80 isu2      # 踏み台越し（isu2 経由で isu1 へ）
+```
 
 ---
 
@@ -346,6 +391,7 @@ run_id	started_at	sha	ref	score	status	note
 | `EXIT.DEPLOY` | `20` | デプロイ失敗 |
 | `EXIT.CHECK` | `30` | 検証ゲート失敗 |
 | `EXIT.BENCH` | `40` | ベンチ失敗 |
+| `EXIT.SETUP` | `60` | セットアップ失敗（`isuh setup`） |
 | `EXIT.USAGE` | `64` | 引数不正 |
 | `EXIT.CONFIG` | `65` | 設定不備 |
 | `EXIT.NOT_IMPLEMENTED` | `70` | 未実装 |
@@ -498,10 +544,13 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 ./test/portal.sh  # ポータル（コンテナ不要。fake-portal を立てる）
 ./test/report.sh  # report.md / meta.json / history.tsv / スコア判定
 ./test/metrics.sh # ベンチ中の計測（pprof の開始時機・top・alp の全台集計）
+./test/setup.sh   # setup（本物の nginx / MySQL に設定を入れ、alp / pt-query-digest で読む）
 ```
 
 - 設定は `test/config.test.ts`（`ISUH_CONFIG` で指す）
 - ホスト別名は `test/.work/ssh_config`（`ISUH_SSH_CONFIG` で指す）。`~/.ssh/config` は触らない
+- コンテナのアドレスは `10.99.0.11`〜`13` に固定（`setup` が `/etc/hosts` に書く private アドレス）
+- nginx と MySQL は本物が入っている（`setup logs` の検証用）
 - `systemd` は動かさない。`start` / `stop` / `restart` / `is-active` だけを模した
   スタブを置いている。`deploy` と `bench` が確かめたいのは ssh 越しの配布・差し替え・
   再起動と `flock` なので、systemd の再現度そのものは要らない

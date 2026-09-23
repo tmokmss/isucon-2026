@@ -26,7 +26,7 @@ npm install
 cp config.example.ts config.ts
 $EDITOR config.ts           # 当日埋める値はすべてここに集約されている（型が効く）
 
-bin/isuh setup              # 起動後のサーバセットアップ
+bin/isuh setup              # 起動後のサーバセットアップ（先に config.ts の setup.addresses を埋める）
 bin/isuh bench              # deploy → check → ベンチ → レポート生成
 bin/isuh history            # スコア台帳
 ```
@@ -117,7 +117,7 @@ npm run typecheck      # tsc --noEmit
 `isuh bench` 一発で、ロック取得・デプロイ・ログのリセット・リソース計測・
 ベンチ実行・計測の回収・`report.md` の生成・台帳への追記・スコア判定まで走る。
 
-残っているのは `check`(#12)、`setup`(#9 #11)、
+残っているのは `check`(#12)、
 `verify-restart`(#7)、`finalize`(#8)、`monitor`(#17)。
 ベンチ起動のエンドポイントは当日 `config.ts` に埋める。
 

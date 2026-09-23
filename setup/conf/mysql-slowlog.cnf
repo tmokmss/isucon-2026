@@ -1,0 +1,7 @@
+# isuh setup logs が MySQL / MariaDB の conf.d に zz-isuh-slowlog.cnf として置く。
+# long_query_time = 0 で全クエリを記録する（pt-query-digest で集計する前提）。
+# 本番の最後には finalize（#8）でこのファイルを消して restart する。
+[mysqld]
+slow_query_log      = 1
+slow_query_log_file = {{SLOW_LOG}}
+long_query_time     = 0
