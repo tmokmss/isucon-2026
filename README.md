@@ -93,7 +93,7 @@ isuh <command> [args]
 | `src/cli.ts` | エントリポイント。サブコマンドの振り分け |
 | `src/commands/` | 各コマンド |
 | `src/lib/` | 共通ライブラリ（ログ・終了コード・ssh・git・ロック） |
-| `webapp/` | 競技のアプリ（サーバの `~/webapp`）。`isuh setup` が取り込む |
+| `webapp/` | 競技のアプリ（サーバの `~/webapp`）。`isuh setup` が取り込み、`isuh deploy` がビルドしたバイナリと、バイナリ以外のファイル（`sql/` 等）を同じ sha で配る（上書きのみ・削除はしない） |
 | `conf/` | サーバの設定ファイル。`isuh setup` が取り込み、`isuh deploy` がアプリと同じ sha のものを絶対パスへ写す |
 | `setup/` | setup が配るもの（dotfiles・ログ設定）と、チューニングの参考テンプレ |
 | `test/` | sshd コンテナ 3 台の検証環境。実サーバ無しで動作確認する |
