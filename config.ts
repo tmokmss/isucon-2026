@@ -16,8 +16,8 @@ export const config: Config = {
     all: ["isu1", "isu2"],
     app: ["isu1"],
     nginx: ["isu1"],
-    // AMI の直後は DB も isu1 で動いている。DB を isu2 に移したら "isu2" にする
-    db: "isu1",
+    // DB は isu2 に移した（conf/isu1/home/isucon/env.sh の ISUCON_DB_HOST）
+    db: "isu2",
     primary: "isu1",
     user: "isucon",
   },
