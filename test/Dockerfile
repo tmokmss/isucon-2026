@@ -6,10 +6,14 @@
 # systemd の再現度そのものは要らない。
 FROM ubuntu:24.04
 
+# nginx / mysql-server / perl は setup の logs・tools ステップの検証用（本物の設定を書いて -t と
+# 再起動が通るか、alp / pt-query-digest が本物のログを読めるかを見る）。
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      openssh-server sudo util-linux procps curl ca-certificates \
- && rm -rf /var/lib/apt/lists/*
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      openssh-server openssh-client sudo util-linux procps curl ca-certificates \
+      nginx mysql-server perl \
+ && rm -rf /var/lib/apt/lists/* \
+ && install -d -o mysql -g mysql /var/run/mysqld
 
 RUN useradd -m -s /bin/bash isucon \
  && printf 'isucon ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/90-isucon \
@@ -23,10 +27,11 @@ COPY systemctl /usr/local/bin/systemctl
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 0755 /usr/local/bin/systemctl /usr/local/bin/entrypoint.sh
 
-# ユニット定義 = 起動コマンドを 1 行書いたファイル。
+# ユニット定義 = 起動コマンドを 1 行書いたファイル。先頭の as-root は root のまま動かす印
+# （nginx は 80 番を、mysqld は自分で mysql ユーザへ切り替えるため）。
 RUN printf '/home/isucon/webapp/go/isuapp\n' > /etc/isuh-units/isuapp.go.service \
- && printf 'sleep infinity\n' > /etc/isuh-units/nginx.service \
- && printf 'sleep infinity\n' > /etc/isuh-units/mysql.service
+ && printf "as-root nginx -g 'daemon off;'\n" > /etc/isuh-units/nginx.service \
+ && printf 'as-root mysqld\n' > /etc/isuh-units/mysql.service
 
 EXPOSE 22
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

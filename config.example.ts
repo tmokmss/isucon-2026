@@ -70,4 +70,18 @@ export const config: Config = {
     lockTimeoutSec: 1800,
     timeoutSec: 600,
   },
+
+  // isuh setup が使う。起動直後にまずここを埋めて `isuh setup` する。
+  setup: {
+    // 当日 CloudFormation の出力（またはポータル）から埋める。hosts.all の全員ぶん。
+    addresses: {
+      isu1: { public: "", private: "" },
+      isu2: { public: "", private: "" },
+      isu3: { public: "", private: "" },
+    },
+    // ポータルに公開鍵を登録した鍵。サーバの isucon ユーザにはこの鍵で入れる。
+    identityFile: `${process.env["HOME"]}/.ssh/id_ed25519`,
+    // 空なら push しない。先に GitHub で空のリポジトリを作っておく。
+    appRemote: "",
+  },
 };

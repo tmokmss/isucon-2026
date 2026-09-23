@@ -135,7 +135,9 @@ done
 [ -s "$dir/resource/isu1.txt" ] || ng "resource/isu1.txt が空です"
 grep -q "^# host=isu1" "$dir/resource/isu1.txt" || ng "resource/isu1.txt の中身が違います"
 grep -qE "^ *[0-9]+ +[0-9]+" "$dir/resource/isu1.txt" || ng "vmstat の行がありません"
-grep -q "未取得" "$dir/alp.txt" || ng "alp 未導入時に理由が書かれていません"
+# alp は setup（test/setup.sh）を流したかどうかで入っていたりいなかったりする。
+# 入っていなければ理由、入っていれば集計表が残ること
+grep -qE "未取得|COUNT" "$dir/alp.txt" || ng "alp.txt に集計表も未取得の理由もありません"
 ok "runs/$runid に alp/ptquery/pprof/resource が揃う（未導入なら理由付きで未取得）"
 
 echo "== 6. ベンチの生出力が残る"

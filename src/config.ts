@@ -93,6 +93,24 @@ export interface BenchConfig {
   timeoutSec: number;
 }
 
+export interface HostAddress {
+  /** 手元から入るときのアドレス。~/.ssh/isuh_config の HostName になる */
+  public: string;
+  /** サーバ間で使うアドレス。/etc/hosts とサーバ上の ~/.ssh/config に書く */
+  private: string;
+  /** 手元から入るときの ssh のポート。省略時 22（test/ のコンテナ環境で使う） */
+  port?: number;
+}
+
+export interface SetupConfig {
+  /** ホスト別名 → アドレス。hosts.all の全員ぶん。当日 CloudFormation の出力から埋める */
+  addresses: Record<string, HostAddress>;
+  /** 手元から入るときの秘密鍵。ポータルに公開鍵を登録したもの */
+  identityFile: string;
+  /** setup apprepo が作ったアプリリポジトリの push 先。空なら push しない */
+  appRemote: string;
+}
+
 export interface Config {
   hosts: HostConfig;
   app: AppConfig;
@@ -100,6 +118,7 @@ export interface Config {
   metrics: MetricsConfig;
   portal: PortalConfig;
   bench: BenchConfig;
+  setup: SetupConfig;
 }
 
 const validate = (cfg: Config): void => {

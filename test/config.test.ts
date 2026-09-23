@@ -70,4 +70,15 @@ export const config: Config = {
     lockTimeoutSec: 3,
     timeoutSec: 60,
   },
+
+  // 手元からは 127.0.0.1 の転送ポート、サーバ間は docker-compose.yml で固定したアドレス
+  setup: {
+    addresses: {
+      isu1: { public: "127.0.0.1", port: 22101, private: "10.99.0.11" },
+      isu2: { public: "127.0.0.1", port: 22102, private: "10.99.0.12" },
+      isu3: { public: "127.0.0.1", port: 22103, private: "10.99.0.13" },
+    },
+    identityFile: join(here, ".work", "id_ed25519"),
+    appRemote: join(here, ".work", "app-remote.git"),
+  },
 };

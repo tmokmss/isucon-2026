@@ -87,7 +87,8 @@ export const resetLogs = async (cfg: Config): Promise<void> => {
   await Promise.all(
     targets.map(async ({ host, path, what }) => {
       if (host === "" || path === "") return;
-      const result = await onHost(host, ["sudo", "truncate", "-s", "0", path], {
+      // -c: 無いファイルは作らない。root 所有で作ると mysqld が slow log を開けず、記録が止まる
+      const result = await onHost(host, ["sudo", "truncate", "-c", "-s", "0", path], {
         allowFailure: true,
       });
       if (result.exitCode !== 0) {

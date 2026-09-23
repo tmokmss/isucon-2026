@@ -1,0 +1,19 @@
+set nocompatible
+syntax on
+
+set number
+set cursorline
+set backspace=start,eol,indent
+
+set autoindent
+set shiftwidth=2
+set tabstop=2
+set expandtab
+autocmd FileType make setlocal noexpandtab
+
+set ignorecase
+set smartcase
+set incsearch
+set hlsearch
+
+inoremap <silent> jj <ESC>
