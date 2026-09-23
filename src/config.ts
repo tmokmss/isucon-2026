@@ -63,6 +63,10 @@ export interface MetricsConfig {
   ptQueryLimit: number;
   /** アプリに pprof を仕込んだら true */
   pprofEnabled: boolean;
+  /**
+   * CPU プロファイルの URL。**hosts.app[0] から見た URL**（そのホスト上で curl する）。
+   * ?seconds=N はベンチの長さに合わせる。ベンチ開始と同時に取り始め、N 秒経つまで待つ。
+   */
   pprofUrl: string;
   resourceIntervalSec: number;
 }

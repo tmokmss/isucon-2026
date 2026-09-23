@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	_ "net/http/pprof" // /debug/pprof/ を生やす（collect の pprof 取得の確認用）
 	"os"
 )
 
