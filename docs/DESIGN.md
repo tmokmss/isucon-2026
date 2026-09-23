@@ -260,8 +260,8 @@ runs/
     ├── report.md                     # 人間と AI が読む唯一のファイル
     ├── meta.json                     # 機械が読む
     ├── bench.log                     # ベンチの生出力
-    ├── alp.txt
-    ├── ptquery.txt
+    ├── alp.txt                       # alp --format tsv の全行（nginx が複数台なら == host == の節ごと）
+    ├── ptquery.txt                   # pt-query-digest --output json
     ├── pprof.txt                     # go tool pprof -top の出力
     ├── cpu.pprof                     # 生のプロファイル（go tool pprof -http で後から掘る）
     └── resource/
@@ -282,8 +282,17 @@ runs/
 | ベンチ前 | access log / slow query log を `truncate` | `hosts.nginx` / `hosts.db` |
 | ベンチ中 | `vmstat`（ホスト単位）と `top -b`（プロセス単位）を常駐させる | `hosts.all` |
 | ベンチ中 | `/debug/pprof/profile?seconds=N` を curl する | `hosts.app[0]` |
-| ベンチ後 | `alp`（nginx が複数台なら全台、ホストごとに並べる） | `hosts.nginx` |
-| ベンチ後 | `pt-query-digest` | `hosts.db` |
+| ベンチ後 | `alp --format tsv`（nginx が複数台なら全台、ホストごとに並べる） | `hosts.nginx` |
+| ベンチ後 | `pt-query-digest --output json` | `hosts.db` |
+
+**生ファイルは機械向けの形式で取り、`report.md` では畳む。** report.md はそのまま
+エージェントに渡るので、alp の既定の表（20 列近く・罫線）や pt-query-digest の既定の
+レポート（1 クエリ 40 行ほど）を貼ると、判断に要らない装飾で読む側の予算を使い切る。
+畳むのは `lib/digest.ts`。形式が想定と違う（未取得の理由が書いてある等）ときは元のまま載せる。
+
+alp の `--limit` は表示件数ではなく **URI の種類数の上限**で、超えると集計ごと落ちる。
+`alpMatches` を埋める前は ID 入りのパスがばらけて簡単に超えるので、collect は大きな値を
+渡して全行を取り、上位 `metrics.alpLimit` 件への絞り込みは report.md 側で行う。
 
 **pprof はベンチの開始と同時に取り始める。** `?seconds=N` は「叩いてから N 秒間」を
 測るので、ベンチの後に叩くとアイドル中を測ってしまう。N はベンチの長さに合わせ、
@@ -343,8 +352,13 @@ pprof のポートは外に開いていないことが多いため。
 <!-- ベンチの出力。status が pass 以外ならエラーを全文載せる -->
 
 ## Access log (alp)
+<!-- 列を絞った TSV: share / count / 4xx / 5xx / method / uri / sum_s / avg_s / p99_s / max_s / avg_bytes。
+     上位 metrics.alpLimit 件。alpMatches が空なら「集計は当てにならない」と書く -->
 
 ## Slow query (pt-query-digest)
+<!-- 全体の件数と合計時間、1 行 1 クエリの TSV:
+     rank / share / calls / total_s / avg_ms / p95_ms / rows_examined_avg / rows_sent_avg / query。
+     上位 3 件は EXPLAIN にそのまま使える実例を付ける -->
 
 ## CPU profile (pprof)
 <!-- metrics.pprofEnabled が false なら「未取得」と書く -->
@@ -544,6 +558,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 ./test/portal.sh  # ポータル（コンテナ不要。fake-portal を立てる）
 ./test/report.sh  # report.md / meta.json / history.tsv / スコア判定
 ./test/metrics.sh # ベンチ中の計測（pprof の開始時機・top・alp の全台集計）
+./test/digest.sh  # report.md の alp / pt-query-digest の節が列を絞った表になるか
 ./test/setup.sh   # setup（本物の nginx / MySQL に設定を入れ、alp / pt-query-digest で読む）
 ```
 

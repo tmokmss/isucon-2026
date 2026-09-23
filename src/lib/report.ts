@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Config } from "../config.js";
 import type { HistoryRow, RunMeta } from "./run.js";
+import { summarizeAlp, summarizePtQuery } from "./digest.js";
 import { local } from "./ssh.js";
 
 /**
@@ -350,6 +351,26 @@ const diffSection = async (ctx: ReportContext): Promise<string> => {
   return `${scoreLine}\n\n\`${prev.sha.slice(0, 7)}..${meta.sha.slice(0, 7)}\`\n\n${stat}`;
 };
 
+/**
+ * 計測ツールの出力は、要約できれば列を絞った表に、できなければ（未取得の理由など）元のまま載せる。
+ * 要約は src/lib/digest.ts。生の出力は元ファイルにある。
+ */
+const digestSection = (dir: string, file: string, summarize: (text: string) => string | null): string => {
+  const raw = readOr(join(dir, file), "未取得");
+  const summary = summarize(raw);
+  if (summary === null) return fence(clip(raw, file));
+  return `${fence(clip(summary, file))}\n\n（生の出力は ${file}）`;
+};
+
+const alpSection = (dir: string, cfg: Config): string => {
+  const body = digestSection(dir, "alp.txt", (text) => summarizeAlp(text, cfg.metrics.alpLimit));
+  // 正規化しないと /api/user/1, /api/user/2 ... が別の行になり、上位が意味を持たない
+  if (cfg.metrics.alpMatches.length > 0) return body;
+  return `**注意: metrics.alpMatches が空で URI が正規化されていない。** ID を含むパスが別々の行に割れているので、集計は当てにならない。\n\n${body}`;
+};
+
+const ptQuerySection = (dir: string): string => digestSection(dir, "ptquery.txt", summarizePtQuery);
+
 /** report.md を書く。見出しは docs/DESIGN.md §4 の通りで固定。 */
 export const writeReport = async (dir: string, ctx: ReportContext): Promise<void> => {
   const benchLog = readOr(join(dir, "bench.log"), "未取得: ベンチを起動できなかった。");
@@ -369,11 +390,11 @@ export const writeReport = async (dir: string, ctx: ReportContext): Promise<void
     "",
     "## Access log (alp)",
     "",
-    fence(clip(readOr(join(dir, "alp.txt"), "未取得"), "alp.txt")),
+    alpSection(dir, ctx.cfg),
     "",
     "## Slow query (pt-query-digest)",
     "",
-    fence(clip(readOr(join(dir, "ptquery.txt"), "未取得"), "ptquery.txt")),
+    ptQuerySection(dir),
     "",
     "## CPU profile (pprof)",
     "",
