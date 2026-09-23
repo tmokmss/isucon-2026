@@ -72,10 +72,14 @@ export interface PortalConfig {
   /** ブラウザから持ち出した sessionid / csrftoken を置くファイル */
   cookieFile: string;
   teamId: string;
+  /** whoami が引く「ログインが必要なページ」。Cookie の生死確認だけに使う */
+  whoamiPath: string;
   /** 当日判明したら埋める（ベンチ登録） */
   enqueuePath: string;
-  /** 当日判明したら埋める（ジョブ状態の取得） */
+  /** 当日判明したら埋める（ジョブ状態の取得）。`{job}` を job-id に置換する */
   jobPath: string;
+  /** 当日判明したら埋める（確定スコアの取得） */
+  scorePath: string;
 }
 
 export interface BenchConfig {

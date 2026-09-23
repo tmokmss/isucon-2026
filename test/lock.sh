@@ -10,7 +10,8 @@ export ISUH_SSH_CONFIG="$TEST_DIR/.work/ssh_config"
 ISUH="$ROOT/bin/isuh"
 # tsx の CLI は子プロセスで node を起動してしまい、kill の検証にならない（bin/isuh と同じ理由）
 PROBE="node --import tsx"
-ERR="$TEST_DIR/.work/lock.err"
+WORK="$TEST_DIR/.work"
+ERR="$WORK/lock.err"
 SSH="ssh -F $ISUH_SSH_CONFIG -o ConnectTimeout=5"
 
 LOCK=/tmp/isucon-bench.lock
@@ -48,6 +49,18 @@ wait_until_free() {
   done
   return 0
 }
+
+# bench を通しで走らせるためにポータルの代役を立てる
+printf 'sessionid=valid-session; csrftoken=tok123\n' >"$WORK/portal-cookie"
+node --import tsx fake-portal.ts >"$WORK/fake-portal.log" 2>&1 &
+portal_pid=$!
+trap 'kill "$portal_pid" 2>/dev/null || true' EXIT
+i=0
+until curl -s -o /dev/null "http://127.0.0.1:18080/auth/login/" 2>/dev/null; do
+  i=$((i + 1))
+  [ "$i" -gt 50 ] && ng "fake-portal が起動しません"
+  sleep 0.1
+done
 
 $SSH isu1 "rm -f $TRACE $LOCK.owner"
 lock_free || ng "開始時点でロックが握られています"
@@ -87,23 +100,34 @@ wait "$pid_hold" 2>/dev/null || true
 wait_until_free 100 || ng "kill 後もロックが残っています"
 ok "プロセスを kill すればロックは自動で解放される"
 
-echo "== 4. bench は失敗してもロックを解放する"
-$SSH isu1 "rm -f $TRACE"
+echo "== 4. bench が通しで完走する"
 set +e
-"$ISUH" bench main >/dev/null 2>"$ERR"
+score=$("$ISUH" bench main 2>"$ERR")
 rc=$?
 set -e
-# ベンチ起動(#3)が未実装なので 70 で終わる。そこまでの手順は本物。
-[ "$rc" = 70 ] || ng "exit=$rc (70 のはず)"
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
+[ "$score" = "12345" ] || ng "stdout='$score' (12345 のはず)"
 grep -q "ロックを解放しました" "$ERR" || ng "ロックを解放していません"
 lock_free || ng "bench 後もロックが残っています"
-ok "途中で失敗しても finally で解放される"
+# このランの run-id を控える（後続のテストで別のランに上書きされるため）
+runid=$(sed -n 's/.*runId=\([^ ]*\).*/\1/p' "$ERR" | head -1)
+[ -n "$runid" ] || ng "run-id を取れません"
+ok "ロック → deploy → ログリセット → 計測開始 → ベンチ → 回収 → 解放 が通る"
+
+echo "== 4b. 途中で失敗してもロックを解放する"
+set +e
+"$ISUH" bench broken >/dev/null 2>"$ERR"
+rc=$?
+set -e
+[ "$rc" = 20 ] || ng "exit=$rc (20 のはず)"
+lock_free || ng "失敗後もロックが残っています"
+grep -q "ロックを解放しました" "$ERR" || ng "ロックを解放していません"
+ok "デプロイで落ちても finally で解放される"
 
 echo "== 5. bench が計測の生データを残す"
-runid=$(ls -1t "$ROOT/runs" | grep -E '^[0-9]{8}-[0-9]{6}-' | head -1)
-[ -n "$runid" ] || ng "runs/<run-id>/ が作られていません"
 dir="$ROOT/runs/$runid"
-for f in alp.txt ptquery.txt pprof.txt; do
+[ -d "$dir" ] || ng "runs/$runid が作られていません"
+for f in alp.txt ptquery.txt pprof.txt bench.log; do
   [ -f "$dir/$f" ] || ng "$f がありません"
 done
 [ -s "$dir/resource/isu1.txt" ] || ng "resource/isu1.txt が空です"
@@ -112,9 +136,9 @@ grep -qE "^ *[0-9]+ +[0-9]+" "$dir/resource/isu1.txt" || ng "vmstat の行があ
 grep -q "未取得" "$dir/alp.txt" || ng "alp 未導入時に理由が書かれていません"
 ok "runs/$runid に alp/ptquery/pprof/resource が揃う（未導入なら理由付きで未取得）"
 
-echo "== 6. ログのリセットが走っている"
-grep -q "リソース計測を開始しました" "$ERR" || ng "リソース計測が開始されていません"
-ok "ログのリセットとリソース計測がベンチ前に走る"
+echo "== 6. ベンチの生出力が残る"
+grep -q '"score":12345' "$dir/bench.log" || ng "bench.log にベンチの応答がありません"
+ok "bench.log にポータルの応答がそのまま残る"
 
 echo
 echo "全 $passed 件パス"

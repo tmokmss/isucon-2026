@@ -20,7 +20,8 @@
 | 実行場所 | **手元の PC**。競技サーバには置かない |
 
 ハーネスは手元で動かすので、単一バイナリ化やクロスコンパイルは不要。
-シェルスクリプトは `bin/isuh`（tsx を呼ぶだけの 10 行）のみに留める。
+本体のシェルスクリプトは `bin/isuh`（node を exec するだけ）のみに留める
+（`test/` の検証スクリプトは別。コンテナや ssh を回すだけなので sh で書く）。
 
 理由: この道具の仕事は「ssh でコマンドを叩く」より「**ポータルへの HTTP
 （Cookie + CSRF）／ JSON の構造比較 ／ レポートの整形 ／ スコアの小数比較**」の
@@ -116,15 +117,41 @@ isuh bench [<git-ref>]
 
 | サブコマンド | 役割 |
 |---|---|
-| `whoami` | Cookie が有効かの確認。認証必須ページを引けるか |
+| `whoami` | Cookie が有効かの確認 |
+| `get <path>` | 任意のページを Cookie 付きで引いて stdout に出す |
+| `post <path> [k=v ...]` | 任意のパスへ CSRF 付きで POST する |
 | `enqueue` | ベンチを登録し、ジョブ ID を **stdout に出す** |
 | `status <job-id>` | ジョブ状態を出す（`pending` / `running` / `done` / `failed`） |
 | `wait <job-id>` | 完了まで待ち、結果 JSON を stdout に出す |
 | `score` | 最新の確定スコアを stdout に出す |
 
+`get` / `post` は**当日エンドポイントを探るため**にある。ブラウザの DevTools で
+フォームの action や fetch 先を見つけたら、まずここで叩いて形を確かめ、
+`config.portal` に書く。
+
+**Cookie** — `portal.cookieFile` に Cookie ヘッダの中身を 1 行で置く。
+`#` 始まりの行は無視、複数行は `; ` で連結する。
+
+```
+sessionid=<値>; csrftoken=<値>
+```
+
+POST は Django の CSRF を通すため、Cookie の `csrftoken` を `X-CSRFToken` ヘッダに
+載せ、`Referer` と `Origin` も付けて送る。
+
+**ログイン切れの判定** — 3xx で `/auth/login` へ飛ばされる、401/403、のほかに
+**HTML 本文も見る**。ポータルのトップは未ログインでも 200 を返すため
+（実物で確認済み）、ステータスだけでは判定できない。未ログインなら
+`/auth/login/` へのリンク、ログイン済みならログアウトのフォーム
+（`<form action="/auth/logout/">`）が出る。
+
+中身の推測は壊れやすいので、`whoamiPath` の既定値は**未ログインだと 302 を返す**
+`/auth/settings/team/` にしてある（実物で確認済み。Cookie ありで 200、なしで
+`/auth/login/?next=...` へ 302）。
+
 > **ベンチ用のエンドポイントは当日にならないと分からない。**
 > URL とパラメータは `config.portal` に集約し、当日は埋めるだけにする。
-> 事前に検証できるのは `whoami` 相当（Cookie 付きで認証必須ページを引く）まで。
+> 事前に検証できるのは `whoami` と `get` まで。
 
 ### `isuh deploy` が配るもの
 
@@ -367,6 +394,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 | `lib/git.ts` | `resolveSha`（`config.app.repoLocal` で解決） |
 | `lib/lock.ts` | `acquireLock` / `Lock.release` |
 | `lib/collect.ts` | `resetLogs` / `startResourceSampling` / `collectMetrics` |
+| `lib/portal.ts` | `loadCookie` / `portalRequest` / `assertLoggedIn` / `asJson` / `pick` |
 | `lib/command.ts` | `Command` インターフェース |
 | `config.ts` | `Config` 型一式 / `loadConfig` |
 
@@ -421,9 +449,13 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 
 ```sh
 ./test/up.sh      # コンテナ + 鍵 + ssh_config + ダミーのアプリリポジトリ
-./test/smoke.sh   # deploy の検証
-./test/lock.sh    # ロックと bench の検証（直列化・kill・計測の回収）
+./test/all.sh     # typecheck + 全スイート
 ./test/down.sh
+
+# 個別
+./test/smoke.sh   # deploy
+./test/lock.sh    # ロックと bench（直列化・kill 耐性・通しの完走）
+./test/portal.sh  # ポータル（コンテナ不要。fake-portal を立てる）
 ```
 
 - 設定は `test/config.test.ts`（`ISUH_CONFIG` で指す）
@@ -435,4 +467,4 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 **確かめられないもの** — 本物の systemd、実際の負荷、ベンチマーカー、ポータル。
 それらは過去問環境でのリハーサル（#18）で見る。
 
-新しいコマンドを実装したら `test/smoke.sh` にケースを足す。
+新しいコマンドを実装したら該当のスイートにケースを足す。

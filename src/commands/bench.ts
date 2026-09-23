@@ -1,21 +1,48 @@
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { type Config, loadConfig } from "../config.js";
 import { type ResourceSampler, collectMetrics, resetLogs, startResourceSampling } from "../lib/collect.js";
 import type { Command } from "../lib/command.js";
-import { NotImplementedError, notImplemented, usageError } from "../lib/exit.js";
+import { EXIT, HarnessError, NotImplementedError, usageError } from "../lib/exit.js";
 import { resolveSha } from "../lib/git.js";
 import { acquireLock } from "../lib/lock.js";
-import { log } from "../lib/log.js";
+import { log, out } from "../lib/log.js";
 import { newRunId, runDir } from "../lib/paths.js";
+import { asJson, pick } from "../lib/portal.js";
 import { command as checkCommand } from "./check.js";
 import { deploy } from "./deploy.js";
+import { SCORE_KEYS, STATUS_KEYS, enqueueBench, isPassStatus, waitBench } from "./portal.js";
+
+interface BenchOutcome {
+  jobId: string;
+  /** ポータルが返した生の状態 */
+  rawStatus: string;
+  /** docs/DESIGN.md §4 の status */
+  status: "pass" | "fail";
+  score: number;
+}
 
 /**
  * ベンチを起動して完了まで待つ。
  *
- * ポータルのエンドポイントは当日まで分からないので、ここは #3（isuh portal）に委ねる。
- * 戻り値はスコアとベンチの生出力。
+ * ポータルのエンドポイントは当日まで分からないので、パスは config.portal に集約し、
+ * ここでは「登録 → 完了待ち → 生出力を bench.log に落とす」だけを行う。
  */
-const runBenchmark = async (_cfg: Config, _dir: string): Promise<never> => notImplemented(3);
+const runBenchmark = async (cfg: Config, dir: string): Promise<BenchOutcome> => {
+  const jobId = await enqueueBench(cfg);
+  const response = await waitBench(cfg, jobId);
+  writeFileSync(join(dir, "bench.log"), response.body.endsWith("\n") ? response.body : `${response.body}\n`);
+
+  const json = asJson(response);
+  const rawStatus = (pick(json, STATUS_KEYS) ?? "unknown").toLowerCase();
+  const parsed = Number(pick(json, SCORE_KEYS) ?? "0");
+  return {
+    jobId,
+    rawStatus,
+    status: isPassStatus(rawStatus) ? "pass" : "fail",
+    score: Number.isFinite(parsed) ? parsed : 0,
+  };
+};
 
 /**
  * check を挟む。deploy の「後」に走らせるのは、新しいコードが載った状態を検証するため。
@@ -103,7 +130,17 @@ export const command: Command = {
       await resetLogs(cfg);
       sampler = await startResourceSampling(cfg, dir);
 
-      await runBenchmark(cfg, dir);
+      const outcome = await runBenchmark(cfg, dir);
+      log.info(
+        `ベンチ完了 job=${outcome.jobId} status=${outcome.rawStatus} score=${outcome.score}`,
+      );
+      if (outcome.status !== "pass") {
+        throw new HarnessError(
+          EXIT.BENCH,
+          `ベンチが失敗しました (status=${outcome.rawStatus})\n  詳細: ${join(dir, "bench.log")}`,
+        );
+      }
+      out(String(outcome.score));
 
       // 8. レポート生成と台帳追記は #4 / #5。
       // 9. スコア判定とロールバックは #5 / #6。

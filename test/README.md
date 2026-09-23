@@ -10,9 +10,17 @@
 
 ```sh
 ./test/up.sh        # コンテナ起動 + 鍵/ssh_config + ダミーアプリリポジトリの用意
-./test/smoke.sh     # deploy の通し検証
+./test/all.sh       # typecheck + 全スイート
 ./test/down.sh      # 停止
 ```
+
+個別に回すこともできる。
+
+| | 確かめること |
+|---|---|
+| `./test/smoke.sh` | deploy — 配布・古い sha への復帰・dry-run・ビルド失敗・conf 配布 |
+| `./test/lock.sh` | ロックと bench — 直列化・kill 耐性・通しの完走・計測の回収 |
+| `./test/portal.sh` | ポータル — Cookie・ログイン切れ判定・CSRF・enqueue/wait/score（コンテナ不要） |
 
 手で触るとき:
 
@@ -34,6 +42,10 @@ ssh -F test/.work/ssh_config isu1 'curl -s localhost:8080/version'
 | `fixtures/app/` | ダミーの競技アプリ（`/version` を返すだけの Go） |
 | `up.sh` | 鍵生成・ssh_config 生成・コンテナ起動・ダミーリポジトリ作成 |
 | `smoke.sh` | `deploy` の通し検証 |
+| `lock.sh` | ロックと `bench` の通し検証 |
+| `portal.sh` | ポータル操作の検証 |
+| `fake-portal.ts` | ポータルの代役。Django 風の 302 / CSRF / ジョブ進行を返す |
+| `lock-probe.ts` | ロックの取り合いを再現するための小さなプログラム |
 | `.work/` | 生成物（鍵・ssh_config・ダミーリポジトリ）。git 管理外 |
 
 `up.sh` が作るダミーリポジトリは 3 つの revision を持つ。
