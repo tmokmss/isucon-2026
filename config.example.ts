@@ -1,3 +1,5 @@
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Config } from "./src/config.js";
 
 /**
@@ -17,7 +19,10 @@ export const config: Config = {
   },
 
   app: {
-    repoLocal: `${process.env["HOME"]}/projects/isucon2026-app`,
+    // アプリ・ハーネス・構成管理（conf/）は同じリポジトリ。config.ts はリポジトリ直下に置くので、その場所
+    repoLocal: dirname(fileURLToPath(import.meta.url)),
+    // サーバの app.dir を写す場所（isuh setup apprepo が取り込む）
+    localDir: "webapp",
     dir: "/home/isucon/webapp",
     langDir: "go",
     binary: "isuports",
@@ -81,7 +86,5 @@ export const config: Config = {
     },
     // ポータルに公開鍵を登録した鍵。サーバの isucon ユーザにはこの鍵で入れる。
     identityFile: `${process.env["HOME"]}/.ssh/id_ed25519`,
-    // 空なら push しない。先に GitHub で空のリポジトリを作っておく。
-    appRemote: "",
   },
 };

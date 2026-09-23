@@ -9,7 +9,7 @@
 ## 使い方
 
 ```sh
-./test/up.sh        # コンテナ起動 + 鍵/ssh_config + ダミーアプリリポジトリの用意
+./test/up.sh        # コンテナ起動 + 鍵/ssh_config + ダミーのリポジトリ（webapp/ と harness.txt）の用意
 ./test/all.sh       # typecheck + 全スイート
 ./test/down.sh      # 停止
 ```
@@ -18,13 +18,13 @@
 
 | | 確かめること |
 |---|---|
-| `./test/smoke.sh` | deploy — 配布・古い sha への復帰・dry-run・ビルド失敗・conf 配布 |
+| `./test/smoke.sh` | deploy — 配布・古い sha への復帰・dry-run・ビルド失敗・conf を同じ sha から全台へ配布 |
 | `./test/lock.sh` | ロックと bench — 直列化・kill 耐性・通しの完走・計測の回収 |
 | `./test/portal.sh` | ポータル — Cookie・ログイン切れ判定・CSRF・enqueue/wait/score（コンテナ不要） |
 | `./test/report.sh` | report.md の見出しと中身・meta.json・history.tsv・スコア判定 |
 | `./test/metrics.sh` | ベンチ中の計測 — pprof をベンチ開始と同時に取る・top・alp の全台集計 |
 | `./test/digest.sh` | report.md の alp / pt-query-digest 節 — 列を絞った表・上位 N 件・alpMatches が空のときの警告 |
-| `./test/setup.sh` | setup — ssh・/etc/hosts・dotfiles・ツール・nginx と MySQL のログ設定・apprepo・冪等性 |
+| `./test/setup.sh` | setup — ssh・/etc/hosts・dotfiles・ツール・nginx と MySQL のログ設定・apprepo・conf の取り込み・冪等性 |
 
 手で触るとき:
 

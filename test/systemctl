@@ -10,6 +10,28 @@ LOG_DIR=/var/log/isuh
 action=${1:-}
 [ "$#" -gt 0 ] && shift
 
+# show -p <Prop> --value <unit>: setup conf が unit ファイルと env ファイルの場所を引くのに使う。
+# 本物の unit の置き場（/etc/systemd/system）にファイルがあれば、それを答える。
+if [ "$action" = show ]; then
+  prop=""
+  unit=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      -p) prop=$2; shift 2 ;;
+      -*) shift ;;
+      *) unit=$1; shift ;;
+    esac
+  done
+  file="/etc/systemd/system/$unit"
+  case "$prop" in
+    FragmentPath) [ -f "$file" ] && echo "$file" || echo "" ;;
+    EnvironmentFiles)
+      [ -f "$file" ] && sed -n 's/^EnvironmentFile=-\{0,1\}\(.*\)$/\1 (ignore_errors=no)/p' "$file"
+      ;;
+  esac
+  exit 0
+fi
+
 # --no-pager / -l などのフラグを読み飛ばして最初の非フラグをユニット名とする
 unit=""
 for arg in "$@"; do

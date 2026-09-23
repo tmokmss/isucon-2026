@@ -97,12 +97,26 @@ bench は毎回自分の ref をデプロイし直すので、悪い版が載っ
 |---|---|
 | `setup.addresses` | ホスト別名 → `{ public, private, port? }`。当日 CloudFormation の出力から埋める |
 | `setup.identityFile` | 手元から入る鍵（ポータルに公開鍵を登録したもの） |
-| `setup.appRemote` | `setup apprepo` が作ったアプリリポジトリの push 先。空なら push しない |
 
-アプリのコードは**このハーネスとは別のリポジトリ**にある。
+**このリポジトリは ISUCON2026 専用で、アプリ・ハーネス・構成管理を 1 つにまとめる。**
+
+```
+.
+├── webapp/     # サーバの ~/webapp（app.dir）を写したもの。isuh setup apprepo が取り込む
+├── conf/       # サーバの設定ファイル。isuh setup conf が取り込み、isuh deploy が配る
+├── src/ bin/   # ハーネス
+└── runs/       # 計測結果
+```
+
 `isuh deploy <git-ref>` や `isuh bench <git-ref>` の ref は `config.app.repoLocal`
-（手元のアプリリポジトリのチェックアウト）で解決する。ハーネス自身のリポジトリではない。
-これによりアプリ側を worktree で並列に触る運用がそのまま成立する。
+（通常はこのリポジトリ自身）で解決する。**アプリと設定が同じ sha に乗る**ので、
+エージェントは worktree 1 つでコードと設定を同時に変えられ、`isuh deploy <古い sha>` で
+設定も一緒に戻る。`repoLocal` が別の場所を指すのは test/ の検証環境だけ。
+
+| フィールド | 意味 |
+|---|---|
+| `app.repoLocal` | アプリと `conf/` を含む git リポジトリ。通常はこのリポジトリ |
+| `app.localDir` | その中で、サーバの `app.dir` を写したディレクトリ（`webapp`） |
 
 ---
 
@@ -172,14 +186,16 @@ POST は Django の CSRF を通すため、Cookie の `csrftoken` を `X-CSRFTok
 ### `isuh deploy` が配るもの
 
 **アプリのバイナリ** — `app.repoLocal` で ref を sha に解決し、`git archive` で取り出した
-ツリーをビルドして `hosts.app` へ配る。作業ツリーの内容ではない（未コミットの変更が
-あれば警告する）。配布は `<path>.isuh-new` へ置いてから `mv` で差し替える。
+ツリーの `app.localDir/app.langDir` でビルドして `hosts.app` へ配る。作業ツリーの内容ではない
+（`webapp/` か `conf/` に未コミットの変更があれば警告する。ハーネスや `runs/` の変更は見ない）。配布は `<path>.isuh-new` へ置いてから `mv` で差し替える。
 実行中のバイナリを直接上書きすると `ETXTBSY` になるため。
 
 ビルド結果は `.isuh/build/<sha>-<設定のハッシュ>/` にキャッシュする。
 同じ sha の再デプロイ（= 前の版へ戻すとき）はビルドを丸ごと省く。
 
-**アプリ以外の設定ファイル** — `conf/` 以下を、サーバ上の絶対パスへそのまま写す。
+**アプリ以外の設定ファイル** — **バイナリと同じ sha のツリーの** `conf/` 以下を、
+サーバ上の絶対パスへそのまま写す。`isuh deploy <古い sha>` で設定も一緒に戻る。
+`conf/<host>/` があればアプリの無いホスト（DB 等）にも配る（バイナリと再起動はアプリのホストだけ）。
 
 ```
 conf/_all/etc/sysctl.d/99-isucon.conf   → 全ホストの /etc/sysctl.d/99-isucon.conf
@@ -193,8 +209,12 @@ conf/isu1/etc/nginx/nginx.conf          → isu1 の /etc/nginx/nginx.conf
 | `/etc/nginx/**` | `middleware.nginxService` を reload |
 | `/etc/mysql/**`、`/etc/my.cnf` | `middleware.dbService` を restart |
 | `/etc/systemd/**` | `daemon-reload`（その後アプリを restart） |
+| `/etc/sysctl.conf`、`/etc/sysctl.d/**` | `sysctl --system`（失敗しても警告だけ） |
 
-`conf/` の中身をサーバから取り込んで管理下に置く仕組みは #10。
+`/home/` 配下（unit が読む env ファイル等）は作業ユーザの持ち物として置く。それ以外は root。
+
+中身はサーバから `isuh setup --only conf` で取り込む（下記）。チューニングの定番は
+`setup/templates/` にあるが、**参考用で自動では入れない**。計測してから写す。
 
 **デプロイの記録** — 各ホストの `$HOME/.deployed_sha` に
 `sha <TAB> ref <TAB> ISO8601 <TAB> 実行者` を 1 行で書く。
@@ -214,7 +234,8 @@ conf/isu1/etc/nginx/nginx.conf          → isu1 の /etc/nginx/nginx.conf
 | `dotfiles` | `setup/dotfiles/` を配る。`.bashrc` は置き換えず `~/.isuh.bashrc` を読み込ませる | 全台 |
 | `tools` | alp（GitHub のリリース）と pt-query-digest（同梱）を `/usr/local/bin` へ。htop / sysstat は apt で試す（失敗しても止めない） | 全台 |
 | `logs` | nginx の既存 `access_log` を無効化して `conf.d/isuh-log.conf`（LTSV）を置く。MySQL に `zz-isuh-slowlog.cnf`（`long_query_time = 0`）を置いて restart | `hosts.nginx`、`hosts.db` |
-| `apprepo` | `hosts.app[0]` の `app.dir` を手元の `app.repoLocal` に取り込んで git 化し、`setup.appRemote` へ push | 手元 |
+| `apprepo` | `hosts.app[0]` の `app.dir` を `app.localDir`（`webapp/`）に取り込んでコミット。既にあれば飛ばす | 手元 |
+| `conf` | 全台の nginx（`nginx.conf`・`sites-enabled/*`・`conf.d/*`）/ MySQL（`/etc/mysql/**/*.cnf`）/ redis / `sysctl.conf` と、アプリのホストでは systemd unit とそれが読む env ファイルを `conf/<host>/` に取り込んでコミット | 手元 |
 
 - **既存のファイルは管理ブロックだけを書き換える。** `~/.bashrc` / `/etc/hosts` /
   サーバの `~/.ssh/config` は `# >>> isuh >>>` 〜 `# <<< isuh <<<` の間だけを置き換える
@@ -222,10 +243,15 @@ conf/isu1/etc/nginx/nginx.conf          → isu1 の /etc/nginx/nginx.conf
   このファイルを消せば元に戻る
 - **`nginx -t` が落ちたら置いたものを戻して exit 60。** 無効化した `access_log` の元の
   ファイルは `/var/backups/isuh/` に退避する（`sites-enabled/` に置くと読み込まれてしまうため）
+- **`conf` は手元に既にあるファイルを上書きしない。** 手元で編集した設定を、サーバの古い状態で
+  潰さないため。取り込み直したいファイルは消してから流す
+- **`conf` は秘密と計測用の設定を取り込まない。** `debian.cnf`（MySQL の保守用パスワード）と、
+  `logs` が置いた `isuh-log.conf` / `zz-isuh-*`（finalize が消す一時的なもの）
+- **コミットは取り込んだパスだけ**（他の未コミットの変更は巻き込まない）。push は人がする
 - **サーバの webapp は git にしない。** deploy は手元から `git archive` で配るので、
   サーバ側に git も GitHub の鍵も要らない。取り込みは 50MB を超えるファイル・
   ビルド成果物・`node_modules` / `target` を除き、除いたものは `.gitignore` に書く。
-  手元の初回コミットがそのまま元の状態の控えになる
+  取り込んだコミットがそのまま元の状態の控えになる
 - **alp は GitHub のリリースを手元で取り、scp で配る。** サーバの外向きの通信は細いことがあるため、サーバでは取らない。
   チェックサムを固定していて、一致しなければ使わない。`.isuh/tools/` にキャッシュするので、リハーサルで 1 回取っておけば当日は GitHub に行かない
 - pt-query-digest は perl の単体スクリプトなので `setup/bin/` に同梱している
@@ -523,7 +549,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 | A | #1 #2 | `src/commands/deploy.ts` `src/commands/bench.ts` `src/lib/lock.ts` |
 | B | #4 #5 | `src/lib/run.ts`（新規）`src/lib/report.ts`（新規）`src/commands/history.ts` |
 | C | #15 #19 | `docs/` のみ |
-| D | #9 #10 #11 | `src/commands/setup.ts`、`conf/` |
+| D | #9 #10 #11 | `src/commands/setup.ts`、`src/commands/deploy.ts`（conf/ の配布） |
 | E | #3 | `src/commands/portal.ts`（要: 手元のブラウザ Cookie） |
 
 第 2 波（A・B のマージ後）: #6 #12 → #7 #8 → #18。
@@ -548,7 +574,7 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 `sshd` コンテナ 3 台（`isu1` / `isu2` / `isu3`）を立てて実際に `isuh` を走らせる。
 
 ```sh
-./test/up.sh      # コンテナ + 鍵 + ssh_config + ダミーのアプリリポジトリ
+./test/up.sh      # コンテナ + 鍵 + ssh_config + ダミーのリポジトリ（webapp/ と harness.txt）
 ./test/all.sh     # typecheck + 全スイート
 ./test/down.sh
 

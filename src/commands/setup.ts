@@ -16,7 +16,7 @@ import { copyFrom, copyTo, local, onHost, onHostShell, shQuote } from "../lib/ss
  * （冪等）ように書く。当日は途中で失敗して直して流し直す、が普通に起きるため。
  */
 
-const STEPS = ["ssh", "hosts", "dotfiles", "tools", "logs", "apprepo"] as const;
+const STEPS = ["ssh", "hosts", "dotfiles", "tools", "logs", "apprepo", "conf"] as const;
 type Step = (typeof STEPS)[number];
 
 const setupError = (message: string) => new HarnessError(EXIT.SETUP, message);
@@ -568,18 +568,36 @@ const stepLogs = async (cfg: Config): Promise<void> => {
 /** GitHub は 100MB を超えるファイルを拒否する。余裕を見てこれより大きいものは入れない */
 const LARGE_FILE_MB = 50;
 
+/** repo の paths だけをコミットする（他の未コミットの変更は巻き込まない）。コミットしたら true。 */
+const commitPaths = async (repo: string, paths: string[], message: string): Promise<boolean> => {
+  await local("git", ["add", "-A", "--", ...paths], { cwd: repo });
+  const staged = await local("git", ["diff", "--cached", "--quiet", "--", ...paths], { cwd: repo, allowFailure: true });
+  if (staged.exitCode === 0) return false;
+  await local("git", ["commit", "-q", "-m", message, "--", ...paths], { cwd: repo });
+  return true;
+};
+
+const requireRepo = (cfg: Config, step: string): string => {
+  const repo = cfg.app.repoLocal;
+  if (!existsSync(join(repo, ".git"))) {
+    throw setupError(`${step}: app.repoLocal が git リポジトリではありません: ${repo}`);
+  }
+  return repo;
+};
+
 /**
- * deploy は手元のリポジトリから git archive で配るので、サーバ側を git にする必要は無い。
- * サーバの webapp には触らない（手元の初回コミットがそのまま元の状態の控えになる）。
+ * サーバの app.dir を、このリポジトリの app.localDir（例: webapp/）に取り込んでコミットする。
+ *
+ * deploy はリポジトリから git archive で配るので、サーバ側を git にする必要は無い。
+ * サーバの webapp には触らない（取り込んだコミットがそのまま元の状態の控えになる）。
+ * push はしない（どのブランチに積むかは人が決める）。
  */
 const stepApprepo = async (cfg: Config): Promise<void> => {
-  const dest = cfg.app.repoLocal;
-  if (existsSync(join(dest, ".git"))) {
-    log.info(`apprepo: ${dest} は既に git リポジトリです。取り込みを飛ばします`);
-    return;
-  }
+  const repo = requireRepo(cfg, "apprepo");
+  const dest = join(repo, cfg.app.localDir);
   if (existsSync(dest) && readdirSync(dest).length > 0) {
-    throw setupError(`apprepo: ${dest} が空ではありません。消すか app.repoLocal を変えてください`);
+    log.info(`apprepo: ${cfg.app.localDir}/ は既にあります。取り込みを飛ばします`);
+    return;
   }
 
   const host = cfg.hosts.app[0]!;
@@ -609,13 +627,8 @@ const stepApprepo = async (cfg: Config): Promise<void> => {
     rmSync(localArchive, { force: true });
   }
 
-  const ignore = [
-    "# isuh setup apprepo が生成",
-    `/${binary}`,
-    "*.isuh-new",
-    "node_modules/",
-    "target/",
-  ];
+  // パスは localDir からの相対（.gitignore を localDir に置くため）
+  const ignore = ["# isuh setup apprepo が生成", `/${binary}`, "*.isuh-new", "node_modules/", "target/"];
   if (largeFiles.length > 0) {
     ignore.push(`# ${LARGE_FILE_MB}MB を超えるため取り込んでいない（サーバの ${src} にだけある）`);
     ignore.push(...largeFiles.map((f) => `/${f}`));
@@ -624,25 +637,102 @@ const stepApprepo = async (cfg: Config): Promise<void> => {
   const prior = existsSync(gitignore) ? `${readFileSync(gitignore, "utf8").trimEnd()}\n\n` : "";
   writeFileSync(gitignore, `${prior}${ignore.join("\n")}\n`);
 
-  await local("git", ["init", "-q", "-b", "main"], { cwd: dest });
-  await local("git", ["add", "-A"], { cwd: dest });
-  await local("git", ["commit", "-q", "-m", `${host}:${src} の初期状態`], { cwd: dest });
-  const sha = (await local("git", ["rev-parse", "--short", "HEAD"], { cwd: dest })).stdout.trim();
-  log.info(`apprepo: ${host}:${src} を ${dest} に取り込みました (${sha})`);
+  await commitPaths(repo, [cfg.app.localDir], `${host}:${src} を ${cfg.app.localDir}/ に取り込む`);
+  const sha = (await local("git", ["rev-parse", "--short", "HEAD"], { cwd: repo })).stdout.trim();
+  log.info(`apprepo: ${host}:${src} を ${cfg.app.localDir}/ に取り込みました (${sha})。push は手で`);
   if (largeFiles.length > 0) log.warn(`apprepo: 大きいファイルは取り込んでいません: ${largeFiles.join(", ")}`);
+};
 
-  if (cfg.setup.appRemote === "") {
-    log.warn("apprepo: setup.appRemote が空なので push しません");
-    return;
+// ---------------------------------------------------------------------------
+// conf: サーバの設定ファイルを conf/<host>/ に取り込む
+// ---------------------------------------------------------------------------
+
+/**
+ * 取り込む対象をサーバ上で列挙するスクリプト。1 行 1 パス（絶対パス）。
+ *
+ * - isuh setup logs が置いたもの（isuh-log.conf / zz-isuh-*）は取り込まない。
+ *   計測用の一時的な設定で、本番の最後に finalize（#8）が消すため
+ * - debian.cnf は MySQL の保守用ユーザのパスワードを含むので取り込まない
+ * - sites-enabled のシンボリックリンクは、リンクの場所に中身を取り込む（deploy はそこへ書く）
+ */
+const CONF_LIST_SCRIPT = `
+if command -v nginx >/dev/null 2>&1; then
+  for f in /etc/nginx/nginx.conf /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do
+    [ -f "$f" ] && [ "$f" != /etc/nginx/conf.d/isuh-log.conf ] && echo "$f"
+  done
+fi
+if [ -d /etc/mysql ]; then
+  sudo find /etc/mysql -type f -name '*.cnf' ! -name debian.cnf ! -name 'zz-isuh-*'
+fi
+for f in /etc/redis/redis.conf /etc/sysctl.conf; do [ -f "$f" ] && echo "$f"; done
+true
+`;
+
+/**
+ * アプリの systemd unit と、それが読む env ファイル。
+ * unit が /lib/systemd/system にあっても /etc/systemd/system に置く（そちらが優先されるので、
+ * deploy で上書きできる）。
+ */
+const appUnitFiles = async (cfg: Config, host: string): Promise<{ remote: string; stored: string }[]> => {
+  const service = cfg.app.service;
+  const fragment = await onHost(host, ["systemctl", "show", "-p", "FragmentPath", "--value", service], {
+    allowFailure: true,
+  });
+  const unitPath = fragment.stdout.trim();
+  if (fragment.exitCode !== 0 || unitPath === "") {
+    log.warn(`${host}: ${service} の unit ファイルが見つかりません。取り込みを飛ばします`);
+    return [];
   }
-  await local("git", ["remote", "add", "origin", cfg.setup.appRemote], { cwd: dest });
-  const pushed = await local("git", ["push", "-q", "-u", "origin", "main"], { cwd: dest, allowFailure: true });
-  if (pushed.exitCode !== 0) {
-    throw setupError(
-      `apprepo: ${cfg.setup.appRemote} へ push できません（取り込みとコミットは済んでいます）\n${pushed.stderr.trim()}`,
-    );
+  const files = [{ remote: unitPath, stored: `/etc/systemd/system/${posix.basename(unitPath)}` }];
+  const env = await onHost(host, ["systemctl", "show", "-p", "EnvironmentFiles", "--value", service], {
+    allowFailure: true,
+  });
+  // 例: "/home/isucon/env.sh (ignore_errors=no)"。複数あれば改行区切り
+  for (const line of env.stdout.split("\n")) {
+    const path = line.trim().split(/\s+/)[0] ?? "";
+    if (path.startsWith("/")) files.push({ remote: path, stored: path });
   }
-  log.info(`apprepo: ${cfg.setup.appRemote} へ push しました`);
+  return files;
+};
+
+const captureConf = async (cfg: Config, host: string, repo: string): Promise<{ added: string[]; kept: number }> => {
+  const listed = await onHostShell(host, CONF_LIST_SCRIPT);
+  const targets = listed.stdout
+    .split("\n")
+    .filter((f) => f.startsWith("/"))
+    .map((f) => ({ remote: f, stored: f }));
+  if (cfg.hosts.app.includes(host)) targets.push(...(await appUnitFiles(cfg, host)));
+
+  const added: string[] = [];
+  let kept = 0;
+  for (const { remote, stored } of targets) {
+    const dest = join(repo, "conf", host, ...stored.split("/").filter((p) => p !== ""));
+    // 手元にあれば上書きしない（手元で編集した設定を、サーバの古い状態で潰さない）
+    if (existsSync(dest)) {
+      kept++;
+      continue;
+    }
+    // base64 で運ぶ。末尾の改行も含めてバイト列をそのまま写すため
+    const read = await onHost(host, ["sudo", "base64", "-w", "0", remote], { allowFailure: true });
+    if (read.exitCode !== 0) {
+      log.warn(`${host}: ${remote} を読めません（飛ばします）`);
+      continue;
+    }
+    mkdirSync(dirname(dest), { recursive: true });
+    writeFileSync(dest, Buffer.from(read.stdout.trim(), "base64"));
+    added.push(stored);
+  }
+  return { added, kept };
+};
+
+const stepConf = async (cfg: Config): Promise<void> => {
+  const repo = requireRepo(cfg, "conf");
+  const results = await Promise.all(cfg.hosts.all.map(async (h) => [h, await captureConf(cfg, h, repo)] as const));
+  for (const [h, { added, kept }] of results) {
+    log.info(`conf: ${h} から ${added.length} 件取り込み${kept > 0 ? `（手元に既にある ${kept} 件は上書きしない）` : ""}`);
+  }
+  const committed = await commitPaths(repo, ["conf"], "サーバの設定ファイルを conf/ に取り込む");
+  if (committed) log.info("conf: コミットしました。変更して isuh deploy すれば配られます。push は手で");
 };
 
 // ---------------------------------------------------------------------------
@@ -654,6 +744,7 @@ const RUNNERS: Record<Step, (cfg: Config) => Promise<void>> = {
   tools: stepTools,
   logs: stepLogs,
   apprepo: stepApprepo,
+  conf: stepConf,
 };
 
 export const command: Command = {
@@ -675,7 +766,10 @@ steps（この順で実行する）:
   dotfiles   .bashrc / .tmux.conf / .vimrc / .inputrc の配置
   tools      alp（GitHub のリリースを手元で取って配る）と pt-query-digest（同梱）の導入。htop / sysstat は apt で試す
   logs       nginx の access log を LTSV に、MySQL の slow query log を long_query_time=0 で有効に
-  apprepo    hosts.app[0] の app.dir を手元の app.repoLocal に取り込んで git 化し、setup.appRemote へ push
+  apprepo    hosts.app[0] の app.dir を、このリポジトリの app.localDir（webapp/）に取り込んでコミット
+  conf       全台の nginx / MySQL / redis / sysctl とアプリの systemd unit・env ファイルを
+             conf/<host>/ に取り込んでコミット（手元に既にあるファイルは上書きしない）。
+             isuh deploy が同じ sha の conf/ を配る
 
 終了コード: 0 成功 / 64 引数不正 / 65 設定不備 / 60 セットアップ失敗`,
 

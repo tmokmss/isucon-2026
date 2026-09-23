@@ -49,6 +49,9 @@ TypeScript / Node + tsx。エントリポイントは `bin/isuh`。
 
 - **デプロイは `isuh deploy` / `isuh bench` 経由。** 直接 `scp` や `systemctl restart` を
   しない。ロックを迂回すると、走っている他のベンチの計測結果が壊れる
+- **アプリは `webapp/`、サーバの設定は `conf/<host>/` を変えてコミットし、`isuh deploy` で配る。**
+  サーバ上の `/etc/nginx` や `/etc/mysql` を直接編集しない（履歴が残らず、`deploy <古い sha>` で戻らない）。
+  配られるのは commit の中身だけ
 - **当日埋める値は `config.ts` に集約する。** ホスト名やサービス名をソースに直書きしない。
   項目を増やすときは `src/config.ts` の型と `config.example.ts` を同時に更新する
 - **失敗は `throw new HarnessError(EXIT.X, msg)`。** 各コマンドで `process.exit` を呼ばない

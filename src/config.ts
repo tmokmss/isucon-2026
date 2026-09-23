@@ -27,17 +27,23 @@ export interface HostConfig {
 }
 
 export interface AppConfig {
-  /** 手元のアプリリポジトリ。git ref はここで解決する（ハーネス自身ではない） */
+  /**
+   * アプリのコードと conf/ を含む git リポジトリ。git ref はここで解決する。
+   * 通常は**このリポジトリ自身**（アプリ・ハーネス・構成管理を 1 つにまとめる）。
+   * 別の場所を指すのは test/ の検証環境だけ。
+   */
   repoLocal: string;
+  /** repoLocal の中で、サーバの app.dir を写したディレクトリ（例: "webapp"） */
+  localDir: string;
   /** サーバ上のアプリ配置先 */
   dir: string;
-  /** dir 配下の言語ディレクトリ */
+  /** dir（手元では localDir）配下の言語ディレクトリ */
   langDir: string;
   /** ビルド成果物のファイル名 */
   binary: string;
   /** systemctl のサービス名 */
   service: string;
-  /** ビルドコマンド。repoLocal/langDir で実行される */
+  /** ビルドコマンド。repoLocal/localDir/langDir で実行される */
   buildCommand: string;
   /** check がリクエストを投げる先 */
   baseUrl: string;
@@ -107,8 +113,6 @@ export interface SetupConfig {
   addresses: Record<string, HostAddress>;
   /** 手元から入るときの秘密鍵。ポータルに公開鍵を登録したもの */
   identityFile: string;
-  /** setup apprepo が作ったアプリリポジトリの push 先。空なら push しない */
-  appRemote: string;
 }
 
 export interface Config {
