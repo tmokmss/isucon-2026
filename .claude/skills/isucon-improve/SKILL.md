@@ -85,7 +85,8 @@ func main() {
 
 1. **Summary** — `status` が `pass` 以外なら、まず直す（「4. 採否を決める」の「失敗した」）
 2. **Resources** — **どのホストの何が詰まっているか**。ここで方針が決まる
-   - `isu1（CPU が飽和、主に mysqld）` → DB が詰まっている → Slow query を見る
+   - `isu1（CPU が飽和、主に mysqld）` → DB が詰まっている → Slow query を見る。
+     インデックスや N+1 を直しても DB が詰まり続けるなら、インメモリ化を検討する（スキル `isucon-inmemory`）
    - `主に isuports`（アプリ）→ CPU profile と Access log を見る
    - `IO 待ちが重い` → DB のディスク（インデックス無し・`innodb_buffer_pool_size`・fsync）
    - どこも飽和していない → アプリの待ち（ロック・外部呼び出し・`sleep`）や nginx の設定を疑う
