@@ -1,6 +1,6 @@
 ---
 name: isucon-improve
-description: ISUCON のアプリを 1 周改善する手順（report.md を読んでボトルネックを決める → webapp/ か conf/ を直してコミット → isuh bench → スコアで採否を決める）。スコアを上げる作業を始めるとき、ベンチ結果の読み方に迷ったとき、競技開始直後の準備（ルールブックを読む・alpMatches・pprof）をするときに使う。
+description: ISUCON のアプリを 1 周改善する手順（report.md を読んでボトルネックを決める → webapp/ か conf/ を直してコミット → isuh bench → スコアで採否を決める）。スコアを上げる作業を始めるとき、ベンチ結果の読み方に迷ったとき、競技開始直後の準備（ルールブックを読む・alpMatches・pprof・初手のインメモリ化）をするときに使う。
 ---
 
 # ISUCON の改善ループ
@@ -75,6 +75,21 @@ func main() {
 - `config.ts` の `metrics.pprofEnabled: true`。`pprofUrl` の `?seconds=N` はベンチの長さ（通常 60）に合わせる
 - 本番の最後に外す（finalize #8 が確認する）
 
+### 初手で MySQL を捨てる（インメモリ化）
+
+**ISUCON では初手で MySQL を捨て、アプリの状態をすべてメモリに持つ。** インデックスや N+1 を
+1 つずつ直すより先にやる（ISUCON14 のリハーサルでは、インデックスを入れた 2,034 から、インメモリ化とマッチングの一括化で 52,919 に伸びた）。
+手順と勘所はスキル `isucon-inmemory` に従う。
+
+1. 初期状態のベンチを取っておく（`bin/isuh bench --note "初期状態"`）。比較と、fail したときの切り分けに使う
+2. インメモリ化して、スキル `isucon-inmemory` の「検証」（ベンチの pass と再起動試験）まで通す
+3. 以降の改善は、メモリ上の実装を前提に 1 周ずつ回す
+
+- これは CLAUDE.md の「計測せずに推測で最適化しない」の例外で、チームで決めた方針。
+  DB が遅いことは、ISUCON ではほぼ毎回の前提として扱う
+- やめるのは、`docs/RULEBOOK.md`（当日マニュアル）が禁じている場合と、状態が大きすぎてメモリに持てない場合だけ
+  （判断はスキル `isucon-inmemory` の「0.」）
+
 ## 1. report.md を読む
 
 最新のランは `bin/isuh history` の**最後の行**（run-id）。レポートは `runs/<run-id>/report.md`。
@@ -85,12 +100,12 @@ func main() {
 
 1. **Summary** — `status` が `pass` 以外なら、まず直す（「4. 採否を決める」の「失敗した」）
 2. **Resources** — **どのホストの何が詰まっているか**。ここで方針が決まる
-   - `isu1（CPU が飽和、主に mysqld）` → DB が詰まっている → Slow query を見る。
-     インデックスや N+1 を直しても DB が詰まり続けるなら、インメモリ化を検討する（スキル `isucon-inmemory`）
+   - `isu1（CPU が飽和、主に mysqld）` → インメモリ化がまだなら、それが先（「0.」の「初手で MySQL を捨てる」）。
+     MySQL を例外として残した場合だけ、Slow query を見る
    - `主に isuports`（アプリ）→ CPU profile と Access log を見る
    - `IO 待ちが重い` → DB のディスク（インデックス無し・`innodb_buffer_pool_size`・fsync）
    - どこも飽和していない → アプリの待ち（ロック・外部呼び出し・`sleep`）や nginx の設定を疑う
-3. **Slow query** — `share` が大きい順に見る
+3. **Slow query** — MySQL を例外として残した場合だけ。`share` が大きい順に見る
    - `rows_examined_avg` が `rows_sent_avg` よりずっと大きい → **インデックスが効いていない**。
      `webapp/sql/` のスキーマに `ALTER TABLE ... ADD INDEX` / `CREATE INDEX` を足す
    - `calls` が桁違いに多い → **N+1**。アプリ側で JOIN / `IN (...)` にまとめる
