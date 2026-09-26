@@ -23,15 +23,25 @@ func main() {
 	// 上限を超えそうなときは、上限に合わせて GC を早める
 	debug.SetGCPercent(400)
 	debug.SetMemoryLimit(1536 << 20)
+	// 先にポートを開き、ストアの準備ができるまでリクエストを待たせる。スナップショットが大きいと読み込みに数秒掛かり、
+	// その間ポートが閉じていると nginx が 502 を返す（再起動の直後の /api/initialize が 502 で FAIL した）
+	ready := make(chan struct{})
 	mux := setup()
-	slog.Info("Listening on :8080")
-	http.ListenAndServe(":8080", mux)
+	go func() {
+		slog.Info("Listening on :8080")
+		err := http.ListenAndServe(":8080", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			<-ready
+			mux.ServeHTTP(w, r)
+		}))
+		panic(err)
+	}()
+	initStore()
+	startMatcher()
+	close(ready)
+	select {}
 }
 
 func setup() http.Handler {
-	initStore()
-	startMatcher()
-
 	mux := chi.NewRouter()
 	mux.Use(middleware.Recoverer)
 	mux.HandleFunc("POST /api/initialize", postInitialize)
