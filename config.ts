@@ -54,7 +54,7 @@ export const config: Config = {
     alpSort: "sum",
     alpLimit: 30,
     ptQueryLimit: 15,
-    pprofEnabled: false, // アプリに pprof を仕込んだら true
+    pprofEnabled: true, // webapp/go/main.go に仕込んだ（localhost:6060）。本番の最後に外す
     // hosts.app[0] 上で curl する URL。seconds はベンチの長さ（通常 60 秒）に合わせる。
     pprofUrl: "http://localhost:6060/debug/pprof/profile?seconds=60",
     resourceIntervalSec: 1,
