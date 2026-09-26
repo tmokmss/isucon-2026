@@ -133,9 +133,15 @@ func matchRides() {
 			if m.at.Equal(t) || store.chairs[m.chair.ID] != m.chair || store.rides[m.ride.ID] != m.ride {
 				continue
 			}
-			// 椅子が受理（ENROUTE）してから nearbyAcceptedGrace 以内だけ出す
+			// 椅子が受理（ENROUTE）してから nearbyAcceptedGrace 以内で、受理の後に座標を送ってきた椅子だけ出す。
+			// ベンチは受理のレスポンスを受け取ってから新しいライドを履歴に足し、それまでは前のライドで判定する
+			// （前のライドの評価が済んでいないと CODE 30）。椅子は tick を順に処理するので、受理の後の座標は履歴を足した後に来る
+			loc, ok := m.loc.get()
+			if !ok {
+				continue
+			}
 			for _, st := range store.statuses[m.ride.ID] {
-				if st.Status == "ENROUTE" && t.Sub(st.CreatedAt) < nearbyAcceptedGrace {
+				if st.Status == "ENROUTE" && t.Sub(st.CreatedAt) < nearbyAcceptedGrace && loc.UpdatedAt.After(st.CreatedAt) {
 					list = append(list, m.freeChair)
 					break
 				}
