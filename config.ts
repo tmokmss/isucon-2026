@@ -100,8 +100,8 @@ export const config: Config = {
   setup: {
     // 当日 CloudFormation の出力（またはポータル）から埋める。hosts.all の全員ぶん。
     addresses: {
-      isu1: { public: "13.115.211.216", private: "10.0.5.148" },
-      isu2: { public: "52.197.47.185", private: "10.0.9.108" },
+      isu1: { public: "52.192.242.11", private: "10.0.5.148" },
+      isu2: { public: "3.112.244.155", private: "10.0.9.108" },
     },
     // ポータルに公開鍵を登録した鍵。サーバの isucon ユーザにはこの鍵で入れる。
     identityFile: `${process.env["HOME"]}/.ssh/id_ed25519`,
