@@ -401,21 +401,12 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 	fare := store.discountedFare(ride.UserID, ride, ride.PickupLatitude, ride.PickupLongitude, ride.DestinationLatitude, ride.DestinationLongitude)
 	paymentGatewayURL := store.paymentGatewayURL
 	token := paymentToken.Token
-	userID := ride.UserID
 	store.mu.RUnlock()
 
 	paymentGatewayRequest := &paymentGatewayPostPaymentRequest{
 		Amount: fare,
 	}
-	if err := requestPaymentGatewayPostPayment(ctx, paymentGatewayURL, token, paymentGatewayRequest, func() ([]Ride, error) {
-		store.mu.RLock()
-		defer store.mu.RUnlock()
-		rides := make([]Ride, 0, len(store.ridesByUser[userID]))
-		for _, r := range store.ridesByUser[userID] {
-			rides = append(rides, *r)
-		}
-		return rides, nil
-	}); err != nil {
+	if err := requestPaymentGatewayPostPayment(ctx, paymentGatewayURL, token, rideID, paymentGatewayRequest); err != nil {
 		if errors.Is(err, erroredUpstream) {
 			writeError(w, http.StatusBadGateway, err)
 			return
