@@ -19,6 +19,7 @@ func main() {
 
 func setup() http.Handler {
 	initStore()
+	startMatcher()
 
 	mux := chi.NewRouter()
 	mux.Use(middleware.Recoverer)

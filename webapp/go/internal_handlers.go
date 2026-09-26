@@ -3,15 +3,35 @@ package main
 import (
 	"database/sql"
 	"net/http"
+	"time"
 )
+
+// マッチングの間隔。isuride-matcher（0.5 秒ごと）を待たずにアプリの中で回す
+const matchingInterval = 100 * time.Millisecond
+
+// startMatcher はアプリの中でマッチングを定期的に回す。isuride-matcher からの呼び出しもそのまま受け付ける
+func startMatcher() {
+	go func() {
+		t := time.NewTicker(matchingInterval)
+		for range t.C {
+			matchRides()
+		}
+	}()
+}
 
 // このAPIをインスタンス内から一定間隔で叩かせることで、椅子とライドをマッチングさせる
 func internalGetMatching(w http.ResponseWriter, r *http.Request) {
+	matchRides()
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// matchRides は待っているライドを、待たせている順に、配車位置に最も近い空き椅子へ割り当てる。
+// 1 回の呼び出しで割り当てられるだけ割り当てる
+func matchRides() {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
 	if len(store.unmatched) == 0 {
-		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -22,8 +42,10 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 			free = append(free, c)
 		}
 	}
+	if len(free) == 0 {
+		return
+	}
 
-	// 待たせている順に、配車位置に最も近い空き椅子を割り当てる。1 回の呼び出しで割り当てられるだけ割り当てる
 	rest := store.unmatched[:0:0]
 	for _, ride := range store.unmatched {
 		best := -1
@@ -50,6 +72,4 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 		dirty.Store(true)
 	}
 	store.unmatched = rest
-
-	w.WriteHeader(http.StatusNoContent)
 }
