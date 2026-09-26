@@ -204,7 +204,13 @@ for h in isu1 isu2; do
   grep -q "$h: バイナリは変更なし" "$ERR" || ng "$h で変わっていないバイナリを送った"
   [ "$(version_on $h)" = "v2" ] || ng "$h のアプリが再起動後に動いていない"
 done
-ok "同じ中身の再デプロイは、アプリの再起動だけ"
+# 別の deploy（記録を書かない古いハーネスや別の worktree）が入ったら、同じツリーでも同期し直す
+$SSH isu1 'printf "other\tHEAD\tx\tsomeone\n" >~/.deployed_sha'
+run deploy with-conf
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
+grep -q "isu1: webapp/ は前回の同期から変更なし" "$ERR" && ng "別の deploy が入った isu1 で同期を省いた"
+grep -q "isu2: webapp/ は前回の同期から変更なし" "$ERR" || ng "isu2 で変わっていない webapp/ を同期した"
+ok "同じ中身の再デプロイは、アプリの再起動だけ（別の deploy が入ったホストは同期し直す）"
 
 echo "== 12. 変えた設定ファイルだけを配り、対応するサービスだけを反映する"
 echo "from-all v2" >"$APP/conf/_all/etc/isuh-smoke/common.conf"

@@ -106,7 +106,10 @@ const binaryRelPath = (cfg: Config): string => `${cfg.app.langDir.replace(/\/+$/
 /** app.localDir 以下を固めた tar。ツリーと同じ場所に sha ごとにキャッシュする。 */
 const APP_TAR = ".isuh-app.tar";
 
-/** 最後に同期した app.localDir のツリー ID を記録するファイル（サーバのログインユーザの $HOME 直下）。 */
+/**
+ * 最後に同期した app.localDir のツリー ID と、そのときデプロイした sha を記録するファイル
+ * （サーバのログインユーザの $HOME 直下。`<ツリー ID> <TAB> <sha>`）。
+ */
 const APP_TREE_FILE = "$HOME/.isuh-app-tree";
 
 /**
@@ -139,14 +142,30 @@ const appTarFor = async (cfg: Config, sha: string, tree: string): Promise<string
  * - 削除しないのは、サーバ側にしか無いもの（gitignore されたビルド成果物・node_modules・
  *   rust/target・アップロードされた画像など）を消さないため。リポジトリで消したファイルは残る
  * - 同期するときはすべて書き直すので、mtime の比較による取りこぼしは起きない
- * - 前回同期したツリー ID と同じなら、同期そのものを省く（conf/ だけを変えたとき等）
+ * - 前回同期したツリー ID と同じで、その後に別の deploy が入っていなければ、同期そのものを省く
+ *   （conf/ だけを変えたとき等）
  * - バイナリは外す。実行中のファイルを上書きすると ETXTBSY になるため
  * - rsync ではなく tar にしているのは、サーバに追加の道具が要らないため（検証用コンテナにも
  *   rsync は無い）。手元の rsync も macOS では openrsync で、GNU rsync と挙動が揃わない
  */
-const syncAppFiles = async (cfg: Config, host: string, appTar: string, treeId: string): Promise<void> => {
-  const recorded = await onHostShell(host, `cat "${APP_TREE_FILE}" 2>/dev/null || true`, { allowFailure: true });
-  if (recorded.stdout.trim() === treeId) {
+const syncAppFiles = async (
+  cfg: Config,
+  host: string,
+  appTar: string,
+  treeId: string,
+  sha: string,
+): Promise<void> => {
+  // 省いてよいのは「記録したツリーが同じ」かつ「その後に別の deploy が入っていない」とき。
+  // 別の deploy（記録を書かない古いハーネスや、別の worktree）が入ると .deployed_sha が変わる。
+  // そのときはサーバのファイルが記録と違いうるので、同期し直す
+  const state = await onHostShell(
+    host,
+    `cat "${APP_TREE_FILE}" 2>/dev/null || true; echo; cut -f1 "${DEPLOYED_SHA_FILE}" 2>/dev/null || true`,
+    { allowFailure: true },
+  );
+  const [recordedLine = "", deployedNow = ""] = state.stdout.split("\n").filter((line) => line.trim() !== "");
+  const [recordedTree, recordedSha] = recordedLine.split("\t");
+  if (recordedTree === treeId && recordedSha !== undefined && recordedSha === deployedNow.trim()) {
     log.info(`${host}: ${cfg.app.localDir}/ は前回の同期から変更なし`);
     return;
   }
@@ -167,7 +186,8 @@ const syncAppFiles = async (cfg: Config, host: string, appTar: string, treeId: s
     await onHost(host, ["rm", "-f", staged], { allowFailure: true });
   }
   // 同期が最後まで済んでから記録する（途中で落ちたら次回は同期し直す）
-  await onHostShell(host, `printf '%s\\n' ${shQuote(treeId)} > "${APP_TREE_FILE}"`);
+  // sha は、この deploy が最後に .deployed_sha に書く値。途中で落ちて書かれなければ、次回は同期し直す
+  await onHostShell(host, `printf '%s\\t%s\\n' ${shQuote(treeId)} ${shQuote(sha)} > "${APP_TREE_FILE}"`);
 };
 
 /**
@@ -465,7 +485,7 @@ export const deploy = async (cfg: Config, opts: DeployOptions = {}): Promise<str
       const confFiles = confFilesFor(tree, host);
       if (confFiles.length > 0) await pushConf(cfg, sha, tree, host, confFiles);
       if (appHosts.has(host)) {
-        await syncAppFiles(cfg, host, appTar, appTreeId);
+        await syncAppFiles(cfg, host, appTar, appTreeId, sha);
         await pushBinary(cfg, host, binary);
         await restartApp(cfg, host);
       }
