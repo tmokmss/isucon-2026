@@ -51,7 +51,7 @@ var freeChairs atomic.Pointer[[]freeChair]
 
 // 完了（COMPLETED）してからこの時間は、空いていても付近の椅子に出さない。
 // ベンチは評価のレスポンスを受け取るまで椅子をライド中とみなし、負荷が高いとそれが遅れる（出すと CODE 30）
-const nearbyCompletedHide = 1500 * time.Millisecond
+const nearbyCompletedHide = 500 * time.Millisecond
 
 // recentlyCompleted は椅子の直近のライドが nearbyCompletedHide 以内に完了したか。tRides と tRideStatuses の読みロック以上で呼ぶ
 func (s *Store) recentlyCompleted(chairID string, t time.Time) bool {
