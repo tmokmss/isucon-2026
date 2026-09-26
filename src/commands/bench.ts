@@ -10,7 +10,7 @@ import {
 } from "../lib/collect.js";
 import type { Command } from "../lib/command.js";
 import { EXIT, HarnessError, NotImplementedError, usageError } from "../lib/exit.js";
-import { resolveSha } from "../lib/git.js";
+import { resolveSha, sameContent } from "../lib/git.js";
 import { acquireLock } from "../lib/lock.js";
 import { log, out } from "../lib/log.js";
 import { newRunId, runDir } from "../lib/paths.js";
@@ -18,6 +18,7 @@ import { asJson, pick } from "../lib/portal.js";
 import { writeReport } from "../lib/report.js";
 import { sshOpts } from "../lib/ssh.js";
 import {
+  type HistoryRow,
   type RunMeta,
   appendHistory,
   bestRun,
@@ -122,6 +123,22 @@ const runCheck = async (): Promise<void> => {
   }
 };
 
+/**
+ * 前回のランと sha が違うのに、配るもの（アプリと conf/）の中身が同じなら警告する。
+ * revert やコミットが失敗して、ラン記録だけのコミットを測ると、変更の効果を「効果なし」と
+ * 誤判定する（ISUCON14 のリハーサルで 2 回あった）。同じ sha の再計測は意図したものなので黙る。
+ */
+const warnIfUnchanged = async (cfg: Config, sha: string, prev: HistoryRow | undefined): Promise<void> => {
+  if (prev === undefined || prev.sha === sha) return;
+  const same = await sameContent(cfg.app.repoLocal, prev.sha, sha, [cfg.app.localDir, "conf"]);
+  if (same !== true) return;
+  log.warn(
+    `前回のラン ${prev.runId}（${prev.sha.slice(0, 7)}）と、${cfg.app.localDir}/ と conf/ の中身が同じです。` +
+      "狙った変更がコミットに入っていない可能性があります（revert やコミットの失敗）。" +
+      "同じコードの再計測なら無視してよい",
+  );
+};
+
 export const command: Command = {
   summary: "ロック取得からレポート生成までの通し実行",
   usage: `usage: isuh bench [<git-ref>] [--skip-check] [--note <text>]
@@ -186,6 +203,7 @@ stdout にはスコアだけを出す。読むべきものは runs/<run-id>/repo
     const history = readHistory();
     const prev = lastRun(history);
     const best = bestRun(history);
+    await warnIfUnchanged(cfg, sha, prev);
 
     // ここから 10 までが 1 つのクリティカルセクション。
     const lock = await acquireLock(`bench ${runId} ref=${ref}`, cfg);

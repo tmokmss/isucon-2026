@@ -130,6 +130,7 @@ DIR2="$ISUH_RUNS_DIR/$RUN2"
 grep -q "+7655" "$DIR2/report.md" || ng "前回比が出ていません"
 grep -q "$RUN1" "$DIR2/report.md" || ng "前回の run-id が参照されていません"
 grep -q "ベスト更新" "$ERR" || ng "ベスト更新が知らされていません"
+grep -q "中身が同じです" "$ERR" && ng "同じ sha の再計測なのに、変更が入っていないと警告しています"
 ok "スコアの増減が前回・ベストとの比較で出る"
 
 echo "== 8b. 別の sha なら Diff にコードの差分が出る"
@@ -184,6 +185,23 @@ run history -n
 run history --bogus
 [ "$rc" = 64 ] || ng "exit=$rc (64 のはず)"
 ok "-n が効き、引数不正は 64"
+
+echo "== 13. 前回と sha が違うのにアプリと conf/ の中身が同じなら、ベンチの前に警告する"
+# revert やコミットの失敗で、ラン記録やハーネスだけのコミットを測ってしまった状況
+APP="$WORK/app-repo"
+git -C "$APP" checkout -q -B harness-only main
+echo "harness change only" >>"$APP/harness.txt"
+git -C "$APP" commit -qam "harness only"
+git -C "$APP" checkout -q main
+echo 20000 >"$WORK/fake-score"
+run bench main --note "before harness-only"
+[ "$rc" = 0 ] || ng "exit=$rc"
+grep -q "中身が同じです" "$ERR" && ng "前回（broken）とアプリが違うのに警告しています"
+run bench harness-only --note "harness-only"
+[ "$rc" = 0 ] || ng "exit=$rc"
+grep -q "中身が同じです" "$ERR" || ng "アプリと conf/ が前回と同じなのに警告していません"
+git -C "$APP" branch -q -D harness-only
+ok "変更が入っていないコミットの計測に気づける"
 
 rm -f "$WORK/fake-score"
 echo
