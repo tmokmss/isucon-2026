@@ -19,7 +19,7 @@ const matchDeadline = 1000 * time.Millisecond
 
 // 期限の近いライドに割り当てる椅子の近さ（距離 < nearRadiusTicks × 速度 = 迎えがこの tick 数未満）。
 // ベンチの「乗車地点まで」の評価は 10 tick 未満で合格
-const nearRadiusTicks = 5
+const nearRadiusTicks = 3
 
 // マッチングで椅子ごとに見るライドの候補数
 const matchCandidates = 8
