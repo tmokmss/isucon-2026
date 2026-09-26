@@ -9,7 +9,7 @@ import (
 )
 
 // マッチングの間隔。isuride-matcher（0.5 秒ごと）を待たずにアプリの中で回す
-const matchingInterval = 100 * time.Millisecond
+const matchingInterval = 50 * time.Millisecond
 
 // これより長く待たせているライドは、乗車地点までの時間によらず先に割り当てる（ベンチは 30 秒で CODE 32）
 const starvationLimit = 10 * time.Second
