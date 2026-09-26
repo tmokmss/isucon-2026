@@ -14,6 +14,9 @@ const matchingInterval = 100 * time.Millisecond
 // これより長く待たせているライドは、乗車地点までの時間によらず先に割り当てる（ベンチは 30 秒で CODE 32）
 const starvationLimit = 10 * time.Second
 
+// これより長く待たせているライドは、近い椅子があれば先に割り当てる（マッチの評価は依頼から 100 tick ≒ 3 秒）
+const matchDeadline = 2300 * time.Millisecond
+
 // マッチングで椅子ごとに見るライドの候補数
 const matchCandidates = 8
 
@@ -197,6 +200,34 @@ func matchRides() {
 			break
 		}
 		assign(ri, best)
+	}
+
+	// マッチの評価の期限（依頼から 100 tick ≒ 3 秒）が近いライドは、待たせている順に、乗車地点までの評価にも受かる近さ
+	// （距離 < 10 × 速度）の椅子のうち最も早く着くものへ先に割り当てる。ベンチのマッチの時刻は椅子が受理した時なので、余裕を見て早めに
+	deadlineBefore := now().Add(-matchDeadline)
+	for ri, ride := range store.unmatched {
+		if !ride.CreatedAt.Before(deadlineBefore) {
+			break // unmatched は待たせている順
+		}
+		if rideDone[ri] {
+			continue
+		}
+		best, bestCost := -1, 0
+		for ci := range free {
+			if chairDone[ci] {
+				continue
+			}
+			d := calculateDistance(locs[ci].Latitude, locs[ci].Longitude, ride.PickupLatitude, ride.PickupLongitude)
+			if d >= 10*chairSpeed(free[ci].Model) {
+				continue
+			}
+			if c := cost(ri, ci); best < 0 || c < bestCost {
+				best, bestCost = ci, c
+			}
+		}
+		if best >= 0 {
+			assign(ri, best)
+		}
 	}
 
 	type pair struct {
