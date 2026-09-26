@@ -2,8 +2,8 @@ package main
 
 import (
 	"database/sql"
+	"math"
 	"net/http"
-	"slices"
 	"sync/atomic"
 	"time"
 )
@@ -18,7 +18,7 @@ const starvationLimit = 10 * time.Second
 const matchDeadline = 0 // 0 で無効（待ち時間はマッチングのコストの補正で見る）
 
 // マッチングのコストで、待ち 1 秒を迎え何 tick 分と見なすか（kyosu.dev の記事では 8）
-const waitWeight = 16
+const waitWeight = 8
 
 // 期限の近いライドに割り当てる椅子の近さ（距離 < nearRadiusTicks × 速度 = 迎えがこの tick 数未満）。
 // ベンチの「乗車地点まで」の評価は 10 tick 未満で合格
@@ -274,17 +274,53 @@ func matchRides() {
 		}
 		pairs = append(pairs, top[:n]...)
 	}
-	slices.SortFunc(pairs, func(a, b pair) int {
-		if a.cost != b.cost {
-			return a.cost - b.cost
-		}
-		return a.ride - b.ride // 同じなら待たせている方を先に
-	})
+	// 候補の組の中で、コストの合計が最小になる割り当てを求める（ハンガリアン法）。
+	// 貪欲法だと、候補がすべて他の椅子に取られた椅子が次の回まで空いたままになる（椅子の空き時間 62ms → 87ms）
+	rowOf, colOf := map[int]int{}, map[int]int{}
+	var rows, cols []int
 	for _, p := range pairs {
-		if rideDone[p.ride] || chairDone[p.chair] {
-			continue
+		if _, ok := rowOf[p.chair]; !ok {
+			rowOf[p.chair] = len(rows)
+			rows = append(rows, p.chair)
 		}
-		assign(p.ride, p.chair)
+		if _, ok := colOf[p.ride]; !ok {
+			colOf[p.ride] = len(cols)
+			cols = append(cols, p.ride)
+		}
+	}
+	if len(rows) > 0 {
+		transpose := len(rows) > len(cols) // 行 ≤ 列にする
+		n, m := len(rows), len(cols)
+		if transpose {
+			n, m = m, n
+		}
+		a := make([][]int64, n)
+		for i := range a {
+			a[i] = make([]int64, m)
+			for j := range a[i] {
+				a[i][j] = hungarianInf
+			}
+		}
+		for _, p := range pairs {
+			i, j := rowOf[p.chair], colOf[p.ride]
+			if transpose {
+				i, j = j, i
+			}
+			a[i][j] = int64(p.cost)
+		}
+		for i, j := range hungarian(a) {
+			if j < 0 || a[i][j] >= hungarianInf {
+				continue
+			}
+			ci, ri := rows[i], cols[j]
+			if transpose {
+				ci, ri = rows[j], cols[i]
+			}
+			if rideDone[ri] || chairDone[ci] {
+				continue
+			}
+			assign(ri, ci)
+		}
 	}
 
 	rest := store.unmatched[:0:0]
@@ -294,4 +330,79 @@ func matchRides() {
 		}
 	}
 	store.unmatched = rest
+}
+
+const hungarianInf = int64(1) << 50
+
+// hungarian は n×m（n ≤ m）のコスト行列で、合計が最小になる割り当てを返す（行 i → 列）。O(n^2 m)
+func hungarian(a [][]int64) []int {
+	n := len(a)
+	if n == 0 {
+		return nil
+	}
+	m := len(a[0])
+	u := make([]int64, n+1)
+	v := make([]int64, m+1)
+	p := make([]int, m+1)
+	way := make([]int, m+1)
+	minv := make([]int64, m+1)
+	used := make([]bool, m+1)
+	for i := 1; i <= n; i++ {
+		p[0] = i
+		j0 := 0
+		for j := range minv {
+			minv[j] = math.MaxInt64
+			used[j] = false
+		}
+		for {
+			used[j0] = true
+			i0 := p[j0]
+			delta := int64(math.MaxInt64)
+			j1 := 0
+			for j := 1; j <= m; j++ {
+				if used[j] {
+					continue
+				}
+				cur := a[i0-1][j-1] - u[i0] - v[j]
+				if cur < minv[j] {
+					minv[j] = cur
+					way[j] = j0
+				}
+				if minv[j] < delta {
+					delta = minv[j]
+					j1 = j
+				}
+			}
+			for j := 0; j <= m; j++ {
+				if used[j] {
+					u[p[j]] += delta
+					v[j] -= delta
+				} else {
+					minv[j] -= delta
+				}
+			}
+			j0 = j1
+			if p[j0] == 0 {
+				break
+			}
+		}
+		for {
+			j1 := way[j0]
+			p[j0] = p[j1]
+			j0 = j1
+			if j0 == 0 {
+				break
+			}
+		}
+	}
+	res := make([]int, n)
+	for i := range res {
+		res[i] = -1
+	}
+	for j := 1; j <= m; j++ {
+		if p[j] > 0 {
+			res[p[j]-1] = j - 1
+		}
+	}
+	return res
 }
