@@ -452,6 +452,9 @@ func (s *Store) chairStatsOf(chairID string) appGetNotificationResponseChairStat
 	return stats
 }
 
+// 完了したライドの椅子を、ほかのユーザーの付近の椅子に含めない時間（ベンチマーカーの許容は 3 秒）
+const nearbyHideAfterCompleted = 500 * time.Millisecond
+
 func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	latStr := r.URL.Query().Get("latitude")
 	lonStr := r.URL.Query().Get("longitude")
@@ -485,6 +488,8 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	coordinate := Coordinate{Latitude: lat, Longitude: lon}
 
 	nearbyChairs := []appGetNearbyChairsResponseChair{}
+	user := r.Context().Value("user").(*User)
+	nowT := now()
 	store.mu.RLock()
 	for _, chair := range store.chairList {
 		if !chair.IsActive {
@@ -495,6 +500,13 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 		// （前のライドが完了してから次が割り当てられるので、最新のライドだけを見れば足りる）
 		if ride := store.latestRideOfChair(chair.ID); ride != nil {
 			if status, _ := store.latestStatus(ride.ID); status != "COMPLETED" {
+				continue
+			}
+			// 完了直後の椅子は、そのライドのユーザー以外には少しの間見せない。
+			// ベンチマーカーは評価の応答を受け取るまでその椅子をライド中とみなす（CODE 30）。
+			// ライドのユーザー本人は評価の応答を受け取ってから次の依頼をするので、見せてよい
+			// （本人が次に頼む時に一番近い椅子。隠すと依頼そのものが消える）
+			if ride.UserID != user.ID && nowT.Sub(ride.UpdatedAt) < nearbyHideAfterCompleted {
 				continue
 			}
 		}
