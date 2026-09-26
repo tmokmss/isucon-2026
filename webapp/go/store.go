@@ -89,7 +89,8 @@ type Store struct {
 	ridesByUser       map[string][]*Ride       // tRides。created_at 順
 	ridesByChair      map[string][]*Ride       // tRides。割り当て順
 	unmatched         []*Ride                  // tRides。chair_id IS NULL、created_at 順
-	statuses          map[string][]*RideStatus // tRideStatuses（AppSentAt / ChairSentAt も）。ride_id → created_at 順
+	statuses          map[string][]*RideStatus // tRideStatuses。ride_id → created_at 順
+	statusRow         map[string]*sync.Mutex   // tRideStatuses（map）。ride_id → 行ロック。送信済みの印（AppSentAt / ChairSentAt）を守る
 	coupons           map[string][]*Coupon     // tCoupons。user_id → created_at 順（Coupon.UsedBy も）
 	couponKeys        map[string]struct{}      // tCoupons。user_id + "\x00" + code
 	couponCodeCount   map[string]int           // tCoupons。code → 件数（招待コードの上限判定）
@@ -121,6 +122,7 @@ func newStore() *Store {
 		ridesByUser:       map[string][]*Ride{},
 		ridesByChair:      map[string][]*Ride{},
 		statuses:          map[string][]*RideStatus{},
+		statusRow:         map[string]*sync.Mutex{},
 		coupons:           map[string][]*Coupon{},
 		couponKeys:        map[string]struct{}{},
 		couponCodeCount:   map[string]int{},
@@ -174,6 +176,9 @@ func (s *Store) addRide(r *Ride) {
 
 // addStatus は tRideStatuses の書きロックと、tRides の読みロック以上で呼ぶ
 func (s *Store) addStatus(st *RideStatus) {
+	if s.statusRow[st.RideID] == nil {
+		s.statusRow[st.RideID] = &sync.Mutex{}
+	}
 	s.statuses[st.RideID] = append(s.statuses[st.RideID], st)
 	if ride := s.rides[st.RideID]; ride != nil {
 		s.wakeRide(ride) // 通知の SSE を起こす
@@ -221,6 +226,12 @@ func (s *Store) chairIsFree(chairID string) bool {
 	if r == nil {
 		return true
 	}
+	row := s.statusRow[r.ID]
+	if row == nil {
+		return false
+	}
+	row.Lock()
+	defer row.Unlock()
 	sent := 0
 	for _, st := range s.statuses[r.ID] {
 		if st.ChairSentAt != nil {
@@ -279,8 +290,12 @@ func (s *Store) capture() *snapshot {
 	for _, rs := range s.ridesByUser {
 		for _, r := range rs {
 			snap.Rides = append(snap.Rides, *r)
-			for _, st := range s.statuses[r.ID] {
-				snap.Statuses = append(snap.Statuses, copyStatus(st))
+			if row := s.statusRow[r.ID]; row != nil {
+				row.Lock()
+				for _, st := range s.statuses[r.ID] {
+					snap.Statuses = append(snap.Statuses, copyStatus(st))
+				}
+				row.Unlock()
 			}
 		}
 	}
@@ -509,7 +524,7 @@ func (s *Store) replaceWith(n *Store) {
 	s.owners, s.ownersByToken, s.ownersByRegister, s.ownerNames = n.owners, n.ownersByToken, n.ownersByRegister, n.ownerNames
 	s.chairs, s.chairList, s.chairsByToken, s.chairsByOwner = n.chairs, n.chairList, n.chairsByToken, n.chairsByOwner
 	s.chairLoc, s.chairStat, s.paymentTokens = n.chairLoc, n.chairStat, n.paymentTokens
-	s.rides, s.ridesByUser, s.ridesByChair, s.unmatched, s.statuses = n.rides, n.ridesByUser, n.ridesByChair, n.unmatched, n.statuses
+	s.rides, s.ridesByUser, s.ridesByChair, s.unmatched, s.statuses, s.statusRow = n.rides, n.ridesByUser, n.ridesByChair, n.unmatched, n.statuses, n.statusRow
 	s.coupons, s.couponKeys, s.couponCodeCount, s.couponByRide = n.coupons, n.couponKeys, n.couponCodeCount, n.couponByRide
 	dirty.Store(true)
 }

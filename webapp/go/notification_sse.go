@@ -52,7 +52,8 @@ func (s *Store) wakeRide(ride *Ride) {
 // appNextNotification は次に送るユーザー向けの通知を作る。未送信の状態があれば送信済みにして sent=true を返す。
 // ライドが無ければ nil
 func appNextNotification(user *User) (data *appGetNotificationResponseData, sent bool) {
-	unlock := lockTables([]table{tRideStatuses}, []table{tChairs, tRides, tCoupons, tChairStats})
+	// rideStatuses は読みロック。送信済みの印はライドの行ロックで書く（別のライドの通知と並列に走る）
+	unlock := lockTables(nil, []table{tChairs, tRides, tRideStatuses, tCoupons, tChairStats})
 	defer unlock()
 
 	rides := store.ridesByUser[user.ID]
@@ -61,6 +62,12 @@ func appNextNotification(user *User) (data *appGetNotificationResponseData, sent
 	}
 	ride := rides[len(rides)-1]
 
+	row := store.statusRow[ride.ID]
+	if row == nil {
+		return nil, false
+	}
+	row.Lock()
+	defer row.Unlock()
 	var yetSent *RideStatus
 	for _, st := range store.statuses[ride.ID] {
 		if st.AppSentAt == nil {
@@ -108,13 +115,19 @@ func appNextNotification(user *User) (data *appGetNotificationResponseData, sent
 // chairNextNotification は次に送る椅子向けの通知を作る。未送信の状態があれば送信済みにして sent=true を返す。
 // ライドが無ければ nil
 func chairNextNotification(chair *Chair) (data *chairGetNotificationResponseData, sent bool) {
-	unlock := lockTables([]table{tRideStatuses}, []table{tUsers, tRides})
+	unlock := lockTables(nil, []table{tUsers, tRides, tRideStatuses})
 	defer unlock()
 
 	ride := store.latestRideOfChair(chair.ID)
 	if ride == nil {
 		return nil, false
 	}
+	row := store.statusRow[ride.ID]
+	if row == nil {
+		return nil, false
+	}
+	row.Lock()
+	defer row.Unlock()
 	var yetSent *RideStatus
 	for _, st := range store.statuses[ride.ID] {
 		if st.ChairSentAt == nil {
