@@ -8,6 +8,7 @@ import { type Config, loadConfig } from "../config.js";
 import type { Command } from "../lib/command.js";
 import { EXIT, HarnessError, usageError } from "../lib/exit.js";
 import { resolveSha } from "../lib/git.js";
+import { acquireLock } from "../lib/lock.js";
 import { log, out } from "../lib/log.js";
 import { repoRoot } from "../lib/paths.js";
 import { copyTo, local, onHost, onHostShell, shQuote } from "../lib/ssh.js";
@@ -526,12 +527,17 @@ ref は app.repoLocal（通常はこのリポジトリ）で解決する。既�
 未コミットの変更があれば警告するが、配られはしない。
 
 各ホストの $HOME/.deployed_sha に「sha / ref / 時刻 / 実行者」を記録する。
-同じ sha の conf/_all/** と conf/<host>/** をサーバ上の絶対パスへそのまま配布し、
-nginx / MySQL の設定を含む場合は該当サービスを reload / restart する。
+同じ sha の conf/_all/** と conf/<host>/** のうち、サーバ上の中身と違うものだけを
+サーバ上の絶対パスへ配布し、nginx / MySQL の設定が変わった場合は該当サービスを
+reload / restart する。
+
+ベンチと同じロック（hosts.primary の bench.lockPath）を取ってから配る。
+走っているベンチの最中にアプリを差し替えて、計測を壊さないため。
+ベンチが走っていれば終わるまで待つ（bench.lockTimeoutSec まで）。--dry-run は取らない。
 
 stdout にはデプロイした sha だけを出す（SHA=$(isuh deploy) が使える）。
 
-終了コード: 0 成功 / 20 デプロイ失敗 / 64 引数不正 / 65 設定不備`,
+終了コード: 0 成功 / 10 ロックを取れない / 20 デプロイ失敗 / 64 引数不正 / 65 設定不備`,
 
   async run(argv) {
     let ref = "HEAD";
@@ -543,7 +549,16 @@ stdout にはデプロイした sha だけを出す（SHA=$(isuh deploy) が使�
     }
     const cfg = await loadConfig();
     log.info(`deploy ref=${ref} hosts=[${cfg.hosts.app.join(" ")}] dryRun=${dryRun}`);
-    const sha = await deploy(cfg, { ref, dryRun });
-    out(sha);
+    if (dryRun) {
+      out(await deploy(cfg, { ref, dryRun }));
+      return;
+    }
+    // bench は自分でロックを握ってから deploy() を呼ぶ。単体の deploy はここで同じロックを取る
+    const lock = await acquireLock(`deploy ${ref}`, cfg);
+    try {
+      out(await deploy(cfg, { ref, dryRun }));
+    } finally {
+      await lock.release();
+    }
   },
 };

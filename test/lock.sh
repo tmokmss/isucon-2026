@@ -96,6 +96,22 @@ grep -q "保持者:" "$ERR" || ng "保持者が表示されていません"
 grep -q "probe HOLD" "$ERR" || ng "保持者の中身が出ていません: $(grep 保持者 "$ERR")"
 ok "待って取れなければ 10、保持者が分かる"
 
+# 単体の deploy も同じロックを取る（ベンチの最中にアプリを差し替えない）
+before=$($SSH isu1 'cat "$HOME/.deployed_sha" 2>/dev/null' || true)
+set +e
+"$ISUH" deploy main >/dev/null 2>"$ERR"
+rc=$?
+set -e
+[ "$rc" = 10 ] || ng "deploy: exit=$rc (10 のはず)"
+grep -q "probe HOLD" "$ERR" || ng "deploy で保持者が出ていません"
+[ "$($SSH isu1 'cat "$HOME/.deployed_sha" 2>/dev/null' || true)" = "$before" ] || ng "ロックを取れないのに deploy した"
+set +e
+"$ISUH" deploy --dry-run main >/dev/null 2>"$ERR"
+rc=$?
+set -e
+[ "$rc" = 0 ] || ng "deploy --dry-run: exit=$rc (0 のはず。dry-run はロックを取らない)"
+ok "単体の deploy もロックを待ち、取れなければ 10。--dry-run は待たない"
+
 echo "== 3. kill -9 してもロックが残らない"
 kill -9 "$pid_hold" 2>/dev/null || true
 wait "$pid_hold" 2>/dev/null || true
