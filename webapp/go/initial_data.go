@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"sort"
 	"strconv"
 	"sync"
@@ -291,41 +290,4 @@ func sortStatuses(ss []RideStatus) {
 
 func sortCoupons(cs []Coupon) {
 	sort.SliceStable(cs, func(a, b int) bool { return cs[a].CreatedAt.Before(cs[b].CreatedAt) })
-}
-
-// ---------------------------------------------------------------------------
-// マスターデータ（椅子のモデルごとの速度）。固定なのでスナップショットには入れない
-// ---------------------------------------------------------------------------
-
-const masterDataPath = "../sql/2-master-data.sql"
-
-var chairSpeeds = map[string]int{}
-
-var chairModelRe = regexp.MustCompile(`\('([^']*)',\s*(\d+)\)`)
-
-func loadChairSpeeds() error {
-	b, err := os.ReadFile(masterDataPath)
-	if err != nil {
-		return err
-	}
-	i := bytes.Index(b, []byte("INSERT INTO chair_models"))
-	if i < 0 {
-		return fmt.Errorf("chair_models not found in %s", masterDataPath)
-	}
-	for _, m := range chairModelRe.FindAllSubmatch(b[i:], -1) {
-		speed, err := strconv.Atoi(string(m[2]))
-		if err != nil {
-			return err
-		}
-		chairSpeeds[string(m[1])] = speed
-	}
-	return nil
-}
-
-// chairSpeed はモデルの速度。マスターデータに無いモデルは最も遅い 2 とみなす
-func chairSpeed(model string) int {
-	if s, ok := chairSpeeds[model]; ok {
-		return s
-	}
-	return 2
 }

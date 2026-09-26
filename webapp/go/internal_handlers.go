@@ -25,7 +25,7 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// matchRides は待っているライドを、待たせている順に、乗車地点までの時間（迎えの距離 ÷ 速度）が最小の空き椅子へ割り当てる。
+// matchRides は待っているライドを、待たせている順に、配車位置に最も近い空き椅子へ割り当てる。
 // 1 回の呼び出しで割り当てられるだけ割り当てる
 func matchRides() {
 	store.mu.Lock()
@@ -49,17 +49,15 @@ func matchRides() {
 	rest := store.unmatched[:0:0]
 	for _, ride := range store.unmatched {
 		best := -1
-		bestCost := 0.0
+		bestDist := 0
 		for i, c := range free {
 			if c == nil {
 				continue
 			}
 			loc := store.chairLoc[c.ID]
-			pickupDist := calculateDistance(loc.Latitude, loc.Longitude, ride.PickupLatitude, ride.PickupLongitude)
-			// 乗車地点までの時間（近い椅子、または遠くても速い椅子が早く着く）
-			cost := float64(pickupDist) / float64(chairSpeed(c.Model))
-			if best < 0 || cost < bestCost {
-				best, bestCost = i, cost
+			d := calculateDistance(loc.Latitude, loc.Longitude, ride.PickupLatitude, ride.PickupLongitude)
+			if best < 0 || d < bestDist {
+				best, bestDist = i, d
 			}
 		}
 		if best < 0 {
