@@ -13,7 +13,7 @@ export const config: Config = {
   // ホストの値は ~/.ssh/config 上のホスト別名。setup が生成する。
   hosts: {
     // リハーサル（ISUCON14 の AMI を 2 台）。AWS 上の名前は test-1 = isu1、test-2 = isu2
-    all: ["isu1", "isu2"],
+    all: ["isu1", "isu2", "isu3"],
     app: ["isu1"],
     nginx: ["isu1"],
     // AMI の直後は DB も isu1 で動いている。DB を isu2 に移したら "isu2" にする
@@ -85,12 +85,13 @@ export const config: Config = {
     //   command: "./bench run --addr 127.0.0.1:443 --target https://isuride.xiv.isucon.net --payment-url http://127.0.0.1:12346 --payment-bind-port 12346",
     //   scorePattern: "スコア=(\\d+)",
     //   passPattern: "pass=true",
-    // ベンチマーカーは空いている isu2 で動かす（isu1 で動かすと isu1 の CPU を 62% 食う）。
-    // ベンチマーカーは決済サーバも兼ねるので、isu1 のアプリから isu2:12346 に届く URL を渡す
+    // ベンチマーカーは専用の isu3（test-3、c5.2xlarge）で動かす。t3.medium の isu2 ではベンチマーカーが
+    // CPU を使い切り、スコアとワーニングの件数がベンチマーカーの性能で決まっていた。
+    // ベンチマーカーは決済サーバも兼ねるので、isu1 のアプリから isu3:12346 に届く URL を渡す
     local: {
-      host: "isu2",
+      host: "isu3",
       command:
-        "./bench run --addr isu1:443 --target https://isuride.xiv.isucon.net --payment-url http://isu2:12346 --payment-bind-port 12346",
+        "./bench run --addr isu1:443 --target https://isuride.xiv.isucon.net --payment-url http://isu3:12346 --payment-bind-port 12346",
       scorePattern: "スコア=(\\d+)",
       passPattern: "pass=true",
     },
@@ -102,6 +103,7 @@ export const config: Config = {
     addresses: {
       isu1: { public: "52.192.242.11", private: "10.0.5.148" },
       isu2: { public: "3.112.244.155", private: "10.0.9.108" },
+      isu3: { public: "52.198.226.51", private: "10.0.31.6" },
     },
     // ポータルに公開鍵を登録した鍵。サーバの isucon ユーザにはこの鍵で入れる。
     identityFile: `${process.env["HOME"]}/.ssh/id_ed25519`,
