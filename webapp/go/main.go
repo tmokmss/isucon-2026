@@ -8,6 +8,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"runtime"
+	"runtime/debug"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,6 +19,10 @@ func main() {
 	// ロック待ちを /debug/pprof/mutex で見る（100 回に 1 回だけ記録する）
 	runtime.SetMutexProfileFraction(100)
 	go func() { _ = http.ListenAndServe("localhost:6060", nil) }()
+	// GC を減らす（CPU プロファイルで GC が約 15%。常駐は 100MB 未満、メモリは 3.8GB）。
+	// 上限を超えそうなときは、上限に合わせて GC を早める
+	debug.SetGCPercent(400)
+	debug.SetMemoryLimit(1536 << 20)
 	mux := setup()
 	slog.Info("Listening on :8080")
 	http.ListenAndServe(":8080", mux)
