@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { hostname, userInfo } from "node:os";
 import { join, sep } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -107,6 +107,12 @@ const binaryRelPath = (cfg: Config): string => `${cfg.app.langDir.replace(/\/+$/
 const APP_TAR = ".isuh-app.tar";
 
 /**
+ * 最後に同期した app.localDir のツリー ID と、そのときデプロイした sha を記録するファイル
+ * （サーバのログインユーザの $HOME 直下。`<ツリー ID> <TAB> <sha>`）。
+ */
+const APP_TREE_FILE = "$HOME/.isuh-app-tree";
+
+/**
  * app.localDir 以下を sha の中身で tar に固める。
  *
  * `git archive <sha>:<localDir>` を使うので、中身は sha と一致し、実行ビット（sql/init.sh 等）も
@@ -135,12 +141,34 @@ const appTarFor = async (cfg: Config, sha: string, tree: string): Promise<string
  *
  * - 削除しないのは、サーバ側にしか無いもの（gitignore されたビルド成果物・node_modules・
  *   rust/target・アップロードされた画像など）を消さないため。リポジトリで消したファイルは残る
- * - 毎回すべて書き直すので、mtime の比較による取りこぼしは起きない
+ * - 同期するときはすべて書き直すので、mtime の比較による取りこぼしは起きない
+ * - 前回同期したツリー ID と同じで、その後に別の deploy が入っていなければ、同期そのものを省く
+ *   （conf/ だけを変えたとき等）
  * - バイナリは外す。実行中のファイルを上書きすると ETXTBSY になるため
  * - rsync ではなく tar にしているのは、サーバに追加の道具が要らないため（検証用コンテナにも
  *   rsync は無い）。手元の rsync も macOS では openrsync で、GNU rsync と挙動が揃わない
  */
-const syncAppFiles = async (cfg: Config, host: string, appTar: string): Promise<void> => {
+const syncAppFiles = async (
+  cfg: Config,
+  host: string,
+  appTar: string,
+  treeId: string,
+  sha: string,
+): Promise<void> => {
+  // 省いてよいのは「記録したツリーが同じ」かつ「その後に別の deploy が入っていない」とき。
+  // 別の deploy（記録を書かない古いハーネスや、別の worktree）が入ると .deployed_sha が変わる。
+  // そのときはサーバのファイルが記録と違いうるので、同期し直す
+  const state = await onHostShell(
+    host,
+    `cat "${APP_TREE_FILE}" 2>/dev/null || true; echo; cut -f1 "${DEPLOYED_SHA_FILE}" 2>/dev/null || true`,
+    { allowFailure: true },
+  );
+  const [recordedLine = "", deployedNow = ""] = state.stdout.split("\n").filter((line) => line.trim() !== "");
+  const [recordedTree, recordedSha] = recordedLine.split("\t");
+  if (recordedTree === treeId && recordedSha !== undefined && recordedSha === deployedNow.trim()) {
+    log.info(`${host}: ${cfg.app.localDir}/ は前回の同期から変更なし`);
+    return;
+  }
   const dir = cfg.app.dir.replace(/\/$/, "");
   const staged = `/tmp/isuh-app-${process.pid}.tar`;
   const exclude = binaryRelPath(cfg);
@@ -157,6 +185,20 @@ const syncAppFiles = async (cfg: Config, host: string, appTar: string): Promise<
   } finally {
     await onHost(host, ["rm", "-f", staged], { allowFailure: true });
   }
+  // 同期が最後まで済んでから記録する（途中で落ちたら次回は同期し直す）
+  // sha は、この deploy が最後に .deployed_sha に書く値。途中で落ちて書かれなければ、次回は同期し直す
+  await onHostShell(host, `printf '%s\\t%s\\n' ${shQuote(treeId)} ${shQuote(sha)} > "${APP_TREE_FILE}"`);
+};
+
+/**
+ * app.localDir のツリー ID（git の tree オブジェクト）。中身が同じなら sha が違っても同じになる。
+ * 同期を省くかどうかの判定に使う。
+ */
+const appTreeIdFor = async (cfg: Config, sha: string): Promise<string> => {
+  const localDir = cfg.app.localDir.replace(/\/+$/, "");
+  const treeish = localDir === "" || localDir === "." ? `${sha}^{tree}` : `${sha}:${localDir}`;
+  const result = await local("git", ["-C", cfg.app.repoLocal, "rev-parse", treeish]);
+  return result.stdout.trim();
 };
 
 // ---------------------------------------------------------------------------
@@ -175,6 +217,8 @@ const syncAppFiles = async (cfg: Config, host: string, appTar: string): Promise<
  */
 interface ConfFile {
   localPath: string;
+  /** ツリーの中の相対パス（git archive の中のパス。`conf/isu1/etc/nginx/nginx.conf`） */
+  treePath: string;
   remotePath: string;
 }
 
@@ -195,8 +239,9 @@ const confFilesFor = (tree: string, host: string): ConfFile[] => {
     const base = join(tree, "conf", scope);
     if (!existsSync(base)) continue;
     for (const rel of walkFiles(base)) {
-      const remotePath = `/${rel.split(sep).join("/")}`;
-      byRemote.set(remotePath, { localPath: join(base, rel), remotePath });
+      const posix = rel.split(sep).join("/");
+      const remotePath = `/${posix}`;
+      byRemote.set(remotePath, { localPath: join(base, rel), treePath: `conf/${scope}/${posix}`, remotePath });
     }
   }
   return [...byRemote.values()].sort((a, b) => a.remotePath.localeCompare(b.remotePath));
@@ -221,18 +266,87 @@ const reloadsFor = (
   return [...hits].map(([service, action]) => ({ service, action }));
 };
 
-const pushConf = async (cfg: Config, host: string, files: readonly ConfFile[]): Promise<void> => {
-  for (const [index, file] of files.entries()) {
-    const staged = `/tmp/isuh-conf-${index}`;
-    await copyTo(host, file.localPath, staged);
-    // install -D なら親ディレクトリごと作る。/etc 配下なので sudo が要る。
-    // /home 配下（systemd unit が読む env ファイルなど）は作業ユーザの持ち物のままにする
-    const owner = file.remotePath.startsWith("/home/") ? ["-o", cfg.hosts.user, "-g", cfg.hosts.user] : [];
-    await onHost(host, ["sudo", "install", "-D", "-m", "0644", ...owner, staged, file.remotePath]);
-    await onHost(host, ["rm", "-f", staged]);
-  }
+const sha256 = (data: Buffer): string => createHash("sha256").update(data).digest("hex");
 
-  const paths = files.map((f) => f.remotePath);
+/** サーバ上のファイルの sha256。無いファイルは結果に含まれない（1 回の ssh で全部取る）。 */
+const remoteHashes = async (
+  host: string,
+  paths: readonly string[],
+  sudo: boolean,
+): Promise<Map<string, string>> => {
+  const hashes = new Map<string, string>();
+  if (paths.length === 0) return hashes;
+  const cmd = `${sudo ? "sudo " : ""}sha256sum ${paths.map(shQuote).join(" ")} 2>/dev/null || true`;
+  const result = await onHostShell(host, cmd, { allowFailure: true });
+  for (const line of result.stdout.split("\n")) {
+    const m = /^([0-9a-f]{64})\s+\*?(.+)$/.exec(line.trim());
+    if (m) hashes.set(m[2]!, m[1]!);
+  }
+  return hashes;
+};
+
+/** conf/_all と conf/<host> を sha の中身で固めた tar（ツリーと同じ場所にキャッシュする）。 */
+const confTarFor = async (cfg: Config, sha: string, tree: string, host: string): Promise<string> => {
+  const tar = join(tree, `.isuh-conf-${host}.tar`);
+  if (existsSync(tar)) return tar;
+  const scopes = ["_all", host]
+    .filter((scope) => existsSync(join(tree, "conf", scope)))
+    .map((scope) => `conf/${scope}`);
+  const partial = `${tar}.${process.pid}.partial`;
+  await local("git", ["-C", cfg.app.repoLocal, "archive", "--format=tar", "-o", partial, sha, "--", ...scopes]);
+  renameSync(partial, tar);
+  return tar;
+};
+
+/**
+ * conf/ のうち、サーバ上の中身と違うファイルだけを配り、反映に必要な操作をする。
+ *
+ * - 比べるのは中身の sha256。同じなら配らず、reload / restart もしない（MySQL の restart は重い）
+ * - 配るときは conf/ の tar を 1 回送り、1 回の ssh で全部 install する（ファイルごとに ssh を張らない）
+ * - 戻り値は配ったパス
+ */
+const pushConf = async (
+  cfg: Config,
+  sha: string,
+  tree: string,
+  host: string,
+  files: readonly ConfFile[],
+): Promise<string[]> => {
+  const remote = await remoteHashes(
+    host,
+    files.map((f) => f.remotePath),
+    true,
+  );
+  const changed = files.filter((f) => remote.get(f.remotePath) !== sha256(readFileSync(f.localPath)));
+  if (changed.length === 0) {
+    log.info(`${host}: 設定ファイル ${files.length} 件はすべて変更なし`);
+    return [];
+  }
+  log.info(
+    `${host}: 設定ファイル ${changed.length}/${files.length} 件を配布: ${changed.map((f) => f.remotePath).join(" ")}`,
+  );
+
+  const tar = await confTarFor(cfg, sha, tree, host);
+  const staged = `/tmp/isuh-conf-${process.pid}-${host}.tar`;
+  await copyTo(host, tar, staged);
+  // install -D なら親ディレクトリごと作る。/etc 配下なので sudo が要る。
+  // /home 配下（systemd unit が読む env ファイルなど）は作業ユーザの持ち物のままにする
+  const installs = changed.map((file) => {
+    const owner = file.remotePath.startsWith("/home/")
+      ? `-o ${shQuote(cfg.hosts.user)} -g ${shQuote(cfg.hosts.user)} `
+      : "";
+    return `sudo install -D -m 0644 ${owner}"$d"/${shQuote(file.treePath)} ${shQuote(file.remotePath)}`;
+  });
+  const script = [
+    "set -e",
+    "d=$(mktemp -d)",
+    `trap 'rm -rf "$d" ${shQuote(staged).replaceAll("'", `'\\''`)}' EXIT`,
+    `tar -xf ${shQuote(staged)} -C "$d"`,
+    ...installs,
+  ].join("\n");
+  await onHostShell(host, script);
+
+  const paths = changed.map((f) => f.remotePath);
   if (paths.some((p) => p.startsWith("/etc/systemd/"))) {
     await onHost(host, ["sudo", "systemctl", "daemon-reload"]);
   }
@@ -246,6 +360,7 @@ const pushConf = async (cfg: Config, host: string, files: readonly ConfFile[]): 
     log.info(`${host}: ${action} ${service}`);
     await onHost(host, ["sudo", "systemctl", action, service]);
   }
+  return paths;
 };
 
 // ---------------------------------------------------------------------------
@@ -257,6 +372,11 @@ const remoteBinaryPath = (cfg: Config): string =>
 
 const pushBinary = async (cfg: Config, host: string, localBinary: string): Promise<void> => {
   const dest = remoteBinaryPath(cfg);
+  const remote = await remoteHashes(host, [dest], false);
+  if (remote.get(dest) === sha256(readFileSync(localBinary))) {
+    log.info(`${host}: バイナリは変更なし（送らずに再起動だけする）`);
+    return;
+  }
   const staged = `${dest}.isuh-new`;
   await copyTo(host, localBinary, staged);
   // 実行中のバイナリを直接上書きすると ETXTBSY になる。rename なら原子的に差し替わる。
@@ -339,14 +459,15 @@ export const deploy = async (cfg: Config, opts: DeployOptions = {}): Promise<str
     for (const host of hosts) {
       if (appHosts.has(host)) {
         log.info(
-          `[dry-run] ${host}: ${cfg.app.localDir}/ を ${cfg.app.dir} へ同期（上書きのみ・${binaryRelPath(cfg)} は除く）`,
+          `[dry-run] ${host}: ${cfg.app.localDir}/ を ${cfg.app.dir} へ同期（上書きのみ・${binaryRelPath(cfg)} は除く。前回から変わっていれば）`,
         );
-        log.info(`[dry-run] ${host}: ${remoteBinaryPath(cfg)} を差し替え`);
+        log.info(`[dry-run] ${host}: ${remoteBinaryPath(cfg)} を差し替え（中身が変わっていれば）`);
       }
       const confFiles = confFilesFor(tree, host);
-      for (const file of confFiles) log.info(`[dry-run] ${host}: ${file.remotePath} を配布`);
+      // dry-run はサーバを見ないので、配る候補と、変わっていた場合の反映を出す
+      for (const file of confFiles) log.info(`[dry-run] ${host}: ${file.remotePath} を配布（中身が変わっていれば）`);
       for (const { service, action } of reloadsFor(cfg, confFiles.map((f) => f.remotePath))) {
-        log.info(`[dry-run] ${host}: ${action} ${service}`);
+        log.info(`[dry-run] ${host}: ${action} ${service}（対応する設定ファイルが変わっていれば）`);
       }
       if (appHosts.has(host)) log.info(`[dry-run] ${host}: restart ${cfg.app.service}`);
     }
@@ -355,18 +476,16 @@ export const deploy = async (cfg: Config, opts: DeployOptions = {}): Promise<str
 
   const binary = await buildBinary(cfg, sha, tree);
   const appTar = await appTarFor(cfg, sha, tree);
+  const appTreeId = await appTreeIdFor(cfg, sha);
 
   // ホストごとに直列（配布 → 再起動）、ホスト間は並列。
   // 1 台でも失敗したら全体を失敗にする（後続のベンチを走らせないため）。
   const results = await Promise.allSettled(
     hosts.map(async (host) => {
       const confFiles = confFilesFor(tree, host);
-      if (confFiles.length > 0) {
-        log.info(`${host}: 設定ファイル ${confFiles.length} 件を配布`);
-        await pushConf(cfg, host, confFiles);
-      }
+      if (confFiles.length > 0) await pushConf(cfg, sha, tree, host, confFiles);
       if (appHosts.has(host)) {
-        await syncAppFiles(cfg, host, appTar);
+        await syncAppFiles(cfg, host, appTar, appTreeId, sha);
         await pushBinary(cfg, host, binary);
         await restartApp(cfg, host);
       }

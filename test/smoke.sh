@@ -188,5 +188,51 @@ run deploy "$SQL1"
 for h in isu1 isu2; do $SSH "$h" 'rm -rf ~/webapp/sql ~/webapp/node_modules'; done
 ok "sql/ が sha の中身で届き（mtime によらず上書き・実行ビット維持）、サーバ側だけのファイルは残る"
 
+echo "== 11. 変わっていなければ配らない・reload / restart しない"
+git -C "$APP" checkout -q -f with-conf
+run deploy with-conf # 状態をそろえる
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
+run deploy with-conf
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
+for h in isu1 isu2 isu3; do
+  grep -q "$h: 設定ファイル [0-9]* 件はすべて変更なし" "$ERR" || ng "$h で変わっていない conf/ を配った"
+done
+grep -qE ": (reload|restart) " "$ERR" && ng "変わっていないのに reload / restart した"
+grep -q "sysctl --system" "$ERR" && ng "変わっていないのに sysctl を流した"
+for h in isu1 isu2; do
+  grep -q "$h: webapp/ は前回の同期から変更なし" "$ERR" || ng "$h で変わっていない webapp/ を同期した"
+  grep -q "$h: バイナリは変更なし" "$ERR" || ng "$h で変わっていないバイナリを送った"
+  [ "$(version_on $h)" = "v2" ] || ng "$h のアプリが再起動後に動いていない"
+done
+# 別の deploy（記録を書かない古いハーネスや別の worktree）が入ったら、同じツリーでも同期し直す
+$SSH isu1 'printf "other\tHEAD\tx\tsomeone\n" >~/.deployed_sha'
+run deploy with-conf
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
+grep -q "isu1: webapp/ は前回の同期から変更なし" "$ERR" && ng "別の deploy が入った isu1 で同期を省いた"
+grep -q "isu2: webapp/ は前回の同期から変更なし" "$ERR" || ng "isu2 で変わっていない webapp/ を同期した"
+ok "同じ中身の再デプロイは、アプリの再起動だけ（別の deploy が入ったホストは同期し直す）"
+
+echo "== 12. 変えた設定ファイルだけを配り、対応するサービスだけを反映する"
+echo "from-all v2" >"$APP/conf/_all/etc/isuh-smoke/common.conf"
+git -C "$APP" commit -qam "conf: common v2"
+run deploy with-conf
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
+grep -q "isu1: 設定ファイル 1/[0-9]* 件を配布: /etc/isuh-smoke/common.conf" "$ERR" || ng "isu1 に変えたファイルだけが配られていない"
+grep -q "isu3: 設定ファイル 1/[0-9]* 件を配布: /etc/isuh-smoke/common.conf" "$ERR" || ng "isu3 に変えたファイルだけが配られていない"
+grep -q "isu2: 設定ファイル [0-9]* 件はすべて変更なし" "$ERR" || ng "isu2（ホスト指定で上書き）に _all の変更を配った"
+grep -qE ": (reload|restart) " "$ERR" && ng "nginx / MySQL の設定を変えていないのに reload / restart した"
+[ "$($SSH isu1 'cat /etc/isuh-smoke/common.conf')" = "from-all v2" ] || ng "isu1 に新しい中身が届いていない"
+[ "$($SSH isu2 'cat /etc/isuh-smoke/common.conf')" = "from-isu2" ] || ng "isu2 のホスト指定が崩れた"
+grep -q "isu1: webapp/ は前回の同期から変更なし" "$ERR" || ng "conf/ だけの変更で webapp/ を同期した"
+
+echo "# isuh smoke v2" >"$APP/conf/isu1/etc/nginx/isuh-smoke.conf"
+git -C "$APP" commit -qam "conf: nginx v2"
+run deploy with-conf
+[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
+grep -q "isu1: reload nginx.service" "$ERR" || ng "nginx の設定を変えたのに reload していない"
+grep -qE "isu[23]: (reload|restart) " "$ERR" && ng "nginx の設定を変えていないホストで reload / restart した"
+[ "$(active_on isu1 nginx.service)" = "active" ] || ng "reload 後に nginx が動いていない"
+ok "変えたファイルだけが配られ、nginx は nginx の設定を変えたときだけ reload される"
+
 echo
 echo "全 $passed 件パス"

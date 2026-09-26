@@ -1,3 +1,6 @@
+import { mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { execa } from "execa";
 import { log } from "./log.js";
 
@@ -18,10 +21,37 @@ export const shQuote = (value: string): string => `'${value.replaceAll("'", `'\\
  * 当日リポジトリに同梱する ssh_config）に使う。未設定なら通常どおり ~/.ssh/config が効く。
  */
 export const sshOpts = (): string[] => {
-  const opts = ["-o", "ConnectTimeout=5"];
+  const opts = ["-o", "ConnectTimeout=5", ...muxOpts()];
   const configFile = process.env["ISUH_SSH_CONFIG"];
   if (configFile) opts.push("-F", configFile);
   return opts;
+};
+
+/**
+ * ssh の接続を使い回す（ControlMaster）。
+ *
+ * 手元から競技サーバへの新規接続は 1 回約 1 秒かかり、使い回すと約 0.04 秒になる（ISUCON14 の
+ * リハーサルで実測）。deploy・bench・計測の回収は ssh を数十回張るので、ここが効く。
+ * - ControlPersist は deploy → ベンチ → 回収の 1 周（数分）より長くし、次の周でも使い回す
+ * - ServerAliveInterval: 相手が再起動などで消えたとき、残った接続を早めに捨てる
+ * - ISUH_SSH_MUX=0 で無効にできる（接続まわりを切り分けたいとき）
+ */
+let muxDirReady = false;
+const muxOpts = (): string[] => {
+  if (process.env["ISUH_SSH_MUX"] === "0") return [];
+  const dir = join(homedir(), ".ssh");
+  if (!muxDirReady) {
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    muxDirReady = true;
+  }
+  return [
+    "-o", "ControlMaster=auto",
+    // %C は接続先・ユーザ・ポートのハッシュ。UNIX ソケットのパス長の上限（104 字前後）に収まる
+    "-o", `ControlPath=${join(dir, "isuh-%C")}`,
+    "-o", "ControlPersist=300",
+    "-o", "ServerAliveInterval=15",
+    "-o", "ServerAliveCountMax=3",
+  ];
 };
 
 const runSsh = async (
