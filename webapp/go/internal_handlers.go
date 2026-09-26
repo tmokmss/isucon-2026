@@ -15,7 +15,10 @@ const matchingInterval = 100 * time.Millisecond
 const starvationLimit = 10 * time.Second
 
 // これより長く待たせているライドは、近い椅子があれば先に割り当てる（マッチの評価は依頼から 100 tick ≒ 3 秒）
-const matchDeadline = 1000 * time.Millisecond
+const matchDeadline = 0 // 0 で無効（待ち時間はマッチングのコストの補正で見る）
+
+// マッチングのコストで、待ち 1 秒を迎え何 tick 分と見なすか（kyosu.dev の記事では 8）
+const waitWeight = 8
 
 // 期限の近いライドに割り当てる椅子の近さ（距離 < nearRadiusTicks × 速度 = 迎えがこの tick 数未満）。
 // ベンチの「乗車地点まで」の評価は 10 tick 未満で合格
@@ -177,11 +180,14 @@ func matchRides() {
 		store.wakeRide(ride) // 椅子に MATCHING を送る
 		dirty.Store(true)
 	}
+	tNow := now()
 	cost := func(ri, ci int) int {
 		ride := store.unmatched[ri]
 		d := calculateDistance(locs[ci].Latitude, locs[ci].Longitude, ride.PickupLatitude, ride.PickupLongitude)
-		// 速度は 2〜7。420（2〜7 の最小公倍数）を掛けて整数のまま割る
-		return d * 420 / chairSpeed(free[ci].Model)
+		// 速度は 2〜7。420（2〜7 の最小公倍数）を掛けて整数のまま割る。
+		// 待たせているほど少しずつ優先する（待ち 1 秒 = 迎え waitWeight tick 分）
+		waitMs := int(tNow.Sub(ride.CreatedAt).Milliseconds())
+		return d*420/chairSpeed(free[ci].Model) - waitWeight*420*waitMs/1000
 	}
 
 	// 待たせすぎているライドは、待たせている順に先に割り当てる。
@@ -210,7 +216,7 @@ func matchRides() {
 	// （距離 < 10 × 速度）の椅子のうち最も早く着くものへ先に割り当てる。ベンチのマッチの時刻は椅子が受理した時なので、余裕を見て早めに
 	deadlineBefore := now().Add(-matchDeadline)
 	for ri, ride := range store.unmatched {
-		if !ride.CreatedAt.Before(deadlineBefore) {
+		if matchDeadline == 0 || !ride.CreatedAt.Before(deadlineBefore) {
 			break // unmatched は待たせている順
 		}
 		if rideDone[ri] {
