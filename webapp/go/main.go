@@ -2,8 +2,8 @@ package main
 
 import (
 	crand "crypto/rand"
+	"encoding/json"
 	"fmt"
-	json "github.com/goccy/go-json"
 	"log/slog"
 	"net/http"
 	_ "net/http/pprof"

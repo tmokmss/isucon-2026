@@ -1,9 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	json "github.com/goccy/go-json"
 	"net/http"
 	"strconv"
 	"time"
