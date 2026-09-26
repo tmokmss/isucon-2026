@@ -10,6 +10,9 @@ import (
 // マッチングの間隔。isuride-matcher（0.5 秒ごと）を待たずにアプリの中で回す
 const matchingInterval = 100 * time.Millisecond
 
+// これより長く待たせているライドは、乗車地点までの時間によらず先に割り当てる（ベンチは 30 秒で CODE 32）
+const starvationLimit = 10 * time.Second
+
 // startMatcher はアプリの中でマッチングを定期的に回す。isuride-matcher からの呼び出しもそのまま受け付ける
 func startMatcher() {
 	go func() {
@@ -57,16 +60,59 @@ func matchRides() {
 		return
 	}
 
+	rideDone := make([]bool, len(store.unmatched))
+	chairDone := make([]bool, len(free))
+	assign := func(ri, ci int) {
+		rideDone[ri], chairDone[ci] = true, true
+		ride, matched := store.unmatched[ri], free[ci]
+		ride.ChairID = sql.NullString{String: matched.ID, Valid: true}
+		ride.UpdatedAt = now()
+		store.ridesByChair[matched.ID] = append(store.ridesByChair[matched.ID], ride)
+		store.wakeRide(ride) // 椅子に MATCHING を送る
+		dirty.Store(true)
+	}
+	cost := func(ri, ci int) int {
+		ride := store.unmatched[ri]
+		d := calculateDistance(locs[ci].Latitude, locs[ci].Longitude, ride.PickupLatitude, ride.PickupLongitude)
+		// 速度は 2〜7。420（2〜7 の最小公倍数）を掛けて整数のまま割る
+		return d * 420 / chairSpeed(free[ci].Model)
+	}
+
+	// 待たせすぎているライドは、待たせている順に先に割り当てる。
+	// ベンチは 30 秒マッチされないとクリティカルエラーにする（CODE 32）。貪欲法だけだと、椅子の少ない地域のライドが後回しになり続ける
+	starveBefore := now().Add(-starvationLimit)
+	for ri, ride := range store.unmatched {
+		if !ride.CreatedAt.Before(starveBefore) {
+			break // unmatched は待たせている順
+		}
+		best, bestCost := -1, 0
+		for ci := range free {
+			if chairDone[ci] {
+				continue
+			}
+			if c := cost(ri, ci); best < 0 || c < bestCost {
+				best, bestCost = ci, c
+			}
+		}
+		if best < 0 {
+			break
+		}
+		assign(ri, best)
+	}
+
 	type pair struct {
 		ride, chair int
 		cost        int // 乗車地点までの tick 数 × 速度の最小公倍数に合わせた整数（比較にだけ使う）
 	}
 	pairs := make([]pair, 0, len(store.unmatched)*len(free))
-	for ri, ride := range store.unmatched {
-		for ci, c := range free {
-			d := calculateDistance(locs[ci].Latitude, locs[ci].Longitude, ride.PickupLatitude, ride.PickupLongitude)
-			// 速度は 2〜7。420（2〜7 の最小公倍数）を掛けて整数のまま割る
-			pairs = append(pairs, pair{ri, ci, d * 420 / chairSpeed(c.Model)})
+	for ri := range store.unmatched {
+		if rideDone[ri] {
+			continue
+		}
+		for ci := range free {
+			if !chairDone[ci] {
+				pairs = append(pairs, pair{ri, ci, cost(ri, ci)})
+			}
 		}
 	}
 	slices.SortFunc(pairs, func(a, b pair) int {
@@ -75,25 +121,11 @@ func matchRides() {
 		}
 		return a.ride - b.ride // 同じなら待たせている方を先に
 	})
-
-	rideDone := make([]bool, len(store.unmatched))
-	chairDone := make([]bool, len(free))
-	left := min(len(store.unmatched), len(free))
 	for _, p := range pairs {
-		if left == 0 {
-			break
-		}
 		if rideDone[p.ride] || chairDone[p.chair] {
 			continue
 		}
-		rideDone[p.ride], chairDone[p.chair] = true, true
-		left--
-		ride, matched := store.unmatched[p.ride], free[p.chair]
-		ride.ChairID = sql.NullString{String: matched.ID, Valid: true}
-		ride.UpdatedAt = now()
-		store.ridesByChair[matched.ID] = append(store.ridesByChair[matched.ID], ride)
-		store.wakeRide(ride) // 椅子に MATCHING を送る
-		dirty.Store(true)
+		assign(p.ride, p.chair)
 	}
 
 	rest := store.unmatched[:0:0]
