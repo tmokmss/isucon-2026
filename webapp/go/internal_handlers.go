@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"slices"
+	"sync/atomic"
 	"time"
 )
 
@@ -29,6 +30,17 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// freeChair は空いている椅子と、その位置（行ロックで最新を読む）
+type freeChair struct {
+	chair *Chair
+	loc   *chairLocAgg
+}
+
+// freeChairs はマッチングのたびに作り直す、空いている椅子の一覧（割り当て後に残ったもの）。
+// 付近の椅子の API は、全椅子を見る代わりにこれを使う。最大 matchingInterval 古いが、ベンチは
+// マッチから 3 秒以内の椅子が含まれていても、空いてから 3 秒以内の椅子が含まれていなくても許す
+var freeChairs atomic.Pointer[[]freeChair]
+
 // matchRides は空き椅子と待っているライドの全組み合わせを、乗車地点までの時間（迎えの距離 ÷ 速度）の短い順に割り当てる。
 // 椅子が足りずライドが余っている間は、迎えの移動（得点は距離の 0.1 倍）を減らすほど椅子が多くのライドを回せる。
 // 1 回の呼び出しで割り当てられるだけ割り当てる
@@ -36,12 +48,9 @@ func matchRides() {
 	unlock := lockTables([]table{tRides}, []table{tChairs, tChairLocs, tRideStatuses})
 	defer unlock()
 
-	if len(store.unmatched) == 0 {
-		return
-	}
-
 	// 空いている椅子（位置が分かるもの）と、その位置
 	free := make([]*Chair, 0, len(store.chairList))
+	aggs := make([]*chairLocAgg, 0, len(store.chairList))
 	locs := make([]chairLocSnap, 0, len(store.chairList))
 	for _, c := range store.chairList {
 		if !c.IsActive || !store.chairIsFree(c.ID) {
@@ -53,15 +62,26 @@ func matchRides() {
 		}
 		if l, ok := agg.get(); ok {
 			free = append(free, c)
+			aggs = append(aggs, agg)
 			locs = append(locs, l)
 		}
 	}
-	if len(free) == 0 {
+	chairDone := make([]bool, len(free))
+	// 割り当て後に残った空き椅子を、付近の椅子の API に渡す
+	defer func() {
+		list := make([]freeChair, 0, len(free))
+		for ci, c := range free {
+			if !chairDone[ci] {
+				list = append(list, freeChair{c, aggs[ci]})
+			}
+		}
+		freeChairs.Store(&list)
+	}()
+	if len(store.unmatched) == 0 || len(free) == 0 {
 		return
 	}
 
 	rideDone := make([]bool, len(store.unmatched))
-	chairDone := make([]bool, len(free))
 	assign := func(ri, ci int) {
 		rideDone[ri], chairDone[ci] = true, true
 		ride, matched := store.unmatched[ri], free[ci]

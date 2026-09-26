@@ -512,35 +512,21 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	coordinate := Coordinate{Latitude: lat, Longitude: lon}
 
 	nearbyChairs := []appGetNearbyChairsResponseChair{}
-	unlock := lockTables(nil, []table{tChairs, tChairLocs, tRides, tRideStatuses})
-	for _, chair := range store.chairList {
-		if !chair.IsActive {
-			continue
-		}
-
-		// 過去にライドが存在し、かつ、それが完了していない場合はスキップ
-		// （前のライドが完了してから次が割り当てられるので、最新のライドだけを見れば足りる）
-		if ride := store.latestRideOfChair(chair.ID); ride != nil {
-			if status, _ := store.latestStatus(ride.ID); status != "COMPLETED" {
-				continue
-			}
-		}
-
-		// 最新の位置情報（行ロックで読む）
-		agg := store.chairLoc[chair.ID]
-		if agg == nil {
-			continue
-		}
-		loc, ok := agg.get()
+	// 空いている椅子はマッチングが作った一覧から取る（全椅子を見ない）。位置は行ロックで最新を読む
+	list := freeChairs.Load()
+	if list == nil {
+		list = &[]freeChair{}
+	}
+	for _, fc := range *list {
+		loc, ok := fc.loc.get()
 		if !ok {
 			continue
 		}
-
 		if calculateDistance(coordinate.Latitude, coordinate.Longitude, loc.Latitude, loc.Longitude) <= distance {
 			nearbyChairs = append(nearbyChairs, appGetNearbyChairsResponseChair{
-				ID:    chair.ID,
-				Name:  chair.Name,
-				Model: chair.Model,
+				ID:    fc.chair.ID,
+				Name:  fc.chair.Name,
+				Model: fc.chair.Model,
 				CurrentCoordinate: Coordinate{
 					Latitude:  loc.Latitude,
 					Longitude: loc.Longitude,
@@ -548,7 +534,6 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-	unlock()
 
 	writeJSON(w, http.StatusOK, &appGetNearbyChairsResponse{
 		Chairs:      nearbyChairs,
