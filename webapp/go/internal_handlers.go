@@ -17,7 +17,7 @@ const starvationLimit = 10 * time.Second
 // マッチングで椅子ごとに見るライドの候補数
 const matchCandidates = 8
 
-// startMatcher はアプリの中でマッチングを定期的に回す。isuride-matcher からの呼び出しもそのまま受け付ける
+// startMatcher はアプリの中でマッチングを定期的に回す
 func startMatcher() {
 	go func() {
 		t := time.NewTicker(matchingInterval)
@@ -27,9 +27,9 @@ func startMatcher() {
 	}()
 }
 
-// このAPIをインスタンス内から一定間隔で叩かせることで、椅子とライドをマッチングさせる
+// マッチングはアプリの中で回す（startMatcher）ので、isuride-matcher からの呼び出しでは何もしない。
+// AMI の isuride-matcher が各台で 0.5 秒ごとに叩き、余分にマッチングを回していた（ISURIDE.md: 内部用なので仕様は自由）
 func internalGetMatching(w http.ResponseWriter, r *http.Request) {
-	matchRides()
 	w.WriteHeader(http.StatusNoContent)
 }
 
