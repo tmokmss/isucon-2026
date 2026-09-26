@@ -9,6 +9,8 @@ import (
 	_ "net/http/pprof"
 	"runtime"
 	"runtime/debug"
+	"sync/atomic"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -31,15 +33,37 @@ func main() {
 		slog.Info("Listening on :8080")
 		err := http.ListenAndServe(":8080", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			<-ready
+			if r.URL.Path != "/api/chair/coordinate" {
+				mux.ServeHTTP(w, r)
+				return
+			}
+			// 計測（一時）: 座標の送信のハンドラの中の時間
+			t0 := time.Now()
 			mux.ServeHTTP(w, r)
+			d := time.Since(t0)
+			coordN.Add(1)
+			coordNs.Add(int64(d))
+			if d > 30*time.Millisecond {
+				coordSlow.Add(1)
+			}
 		}))
 		panic(err)
 	}()
 	initStore()
 	startMatcher()
 	close(ready)
+	go func() { // 計測（一時）
+		for range time.Tick(10 * time.Second) {
+			n := coordN.Swap(0)
+			if n > 0 {
+				slog.Info("coord handler", "n", n, "avg_ms", float64(coordNs.Swap(0))/float64(n)/1e6, "slow_pct", float64(coordSlow.Swap(0))*100/float64(n))
+			}
+		}
+	}()
 	select {}
 }
+
+var coordN, coordNs, coordSlow atomic.Int64 // 計測（一時）
 
 func setup() http.Handler {
 	mux := chi.NewRouter()
