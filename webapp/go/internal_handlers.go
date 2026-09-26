@@ -36,10 +36,24 @@ type freeChair struct {
 	loc   *chairLocAgg
 }
 
-// freeChairs はマッチングのたびに作り直す、空いている椅子の一覧（割り当て後に残ったもの）。
-// 付近の椅子の API は、全椅子を見る代わりにこれを使う。最大 matchingInterval 古いが、ベンチは
-// マッチから 3 秒以内の椅子が含まれていても、空いてから 3 秒以内の椅子が含まれていなくても許す
+// freeChairs はマッチングのたびに作り直す、付近の椅子の API に出す椅子の一覧。
+// 付近の椅子の API は、全椅子を見る代わりにこれを使う。
+// ユーザーは付近に椅子が無いと配車をやめるので、出せる椅子はできるだけ出す（割り当て後に残った空き椅子だけにしたら、
+// 依頼が減ってスコアが 61 万 → 25 万に落ちた）。ベンチが許すのは次の椅子:
+//   - 空いている椅子（空いてから 3 秒以内なら、含まれていなくてもよい）
+//   - ベンチがマッチを受理してから 3 秒以内の椅子。受理はこちらの割り当てより後なので、割り当てから 2 秒以内なら確実に収まる
 var freeChairs atomic.Pointer[[]freeChair]
+
+// 割り当ててからこの時間は、付近の椅子に出す（ベンチの許容は受理から 3 秒）
+const nearbyMatchedGrace = 2 * time.Second
+
+type matchedChair struct {
+	freeChair
+	at time.Time
+}
+
+// recentMatched は割り当ててから nearbyMatchedGrace 以内の椅子。matchRides だけが触る（tRides の書きロックの下）
+var recentMatched []matchedChair
 
 // matchRides は空き椅子と待っているライドの全組み合わせを、乗車地点までの時間（迎えの距離 ÷ 速度）の短い順に割り当てる。
 // 椅子が足りずライドが余っている間は、迎えの移動（得点は距離の 0.1 倍）を減らすほど椅子が多くのライドを回せる。
@@ -67,13 +81,29 @@ func matchRides() {
 		}
 	}
 	chairDone := make([]bool, len(free))
-	// 割り当て後に残った空き椅子を、付近の椅子の API に渡す
+	// 付近の椅子の API に渡す一覧: 割り当て前の空き椅子すべてと、割り当ててから nearbyMatchedGrace 以内の椅子
 	defer func() {
-		list := make([]freeChair, 0, len(free))
+		t := now()
+		list := make([]freeChair, 0, len(free)+len(recentMatched))
 		for ci, c := range free {
-			if !chairDone[ci] {
-				list = append(list, freeChair{c, aggs[ci]})
+			list = append(list, freeChair{c, aggs[ci]})
+			if chairDone[ci] {
+				recentMatched = append(recentMatched, matchedChair{freeChair{c, aggs[ci]}, t})
 			}
+		}
+		keep := recentMatched[:0]
+		for _, m := range recentMatched {
+			if t.Sub(m.at) < nearbyMatchedGrace {
+				keep = append(keep, m)
+			}
+		}
+		recentMatched = keep
+		for _, m := range recentMatched {
+			// 今回割り当てた椅子は free に入っている。/api/initialize の後は前のストアの椅子を出さない
+			if m.at.Equal(t) || store.chairs[m.chair.ID] != m.chair || store.chairIsFree(m.chair.ID) {
+				continue
+			}
+			list = append(list, m.freeChair)
 		}
 		freeChairs.Store(&list)
 	}()
