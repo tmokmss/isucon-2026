@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -97,6 +98,7 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	chair := ctx.Value("chair").(*Chair)
+	time.Sleep(5 * time.Millisecond) // 計測: 感度の実験（座標の送信を 5ms 遅らせる）。採用しない
 
 	recordedAt := now()
 
