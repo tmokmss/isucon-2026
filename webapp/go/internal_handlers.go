@@ -12,7 +12,7 @@ import (
 const matchingInterval = 100 * time.Millisecond
 
 // これより長く待たせているライドは、乗車地点までの時間によらず先に割り当てる（ベンチは 30 秒で CODE 32）
-const starvationLimit = 20 * time.Second
+const starvationLimit = 10 * time.Second
 
 // マッチングで椅子ごとに見るライドの候補数
 const matchCandidates = 8
