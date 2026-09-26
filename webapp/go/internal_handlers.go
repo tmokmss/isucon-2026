@@ -15,7 +15,7 @@ const matchingInterval = 100 * time.Millisecond
 const starvationLimit = 10 * time.Second
 
 // これより長く待たせているライドは、近い椅子があれば先に割り当てる（マッチの評価は依頼から 100 tick ≒ 3 秒）
-const matchDeadline = 2300 * time.Millisecond
+const matchDeadline = 1000 * time.Millisecond
 
 // マッチングで椅子ごとに見るライドの候補数
 const matchCandidates = 8
