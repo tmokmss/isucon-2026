@@ -14,6 +14,9 @@ const matchingInterval = 100 * time.Millisecond
 // これより長く待たせているライドは、乗車地点までの時間によらず先に割り当てる（ベンチは 30 秒で CODE 32）
 const starvationLimit = 10 * time.Second
 
+// マッチングで椅子ごとに見るライドの候補数
+const matchCandidates = 8
+
 // startMatcher はアプリの中でマッチングを定期的に回す。isuride-matcher からの呼び出しもそのまま受け付ける
 func startMatcher() {
 	go func() {
@@ -154,16 +157,35 @@ func matchRides() {
 		ride, chair int
 		cost        int // 乗車地点までの tick 数 × 速度の最小公倍数に合わせた整数（比較にだけ使う）
 	}
-	pairs := make([]pair, 0, len(store.unmatched)*len(free))
-	for ri := range store.unmatched {
-		if rideDone[ri] {
+	// 椅子ごとに、乗車地点までの時間が短いライドを matchCandidates 件だけ候補にする（全組み合わせを並べ替えると
+	// CPU プロファイルで 4.3%）。候補がすべて他の椅子に取られた椅子は、次の回に回す
+	pairs := make([]pair, 0, len(free)*matchCandidates)
+	var top [matchCandidates]pair
+	for ci := range free {
+		if chairDone[ci] {
 			continue
 		}
-		for ci := range free {
-			if !chairDone[ci] {
-				pairs = append(pairs, pair{ri, ci, cost(ri, ci)})
+		n := 0
+		for ri := range store.unmatched {
+			if rideDone[ri] {
+				continue
+			}
+			p := pair{ri, ci, cost(ri, ci)}
+			if n == matchCandidates && p.cost >= top[n-1].cost {
+				continue
+			}
+			// 挿入ソート（cost の昇順。同じなら先に見た = 待たせている方が前）
+			j := min(n, matchCandidates-1)
+			for j > 0 && top[j-1].cost > p.cost {
+				top[j] = top[j-1]
+				j--
+			}
+			top[j] = p
+			if n < matchCandidates {
+				n++
 			}
 		}
+		pairs = append(pairs, top[:n]...)
 	}
 	slices.SortFunc(pairs, func(a, b pair) int {
 		if a.cost != b.cost {

@@ -456,7 +456,7 @@ func writeSnapshot(snap *snapshot) error {
 		f.Close()
 		return err
 	}
-	// innodb_flush_log_at_trx_commit=0 と同じ水準（1 秒ごとに fsync まで）にする。
+	// 書くたびに fsync まで行う（ハードリブートで失うのは snapshotInterval の幅まで）。
 	// カーネルの書き戻し（最大 30 秒ほど遅れる）に任せると、ハードリブートで失う幅が広がる
 	if err := f.Sync(); err != nil {
 		f.Close()
@@ -491,6 +491,9 @@ func loadSnapshot() (*snapshot, error) {
 }
 
 // initStore は起動時に呼ぶ。スナップショットがあればそれを、無ければ初期データを読む。
+// スナップショットを定期的に書く間隔
+const snapshotInterval = 3 * time.Second
+
 func initStore() {
 	if err := loadChairSpeeds(); err != nil {
 		panic(err)
@@ -512,7 +515,8 @@ func initStore() {
 	}
 
 	go func() {
-		t := time.NewTicker(time.Second)
+		// 定期保存は電源断などへの保険（再起動では SIGTERM を受けて全量を書く）。1 秒ごとだと CPU プロファイルで 12.9%
+		t := time.NewTicker(snapshotInterval)
 		for range t.C {
 			if err := saveSnapshot(); err != nil {
 				slog.Error("failed to save snapshot", "err", err)
