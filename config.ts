@@ -13,10 +13,11 @@ export const config: Config = {
   // ホストの値は ~/.ssh/config 上のホスト別名。setup が生成する。
   hosts: {
     // リハーサル（ISUCON14 の AMI を 2 台）。AWS 上の名前は test-1 = isu1、test-2 = isu2
-    all: ["isu1", "isu2", "isu3"],
+    all: ["isu1", "isu2", "isu3", "isu4"],
     app: ["isu1"],
     // nginx（TLS の終端・静的ファイル）は isu2 に逃がし、isu1 はアプリだけにする
-    nginx: ["isu2"],
+    // isu4（test-4、t3.medium）も nginx。isu2 の 443 は L4 で isu2 自身の nginx と isu4 の nginx に振り分ける
+    nginx: ["isu2", "isu4"],
     // AMI の直後は DB も isu1 で動いている。DB を isu2 に移したら "isu2" にする
     db: "isu1",
     primary: "isu1",
@@ -105,6 +106,7 @@ export const config: Config = {
       isu1: { public: "52.192.242.11", private: "10.0.5.148" },
       isu2: { public: "3.112.244.155", private: "10.0.9.108" },
       isu3: { public: "52.198.226.51", private: "10.0.31.6" },
+      isu4: { public: "43.206.240.142", private: "10.0.19.216" },
     },
     // ポータルに公開鍵を登録した鍵。サーバの isucon ユーザにはこの鍵で入れる。
     identityFile: `${process.env["HOME"]}/.ssh/id_ed25519`,
