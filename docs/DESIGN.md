@@ -206,6 +206,7 @@ POST は Django の CSRF を通すため、Cookie の `csrftoken` を `X-CSRFTok
 ツリーの `app.localDir/app.langDir` でビルドして `hosts.app` へ配る。作業ツリーの内容ではない
 （`webapp/` か `conf/` に未コミットの変更があれば警告する。ハーネスや `runs/` の変更は見ない）。配布は `<path>.isuh-new` へ置いてから `mv` で差し替える。
 実行中のバイナリを直接上書きすると `ETXTBSY` になるため。
+サーバのバイナリと sha256 が同じなら送らない（アプリの再起動はする）。
 
 ビルド結果は `.isuh/build/<sha>-<設定のハッシュ>/` にキャッシュする。
 同じ sha の再デプロイ（= 前の版へ戻すとき）はビルドを丸ごと省く。
@@ -220,7 +221,10 @@ POST は Django の CSRF を通すため、Cookie の `csrftoken` を `X-CSRFTok
 - **上書きのみで、削除はしない。** サーバにしか無いもの（gitignore されたビルド成果物・
   `node_modules`・`target`・アップロードされたファイル）を消さないため。
   **リポジトリで消したファイルはサーバに残る。** 消す必要があれば手で消す
-- 毎回すべて書き直す（mtime は展開した時刻）。mtime の比較で取りこぼすことはない
+- 同期するときはすべて書き直す（mtime は展開した時刻）。mtime の比較で取りこぼすことはない
+- 最後に同期した `app.localDir` のツリー ID（git の tree オブジェクト）を各ホストの
+  `$HOME/.isuh-app-tree` に記録し、同じなら同期そのものを省く（`conf/` だけを変えたとき等）。
+  サーバ上のファイルを手で書き換えても、ツリーが同じなら戻らない（手で書き換えないこと）
 - 実行ビットは git の記録どおり（`init.sh` は実行できるまま）。既存ディレクトリの権限は変えない
 - バイナリ（`app.langDir/app.binary`）は同期から外す。上の差し替えで入れる
 
@@ -233,9 +237,14 @@ conf/_all/etc/sysctl.d/99-isucon.conf   → 全ホストの /etc/sysctl.d/99-isu
 conf/isu1/etc/nginx/nginx.conf          → isu1 の /etc/nginx/nginx.conf
 ```
 
-同じパスが両方にあればホスト指定側が勝つ。配った後に反映が要るものは自動で叩く。
+同じパスが両方にあればホスト指定側が勝つ。
 
-| 配ったパス | 反映 |
+**サーバ上の中身と違うファイルだけを配る。** 1 回の ssh で全ファイルの sha256 を取って比べ、
+違うものだけを install する（`conf/` の tar を 1 回送り、1 回の ssh でまとめて入れる）。
+中身が同じなら配らず、下の反映もしない。MySQL の restart（数秒）を毎回走らせないため。
+配った後に反映が要るものは、配ったパスについてだけ自動で叩く。
+
+| 配ったパス（中身が変わったもの） | 反映 |
 |---|---|
 | `/etc/nginx/**` | `middleware.nginxService` を reload |
 | `/etc/mysql/**`、`/etc/my.cnf` | `middleware.dbService` を restart |
@@ -570,6 +579,10 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 
 `ISUH_SSH_CONFIG` を設定すると `ssh` / `scp` に `-F <path>` が付く。
 手元の `~/.ssh/config` を汚さずにホスト別名を定義したいときに使う（`test/` がこれを使う）。
+
+`ssh` / `scp` は接続を使い回す（`ControlMaster=auto`、`ControlPersist=300`、ソケットは
+`~/.ssh/isuh-%C`）。手元から競技サーバへの新規接続は 1 回約 1 秒、使い回すと約 0.04 秒で、
+deploy・bench・計測の回収は ssh を数十回張るため。`ISUH_SSH_MUX=0` で無効にできる。
 
 ---
 
