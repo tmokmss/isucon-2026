@@ -109,12 +109,18 @@ func matchRides() {
 	}
 	chairDone := make([]bool, len(free))
 	matchedRide := make([]*Ride, len(free))
+	// 完了直後かは割り当ての前に見る（割り当てると直近のライドが新しいライドに変わり、判定をすり抜けて CODE 30 を出していた）
+	t0 := now()
+	hide := make([]bool, len(free))
+	for ci, c := range free {
+		hide[ci] = store.recentlyCompleted(c.ID, t0)
+	}
 	// 付近の椅子の API に渡す一覧: 割り当て前の空き椅子すべてと、割り当ててから nearbyMatchedGrace 以内の椅子
 	defer func() {
 		t := now()
 		list := make([]freeChair, 0, len(free)+len(recentMatched))
 		for ci, c := range free {
-			if !store.recentlyCompleted(c.ID, t) {
+			if !hide[ci] {
 				list = append(list, freeChair{c, aggs[ci]})
 			}
 			if chairDone[ci] {
