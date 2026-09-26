@@ -240,10 +240,6 @@ func matchRides() {
 		}
 	}
 
-	type pair struct {
-		ride, chair int
-		cost        int // 乗車地点までの tick 数 × 速度の最小公倍数に合わせた整数（比較にだけ使う）
-	}
 	// 椅子ごとに、乗車地点までの時間が短いライドを matchCandidates 件だけ候補にする（全組み合わせを並べ替えると
 	// CPU プロファイルで 4.3%）。候補がすべて他の椅子に取られた椅子は、次の回に回す
 	pairs := make([]pair, 0, len(free)*matchCandidates)
@@ -276,50 +272,9 @@ func matchRides() {
 	}
 	// 候補の組の中で、コストの合計が最小になる割り当てを求める（ハンガリアン法）。
 	// 貪欲法だと、候補がすべて他の椅子に取られた椅子が次の回まで空いたままになる（椅子の空き時間 62ms → 87ms）
-	rowOf, colOf := map[int]int{}, map[int]int{}
-	var rows, cols []int
-	for _, p := range pairs {
-		if _, ok := rowOf[p.chair]; !ok {
-			rowOf[p.chair] = len(rows)
-			rows = append(rows, p.chair)
-		}
-		if _, ok := colOf[p.ride]; !ok {
-			colOf[p.ride] = len(cols)
-			cols = append(cols, p.ride)
-		}
-	}
-	if len(rows) > 0 {
-		transpose := len(rows) > len(cols) // 行 ≤ 列にする
-		n, m := len(rows), len(cols)
-		if transpose {
-			n, m = m, n
-		}
-		a := make([][]int64, n)
-		for i := range a {
-			a[i] = make([]int64, m)
-			for j := range a[i] {
-				a[i][j] = hungarianInf
-			}
-		}
-		for _, p := range pairs {
-			i, j := rowOf[p.chair], colOf[p.ride]
-			if transpose {
-				i, j = j, i
-			}
-			a[i][j] = int64(p.cost)
-		}
-		for i, j := range hungarian(a) {
-			if j < 0 || a[i][j] >= hungarianInf {
-				continue
-			}
-			ci, ri := rows[i], cols[j]
-			if transpose {
-				ci, ri = rows[j], cols[i]
-			}
-			if rideDone[ri] || chairDone[ci] {
-				continue
-			}
-			assign(ri, ci)
+	for _, rc := range solveAssignment(pairs) {
+		if !rideDone[rc[0]] && !chairDone[rc[1]] {
+			assign(rc[0], rc[1])
 		}
 	}
 
@@ -405,4 +360,60 @@ func hungarian(a [][]int64) []int {
 		}
 	}
 	return res
+}
+
+// pair はマッチングの候補の組
+type pair struct {
+	ride, chair int
+	cost        int // 乗車地点までの tick 数 × 速度の最小公倍数に合わせた整数（比較にだけ使う）
+}
+
+// solveAssignment は候補の組の中で、コストの合計が最小になる割り当て（ride, chair の組）を返す
+func solveAssignment(pairs []pair) [][2]int {
+	rowOf, colOf := map[int]int{}, map[int]int{}
+	var rows, cols []int
+	for _, p := range pairs {
+		if _, ok := rowOf[p.chair]; !ok {
+			rowOf[p.chair] = len(rows)
+			rows = append(rows, p.chair)
+		}
+		if _, ok := colOf[p.ride]; !ok {
+			colOf[p.ride] = len(cols)
+			cols = append(cols, p.ride)
+		}
+	}
+	if len(rows) == 0 {
+		return nil
+	}
+	transpose := len(rows) > len(cols) // 行 ≤ 列にする
+	n, m := len(rows), len(cols)
+	if transpose {
+		n, m = m, n
+	}
+	a := make([][]int64, n)
+	for i := range a {
+		a[i] = make([]int64, m)
+		for j := range a[i] {
+			a[i][j] = hungarianInf
+		}
+	}
+	for _, p := range pairs {
+		i, j := rowOf[p.chair], colOf[p.ride]
+		if transpose {
+			i, j = j, i
+		}
+		a[i][j] = int64(p.cost)
+	}
+	var out [][2]int
+	for i, j := range hungarian(a) {
+		if j < 0 || a[i][j] >= hungarianInf {
+			continue
+		}
+		if transpose {
+			out = append(out, [2]int{cols[i], rows[j]})
+		} else {
+			out = append(out, [2]int{cols[j], rows[i]})
+		}
+	}
+	return out
 }
