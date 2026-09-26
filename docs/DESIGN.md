@@ -151,7 +151,7 @@ bench は毎回自分の ref をデプロイし直すので、悪い版が載っ
 | コマンド | 引数 | 役割 | 実装 |
 |---|---|---|---|
 | `setup` | `[--only <step>[,<step>...]]` | 鍵配布・/etc/hosts・dotfiles・計測ツールとログ設定・アプリの git 化（下記） | #9 #11 |
-| `deploy` | `[<git-ref>] [--dry-run]` | 指定 ref をビルドして全台へ配布・再起動 | #1 |
+| `deploy` | `[<git-ref>] [--dry-run]` | 指定 ref をビルドして全台へ配布・再起動（ベンチと同じロックを取る） | #1 |
 | `check` | なし | ベンチ不要の検証ゲート | #12 |
 | `bench` | `[<git-ref>] [--skip-check] [--note <text>]` | 上記の通し実行 | #2 #4 |
 | `history` | `[-n <count>]` | スコア台帳の表示 | #5 |
@@ -262,6 +262,10 @@ conf/isu1/etc/nginx/nginx.conf          → isu1 の /etc/nginx/nginx.conf
 「今どの版が載っているか」を知りたいときはここを読む。
 
 `isuh deploy` は stdout にデプロイした sha だけを出す（`SHA=$(isuh deploy)` が使える）。
+
+**単体の `isuh deploy` もベンチと同じロックを取る**（§7）。ベンチが走っていれば終わるまで待ち、
+`bench.lockTimeoutSec` を過ぎたら `EXIT.LOCK`（10）。`--dry-run` はサーバを変えないので取らない。
+`isuh bench` は自分でロックを握ってから deploy の本体を呼ぶので、二重には取らない。
 
 ### `isuh setup` がやること
 
@@ -503,6 +507,10 @@ run_id	started_at	sha	ref	score	status	note
 **デプロイだけをロックしても不十分。** ベンチ実行中に別のデプロイが走れば計測は壊れる。
 `isuh bench` の 1〜10 全体が 1 つのクリティカルセクション。
 
+**単体の `isuh deploy` も同じロックを取る。** 並列のレーンが「前の版へ戻す」ために deploy したとき、
+別のレーンのベンチの最中にアプリを差し替えないため（ISUCON14 のリハーサルで、ロックを取らない
+deploy が別セッションのベンチに割り込み、計測を壊した）。
+
 ### 保持方法
 
 `hosts.primary` 上の `flock` を、**ssh の子プロセスを生かしたまま保持する**。
@@ -544,7 +552,8 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 ### 迂回の禁止
 
 ロックを取らずに `scp` や `systemctl restart` をすると、走っているベンチの計測が壊れる。
-**デプロイは必ず `isuh deploy` / `isuh bench` 経由。**
+**デプロイは必ず `isuh deploy` / `isuh bench` 経由**（どちらもロックを取る）。
+再起動試験のように、サーバを再起動する作業もベンチと重ねない（`verify-restart` #7 はロックを取る想定）。
 
 ---
 
