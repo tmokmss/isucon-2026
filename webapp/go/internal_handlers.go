@@ -2,8 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"math"
 	"net/http"
+	"slices"
 	"sync/atomic"
 	"time"
 )
@@ -15,10 +15,7 @@ const matchingInterval = 100 * time.Millisecond
 const starvationLimit = 10 * time.Second
 
 // これより長く待たせているライドは、近い椅子があれば先に割り当てる（マッチの評価は依頼から 100 tick ≒ 3 秒）
-const matchDeadline = 0 // 0 で無効（待ち時間はマッチングのコストの補正で見る）
-
-// マッチングのコストで、待ち 1 秒を迎え何 tick 分と見なすか（kyosu.dev の記事では 8）
-const waitWeight = 8
+const matchDeadline = 1000 * time.Millisecond
 
 // 期限の近いライドに割り当てる椅子の近さ（距離 < nearRadiusTicks × 速度 = 迎えがこの tick 数未満）。
 // ベンチの「乗車地点まで」の評価は 10 tick 未満で合格
@@ -180,14 +177,11 @@ func matchRides() {
 		store.wakeRide(ride) // 椅子に MATCHING を送る
 		dirty.Store(true)
 	}
-	tNow := now()
 	cost := func(ri, ci int) int {
 		ride := store.unmatched[ri]
 		d := calculateDistance(locs[ci].Latitude, locs[ci].Longitude, ride.PickupLatitude, ride.PickupLongitude)
-		// 速度は 2〜7。420（2〜7 の最小公倍数）を掛けて整数のまま割る。
-		// 待たせているほど少しずつ優先する（待ち 1 秒 = 迎え waitWeight tick 分）
-		waitMs := int(tNow.Sub(ride.CreatedAt).Milliseconds())
-		return d*420/chairSpeed(free[ci].Model) - waitWeight*420*waitMs/1000
+		// 速度は 2〜7。420（2〜7 の最小公倍数）を掛けて整数のまま割る
+		return d * 420 / chairSpeed(free[ci].Model)
 	}
 
 	// 待たせすぎているライドは、待たせている順に先に割り当てる。
@@ -216,7 +210,7 @@ func matchRides() {
 	// （距離 < 10 × 速度）の椅子のうち最も早く着くものへ先に割り当てる。ベンチのマッチの時刻は椅子が受理した時なので、余裕を見て早めに
 	deadlineBefore := now().Add(-matchDeadline)
 	for ri, ride := range store.unmatched {
-		if matchDeadline == 0 || !ride.CreatedAt.Before(deadlineBefore) {
+		if !ride.CreatedAt.Before(deadlineBefore) {
 			break // unmatched は待たせている順
 		}
 		if rideDone[ri] {
@@ -240,6 +234,10 @@ func matchRides() {
 		}
 	}
 
+	type pair struct {
+		ride, chair int
+		cost        int // 乗車地点までの tick 数 × 速度の最小公倍数に合わせた整数（比較にだけ使う）
+	}
 	// 椅子ごとに、乗車地点までの時間が短いライドを matchCandidates 件だけ候補にする（全組み合わせを並べ替えると
 	// CPU プロファイルで 4.3%）。候補がすべて他の椅子に取られた椅子は、次の回に回す
 	pairs := make([]pair, 0, len(free)*matchCandidates)
@@ -270,12 +268,17 @@ func matchRides() {
 		}
 		pairs = append(pairs, top[:n]...)
 	}
-	// 候補の組の中で、コストの合計が最小になる割り当てを求める（ハンガリアン法）。
-	// 貪欲法だと、候補がすべて他の椅子に取られた椅子が次の回まで空いたままになる（椅子の空き時間 62ms → 87ms）
-	for _, rc := range solveAssignment(pairs) {
-		if !rideDone[rc[0]] && !chairDone[rc[1]] {
-			assign(rc[0], rc[1])
+	slices.SortFunc(pairs, func(a, b pair) int {
+		if a.cost != b.cost {
+			return a.cost - b.cost
 		}
+		return a.ride - b.ride // 同じなら待たせている方を先に
+	})
+	for _, p := range pairs {
+		if rideDone[p.ride] || chairDone[p.chair] {
+			continue
+		}
+		assign(p.ride, p.chair)
 	}
 
 	rest := store.unmatched[:0:0]
@@ -285,135 +288,4 @@ func matchRides() {
 		}
 	}
 	store.unmatched = rest
-}
-
-const hungarianInf = int64(1) << 50
-
-// hungarian は n×m（n ≤ m）のコスト行列で、合計が最小になる割り当てを返す（行 i → 列）。O(n^2 m)
-func hungarian(a [][]int64) []int {
-	n := len(a)
-	if n == 0 {
-		return nil
-	}
-	m := len(a[0])
-	u := make([]int64, n+1)
-	v := make([]int64, m+1)
-	p := make([]int, m+1)
-	way := make([]int, m+1)
-	minv := make([]int64, m+1)
-	used := make([]bool, m+1)
-	for i := 1; i <= n; i++ {
-		p[0] = i
-		j0 := 0
-		for j := range minv {
-			minv[j] = math.MaxInt64
-			used[j] = false
-		}
-		for {
-			used[j0] = true
-			i0 := p[j0]
-			delta := int64(math.MaxInt64)
-			j1 := 0
-			for j := 1; j <= m; j++ {
-				if used[j] {
-					continue
-				}
-				cur := a[i0-1][j-1] - u[i0] - v[j]
-				if cur < minv[j] {
-					minv[j] = cur
-					way[j] = j0
-				}
-				if minv[j] < delta {
-					delta = minv[j]
-					j1 = j
-				}
-			}
-			for j := 0; j <= m; j++ {
-				if used[j] {
-					u[p[j]] += delta
-					v[j] -= delta
-				} else {
-					minv[j] -= delta
-				}
-			}
-			j0 = j1
-			if p[j0] == 0 {
-				break
-			}
-		}
-		for {
-			j1 := way[j0]
-			p[j0] = p[j1]
-			j0 = j1
-			if j0 == 0 {
-				break
-			}
-		}
-	}
-	res := make([]int, n)
-	for i := range res {
-		res[i] = -1
-	}
-	for j := 1; j <= m; j++ {
-		if p[j] > 0 {
-			res[p[j]-1] = j - 1
-		}
-	}
-	return res
-}
-
-// pair はマッチングの候補の組
-type pair struct {
-	ride, chair int
-	cost        int // 乗車地点までの tick 数 × 速度の最小公倍数に合わせた整数（比較にだけ使う）
-}
-
-// solveAssignment は候補の組の中で、コストの合計が最小になる割り当て（ride, chair の組）を返す
-func solveAssignment(pairs []pair) [][2]int {
-	rowOf, colOf := map[int]int{}, map[int]int{}
-	var rows, cols []int
-	for _, p := range pairs {
-		if _, ok := rowOf[p.chair]; !ok {
-			rowOf[p.chair] = len(rows)
-			rows = append(rows, p.chair)
-		}
-		if _, ok := colOf[p.ride]; !ok {
-			colOf[p.ride] = len(cols)
-			cols = append(cols, p.ride)
-		}
-	}
-	if len(rows) == 0 {
-		return nil
-	}
-	transpose := len(rows) > len(cols) // 行 ≤ 列にする
-	n, m := len(rows), len(cols)
-	if transpose {
-		n, m = m, n
-	}
-	a := make([][]int64, n)
-	for i := range a {
-		a[i] = make([]int64, m)
-		for j := range a[i] {
-			a[i][j] = hungarianInf
-		}
-	}
-	for _, p := range pairs {
-		i, j := rowOf[p.chair], colOf[p.ride]
-		if transpose {
-			i, j = j, i
-		}
-		a[i][j] = int64(p.cost)
-	}
-	var out [][2]int
-	for i, j := range hungarian(a) {
-		if j < 0 || a[i][j] >= hungarianInf {
-			continue
-		}
-		if transpose {
-			out = append(out, [2]int{cols[i], rows[j]})
-		} else {
-			out = append(out, [2]int{cols[j], rows[i]})
-		}
-	}
-	return out
 }
