@@ -17,6 +17,10 @@ const starvationLimit = 10 * time.Second
 // これより長く待たせているライドは、近い椅子があれば先に割り当てる（マッチの評価は依頼から 100 tick ≒ 3 秒）
 const matchDeadline = 1000 * time.Millisecond
 
+// 期限の近いライドに割り当てる椅子の近さ（距離 < nearRadiusTicks × 速度 = 迎えがこの tick 数未満）。
+// ベンチの「乗車地点まで」の評価は 10 tick 未満で合格
+const nearRadiusTicks = 5
+
 // マッチングで椅子ごとに見るライドの候補数
 const matchCandidates = 8
 
@@ -218,7 +222,7 @@ func matchRides() {
 				continue
 			}
 			d := calculateDistance(locs[ci].Latitude, locs[ci].Longitude, ride.PickupLatitude, ride.PickupLongitude)
-			if d >= 10*chairSpeed(free[ci].Model) {
+			if d >= nearRadiusTicks*chairSpeed(free[ci].Model) {
 				continue
 			}
 			if c := cost(ri, ci); best < 0 || c < bestCost {
