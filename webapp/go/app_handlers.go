@@ -134,9 +134,8 @@ func appPostUsers(w http.ResponseWriter, r *http.Request) {
 	invitationCode := secureRandomStr(15)
 
 	unlock := lockTables([]table{tUsers, tCoupons}, nil)
-	defer unlock()
-
 	if _, dup := store.usernames[req.Username]; dup {
+		unlock()
 		writeError(w, http.StatusInternalServerError, errors.New("Error 1062 (23000): Duplicate entry for key 'users.username'"))
 		return
 	}
@@ -146,12 +145,14 @@ func appPostUsers(w http.ResponseWriter, r *http.Request) {
 	if req.InvitationCode != nil && *req.InvitationCode != "" {
 		// 招待する側の招待数をチェック
 		if store.couponCodeCount["INV_"+*req.InvitationCode] >= 3 {
+			unlock()
 			writeError(w, http.StatusBadRequest, errors.New("この招待コードは使用できません。"))
 			return
 		}
 		// ユーザーチェック
 		inviter = store.usersByInvitation[*req.InvitationCode]
 		if inviter == nil {
+			unlock()
 			writeError(w, http.StatusBadRequest, errors.New("この招待コードは使用できません。"))
 			return
 		}
@@ -161,6 +162,7 @@ func appPostUsers(w http.ResponseWriter, r *http.Request) {
 	if inviter != nil {
 		rewardCode = fmt.Sprintf("RWD_%s_%d", *req.InvitationCode, time.Now().UnixMilli())
 		if _, dup := store.couponKeys[couponKey(inviter.ID, rewardCode)]; dup {
+			unlock()
 			writeError(w, http.StatusInternalServerError, errors.New("Error 1062 (23000): Duplicate entry for key 'coupons.PRIMARY'"))
 			return
 		}
@@ -181,6 +183,7 @@ func appPostUsers(w http.ResponseWriter, r *http.Request) {
 		store.addCoupon(&Coupon{UserID: inviter.ID, Code: rewardCode, Discount: 1000, CreatedAt: now()})
 	}
 	dirty.Store(true)
+	unlock() // レスポンスはロックの外で書く
 
 	http.SetCookie(w, &http.Cookie{
 		Path:  "/",

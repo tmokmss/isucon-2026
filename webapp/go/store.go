@@ -73,16 +73,13 @@ type Store struct {
 	paymentGatewayURL string // tSettings
 
 	users             map[string]*User         // tUsers
-	usersByToken      map[string]*User         // tUsers
 	usersByInvitation map[string]*User         // tUsers
 	usernames         map[string]struct{}      // tUsers
 	owners            map[string]*Owner        // tOwners
-	ownersByToken     map[string]*Owner        // tOwners
 	ownersByRegister  map[string]*Owner        // tOwners
 	ownerNames        map[string]struct{}      // tOwners
 	chairs            map[string]*Chair        // tChairs（Chair.IsActive / UpdatedAt も）
 	chairList         []*Chair                 // tChairs。id 順（= SELECT * FROM chairs の順）
-	chairsByToken     map[string]*Chair        // tChairs
 	chairsByOwner     map[string][]*Chair      // tChairs
 	chairLoc          map[string]*chairLocAgg  // tChairLocs（map）。中身は行ロック
 	chairStat         map[string]*chairStats   // tChairStats
@@ -97,6 +94,15 @@ type Store struct {
 	couponKeys        map[string]struct{}      // tCoupons。user_id + "\x00" + code
 	couponCodeCount   map[string]int           // tCoupons。code → 件数（招待コードの上限判定）
 	couponByRide      map[string]*Coupon       // tCoupons。used_by → coupon
+
+	// 認証で引くアクセストークン → 行。テーブルのロックの外で読み書きする（sync.Map）。
+	// users の書きロック（登録）がスナップショットの読みロックを待つ間、認証が全員その後ろに並んでいた
+	// （mutex プロファイルでロック待ちの 80% がユーザー登録、10% が椅子の登録・有効化）
+	tokens atomic.Pointer[tokenIndex]
+}
+
+type tokenIndex struct {
+	users, owners, chairs sync.Map // token → *User / *Owner / *Chair
 }
 
 var store = newStore()
@@ -105,17 +111,14 @@ var store = newStore()
 var dirty atomic.Bool
 
 func newStore() *Store {
-	return &Store{
+	s := &Store{
 		users:             map[string]*User{},
-		usersByToken:      map[string]*User{},
 		usersByInvitation: map[string]*User{},
 		usernames:         map[string]struct{}{},
 		owners:            map[string]*Owner{},
-		ownersByToken:     map[string]*Owner{},
 		ownersByRegister:  map[string]*Owner{},
 		ownerNames:        map[string]struct{}{},
 		chairs:            map[string]*Chair{},
-		chairsByToken:     map[string]*Chair{},
 		chairsByOwner:     map[string][]*Chair{},
 		chairLoc:          map[string]*chairLocAgg{},
 		chairStat:         map[string]*chairStats{},
@@ -130,6 +133,8 @@ func newStore() *Store {
 		couponCodeCount:   map[string]int{},
 		couponByRide:      map[string]*Coupon{},
 	}
+	s.tokens.Store(&tokenIndex{})
+	return s
 }
 
 // now は MySQL の CURRENT_TIMESTAMP(6) に合わせてマイクロ秒に丸める。
@@ -143,14 +148,14 @@ func now() time.Time {
 
 func (s *Store) addUser(u *User) {
 	s.users[u.ID] = u
-	s.usersByToken[u.AccessToken] = u
+	s.tokens.Load().users.Store(u.AccessToken, u)
 	s.usersByInvitation[u.InvitationCode] = u
 	s.usernames[u.Username] = struct{}{}
 }
 
 func (s *Store) addOwner(o *Owner) {
 	s.owners[o.ID] = o
-	s.ownersByToken[o.AccessToken] = o
+	s.tokens.Load().owners.Store(o.AccessToken, o)
 	s.ownersByRegister[o.ChairRegisterToken] = o
 	s.ownerNames[o.Name] = struct{}{}
 }
@@ -162,7 +167,7 @@ func (s *Store) addChair(c *Chair) {
 	}
 	s.chairs[c.ID] = c
 	s.chairList = append(s.chairList, c)
-	s.chairsByToken[c.AccessToken] = c
+	s.tokens.Load().chairs.Store(c.AccessToken, c)
 	s.chairsByOwner[c.OwnerID] = append(s.chairsByOwner[c.OwnerID], c)
 }
 
@@ -546,9 +551,10 @@ func (s *Store) replaceWith(n *Store) {
 	unlock := lockTables(allTables, nil)
 	defer unlock()
 	s.paymentGatewayURL = n.paymentGatewayURL
-	s.users, s.usersByToken, s.usersByInvitation, s.usernames = n.users, n.usersByToken, n.usersByInvitation, n.usernames
-	s.owners, s.ownersByToken, s.ownersByRegister, s.ownerNames = n.owners, n.ownersByToken, n.ownersByRegister, n.ownerNames
-	s.chairs, s.chairList, s.chairsByToken, s.chairsByOwner = n.chairs, n.chairList, n.chairsByToken, n.chairsByOwner
+	s.users, s.usersByInvitation, s.usernames = n.users, n.usersByInvitation, n.usernames
+	s.owners, s.ownersByRegister, s.ownerNames = n.owners, n.ownersByRegister, n.ownerNames
+	s.chairs, s.chairList, s.chairsByOwner = n.chairs, n.chairList, n.chairsByOwner
+	s.tokens.Store(n.tokens.Load())
 	s.chairLoc, s.chairStat, s.paymentTokens = n.chairLoc, n.chairStat, n.paymentTokens
 	s.rides, s.ridesByUser, s.ridesByChair, s.unmatched, s.statuses, s.statusRow = n.rides, n.ridesByUser, n.ridesByChair, n.unmatched, n.statuses, n.statusRow
 	s.coupons, s.couponKeys, s.couponCodeCount, s.couponByRide = n.coupons, n.couponKeys, n.couponCodeCount, n.couponByRide

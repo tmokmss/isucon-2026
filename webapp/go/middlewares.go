@@ -14,9 +14,8 @@ func appAuthMiddleware(next http.Handler) http.Handler {
 			writeError(w, http.StatusUnauthorized, errors.New("app_session cookie is required"))
 			return
 		}
-		unlock := lockTables(nil, []table{tUsers})
-		user := store.usersByToken[c.Value]
-		unlock()
+		v, _ := store.tokens.Load().users.Load(c.Value)
+		user, _ := v.(*User)
 		if user == nil {
 			writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
 			return
@@ -35,9 +34,8 @@ func ownerAuthMiddleware(next http.Handler) http.Handler {
 			writeError(w, http.StatusUnauthorized, errors.New("owner_session cookie is required"))
 			return
 		}
-		unlock := lockTables(nil, []table{tOwners})
-		owner := store.ownersByToken[c.Value]
-		unlock()
+		v, _ := store.tokens.Load().owners.Load(c.Value)
+		owner, _ := v.(*Owner)
 		if owner == nil {
 			writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
 			return
@@ -56,9 +54,8 @@ func chairAuthMiddleware(next http.Handler) http.Handler {
 			writeError(w, http.StatusUnauthorized, errors.New("chair_session cookie is required"))
 			return
 		}
-		unlock := lockTables(nil, []table{tChairs})
-		chair := store.chairsByToken[c.Value]
-		unlock()
+		v, _ := store.tokens.Load().chairs.Load(c.Value)
+		chair, _ := v.(*Chair)
 		if chair == nil {
 			writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
 			return
