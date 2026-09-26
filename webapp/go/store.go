@@ -425,6 +425,9 @@ func loadSnapshot() (*snapshot, error) {
 
 // initStore は起動時に呼ぶ。スナップショットがあればそれを、無ければ初期データを読む。
 func initStore() {
+	if err := loadChairSpeeds(); err != nil {
+		panic(err)
+	}
 	snap, err := loadSnapshot()
 	if err == nil {
 		store = restore(snap)
