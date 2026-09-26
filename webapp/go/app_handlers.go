@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -415,8 +416,12 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	unlock = lockTables([]table{tRides, tRideStatuses, tChairStats}, nil)
-	if status, _ := store.latestStatus(ride.ID); status != "ARRIVED" {
+	// 評価を記録してレスポンスを返しきってから、COMPLETED を足す。
+	// 椅子が空き（付近の椅子に出る・次のライドが割り当たる）になるのは COMPLETED から。
+	// ベンチは評価のレスポンスを受け取るまでその椅子をライド中とみなすので、先に COMPLETED を足すと、
+	// レスポンスが届くまでの間に付近の椅子を頼んだユーザーが CODE 30 を出す
+	unlock = lockTables([]table{tRides}, []table{tRideStatuses})
+	if status, _ := store.latestStatus(ride.ID); status != "ARRIVED" || ride.Evaluation != nil {
 		unlock()
 		writeError(w, http.StatusBadRequest, errors.New("not arrived yet"))
 		return
@@ -424,7 +429,21 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 	evaluation := req.Evaluation
 	ride.Evaluation = &evaluation
 	ride.UpdatedAt = now()
-	store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: rideID, Status: "COMPLETED", CreatedAt: now()})
+	completedAt := ride.UpdatedAt
+	dirty.Store(true)
+	unlock()
+
+	buf, _ := json.Marshal(&appPostRideEvaluationResponse{CompletedAt: completedAt.UnixMilli()})
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf)
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
+
+	unlock = lockTables([]table{tRideStatuses, tChairStats}, []table{tRides})
+	store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: rideID, Status: "COMPLETED", CreatedAt: completedAt})
 	if ride.ChairID.Valid {
 		st := store.chairStat[ride.ChairID.String]
 		if st == nil {
@@ -434,13 +453,8 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 		st.Count++
 		st.EvaluationSum += evaluation
 	}
-	completedAt := ride.UpdatedAt.UnixMilli()
 	dirty.Store(true)
 	unlock()
-
-	writeJSON(w, http.StatusOK, &appPostRideEvaluationResponse{
-		CompletedAt: completedAt,
-	})
 }
 
 func (s *Store) chairStatsOf(chairID string) appGetNotificationResponseChairStats {
