@@ -115,10 +115,8 @@ func ownerGetSales(w http.ResponseWriter, r *http.Request) {
 			if ride.UpdatedAt.Before(since) || ride.UpdatedAt.After(untilInclusive) {
 				continue
 			}
-			for _, st := range store.statuses[ride.ID] {
-				if st.Status == "COMPLETED" {
-					sales += calculateSale(*ride)
-				}
+			if store.rideCompleted(ride) {
+				sales += calculateSale(*ride)
 			}
 		}
 		res.TotalSales += sales

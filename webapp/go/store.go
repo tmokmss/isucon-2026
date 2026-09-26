@@ -375,6 +375,17 @@ func restore(snap *snapshot) *Store {
 	return s
 }
 
+// rideCompleted はライドが完了しているか。tRides と tRideStatuses の読みロック以上で呼ぶ。
+// 評価 API は評価を記録してから少し遅れて COMPLETED を足すので、評価済みなら完了とみなす（売上・履歴・次のライドの作成）。
+// 椅子が空いたかどうか（付近の椅子・マッチング）は、COMPLETED の状態で見る
+func (s *Store) rideCompleted(r *Ride) bool {
+	if r.Evaluation != nil {
+		return true
+	}
+	st, _ := s.latestStatus(r.ID)
+	return st == "COMPLETED"
+}
+
 // rebuildChairStats は getChairStats の集計（ARRIVED・CARRYING・COMPLETED が揃ったライドの件数と評価の合計）を作り直す。
 func (s *Store) rebuildChairStats() {
 	s.chairStat = map[string]*chairStats{}

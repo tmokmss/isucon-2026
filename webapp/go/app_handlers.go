@@ -232,7 +232,7 @@ func appGetRides(w http.ResponseWriter, r *http.Request) {
 	// ORDER BY created_at DESC
 	for i := len(rides) - 1; i >= 0; i-- {
 		ride := rides[i]
-		if status, _ := store.latestStatus(ride.ID); status != "COMPLETED" {
+		if !store.rideCompleted(ride) {
 			continue
 		}
 
@@ -289,7 +289,7 @@ func appPostRides(w http.ResponseWriter, r *http.Request) {
 
 	unlock := lockTables([]table{tRides, tRideStatuses, tCoupons}, nil)
 	for _, ride := range store.ridesByUser[user.ID] {
-		if status, _ := store.latestStatus(ride.ID); status != "COMPLETED" {
+		if !store.rideCompleted(ride) {
 			unlock()
 			writeError(w, http.StatusConflict, errors.New("ride already exists"))
 			return
