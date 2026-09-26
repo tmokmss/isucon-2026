@@ -13,8 +13,9 @@ import (
 // 未送信の状態のうち最も古いものから 1 件ずつ送って送信済みにするので、
 // すべての状態遷移を発生した順に少なくとも 1 回送る（ポーリング時代と同じ判定）。
 
-// 取りこぼしに備えた見直しの間隔（仕様は状態が変わってから 3 秒以内）
-const notificationRecheck = 500 * time.Millisecond
+// 取りこぼしに備えた見直しの間隔（仕様は状態が変わってから 3 秒以内）。
+// 状態を足すとき（addStatus）と割り当てたとき（matchRides）に必ず起こすので、見直しは保険
+const notificationRecheck = 2 * time.Second
 
 // 状態が変わったことを、待っている SSE の接続に知らせる。ストアの中身とは独立に持つ（/initialize でも消えない）
 var (
@@ -50,8 +51,8 @@ func (s *Store) wakeRide(ride *Ride) {
 }
 
 // appNextNotification は次に送るユーザー向けの通知を作る。未送信の状態があれば送信済みにして sent=true を返す。
-// ライドが無ければ nil
-func appNextNotification(user *User) (data *appGetNotificationResponseData, sent bool) {
+// ライドが無ければ nil。onlyUnsent なら、未送信が無いときは組み立てずに nil を返す
+func appNextNotification(user *User, onlyUnsent bool) (data *appGetNotificationResponseData, sent bool) {
 	// rideStatuses は読みロック。送信済みの印はライドの行ロックで書く（別のライドの通知と並列に走る）
 	unlock := lockTables(nil, []table{tChairs, tRides, tRideStatuses, tCoupons, tChairStats})
 	defer unlock()
@@ -74,6 +75,9 @@ func appNextNotification(user *User) (data *appGetNotificationResponseData, sent
 			yetSent = st
 			break
 		}
+	}
+	if yetSent == nil && onlyUnsent {
+		return nil, false
 	}
 	status := ""
 	if yetSent != nil {
@@ -113,8 +117,8 @@ func appNextNotification(user *User) (data *appGetNotificationResponseData, sent
 }
 
 // chairNextNotification は次に送る椅子向けの通知を作る。未送信の状態があれば送信済みにして sent=true を返す。
-// ライドが無ければ nil
-func chairNextNotification(chair *Chair) (data *chairGetNotificationResponseData, sent bool) {
+// ライドが無ければ nil。onlyUnsent なら、未送信が無いときは組み立てずに nil を返す
+func chairNextNotification(chair *Chair, onlyUnsent bool) (data *chairGetNotificationResponseData, sent bool) {
 	unlock := lockTables(nil, []table{tUsers, tRides, tRideStatuses})
 	defer unlock()
 
@@ -134,6 +138,9 @@ func chairNextNotification(chair *Chair) (data *chairGetNotificationResponseData
 			yetSent = st
 			break
 		}
+	}
+	if yetSent == nil && onlyUnsent {
+		return nil, false
 	}
 	status := ""
 	if yetSent != nil {
@@ -164,7 +171,7 @@ func chairNextNotification(chair *Chair) (data *chairGetNotificationResponseData
 
 // serveSSE は next を呼んで得た通知を SSE で送り続ける。
 // 接続直後は最新の状態を必ず送り、以降は未送信の状態があるときだけ送る
-func serveSSE[T any](w http.ResponseWriter, r *http.Request, wakeCh chan struct{}, next func() (*T, bool)) {
+func serveSSE[T any](w http.ResponseWriter, r *http.Request, wakeCh chan struct{}, next func(onlyUnsent bool) (*T, bool)) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		writeError(w, http.StatusInternalServerError, fmt.Errorf("streaming unsupported"))
@@ -194,7 +201,7 @@ func serveSSE[T any](w http.ResponseWriter, r *http.Request, wakeCh chan struct{
 	for {
 		// 未送信が無くなるまで続けて送る
 		for {
-			data, sent := next()
+			data, sent := next(!first)
 			if data == nil {
 				break
 			}
@@ -219,14 +226,14 @@ func serveSSE[T any](w http.ResponseWriter, r *http.Request, wakeCh chan struct{
 
 func appGetNotification(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value("user").(*User)
-	serveSSE(w, r, wakeChan(userWake, user.ID), func() (*appGetNotificationResponseData, bool) {
-		return appNextNotification(user)
+	serveSSE(w, r, wakeChan(userWake, user.ID), func(onlyUnsent bool) (*appGetNotificationResponseData, bool) {
+		return appNextNotification(user, onlyUnsent)
 	})
 }
 
 func chairGetNotification(w http.ResponseWriter, r *http.Request) {
 	chair := r.Context().Value("chair").(*Chair)
-	serveSSE(w, r, wakeChan(chairWake, chair.ID), func() (*chairGetNotificationResponseData, bool) {
-		return chairNextNotification(chair)
+	serveSSE(w, r, wakeChan(chairWake, chair.ID), func(onlyUnsent bool) (*chairGetNotificationResponseData, bool) {
+		return chairNextNotification(chair, onlyUnsent)
 	})
 }
