@@ -31,7 +31,7 @@ export const config: Config = {
     langDir: "go",
     binary: "isuride",
     service: "isuride-go.service",
-    buildCommand: "GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o isuride .",
+    buildCommand: "GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o isuride .",
     baseUrl: "https://isuride.xiv.isucon.net",
     initializePath: "/api/initialize",
   },
