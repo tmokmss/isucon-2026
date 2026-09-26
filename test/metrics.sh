@@ -106,5 +106,21 @@ grep -q "pprofEnabled = false" "$ISUH_RUNS_DIR/$runid2/pprof.txt" || ng "理由�
 grep -q "pprof: .* のプロファイルを開始しました" "$ERR" && ng "無効なのに pprof を取っています"
 ok "無効なら待ち時間ゼロで、未取得の理由だけ残す"
 
+echo "== 9. Resources 節: 終盤の張り付きとベンチのホスト"
+set +e
+cases=$(node --import tsx resource-probe.ts 2>"$ERR")
+rc=$?
+set -e
+[ "$rc" = 0 ] || ng "Resources の要約が期待と違います"
+ok "終盤だけの張り付きを名指し・ベンチのホストは別に知らせる（${cases}）"
+
+echo "== 10. bench の前の確認: 前回のランと中身が同じか"
+set +e
+cases=$(node --import tsx git-probe.ts 2>"$ERR")
+rc=$?
+set -e
+[ "$rc" = 0 ] || ng "sameContent が期待と違います"
+ok "同じ・違う・比べられないを区別する（${cases}）"
+
 echo
 echo "全 $passed 件パス"

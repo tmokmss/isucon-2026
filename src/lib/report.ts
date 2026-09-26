@@ -39,12 +39,19 @@ const ratio = (value: number, base: number): string =>
 // vmstat の要約
 // ---------------------------------------------------------------------------
 
+/** これ以上の CPU 使用率（%）を「張り付いた」とみなす */
+const SATURATED_BUSY = 90;
+/** 張り付いた時間がこの割合以上なら、平均が低くても飽和とみなす */
+const SATURATED_SHARE = 0.3;
+
 interface ResourceSummary {
   host: string;
   nproc: number | undefined;
   samples: number;
   cpuBusyAvg: number;
   cpuBusyMax: number;
+  /** CPU 使用率が SATURATED_BUSY 以上だったサンプルの割合（0〜1） */
+  saturatedShare: number;
   ioWaitAvg: number;
   runQueueMax: number;
   freeMinMb: number;
@@ -89,6 +96,7 @@ const summarizeVmstat = (host: string, text: string): VmstatResult => {
 
   let busySum = 0;
   let busyMax = 0;
+  let saturated = 0;
   let waitSum = 0;
   let queueMax = 0;
   let freeMin = Number.POSITIVE_INFINITY;
@@ -96,17 +104,20 @@ const summarizeVmstat = (host: string, text: string): VmstatResult => {
     const busy = 100 - at(row, "id");
     busySum += busy;
     if (busy > busyMax) busyMax = busy;
+    if (busy >= SATURATED_BUSY) saturated++;
     waitSum += at(row, "wa");
     queueMax = Math.max(queueMax, at(row, "r"));
     freeMin = Math.min(freeMin, at(row, "free"));
   }
 
   const cpuBusyAvg = busySum / samples.length;
+  const saturatedShare = saturated / samples.length;
   const ioWaitAvg = waitSum / samples.length;
   const runQueueMax = queueMax;
 
+  // 平均は負荷が上がる前の空いた時間も含むので、終盤だけ張り付くホストを見逃す。張り付いた時間の割合でも見る
   let problem: string | undefined;
-  if (cpuBusyAvg >= 80) problem = "CPU が飽和";
+  if (cpuBusyAvg >= 80 || saturatedShare >= SATURATED_SHARE) problem = "CPU が飽和";
   else if (ioWaitAvg >= 20) problem = "IO 待ちが重い";
   else if (Number.isFinite(nproc) && runQueueMax > nproc * 2) problem = "run queue が積もっている";
 
@@ -118,6 +129,7 @@ const summarizeVmstat = (host: string, text: string): VmstatResult => {
       samples: samples.length,
       cpuBusyAvg,
       cpuBusyMax: busyMax,
+      saturatedShare,
       ioWaitAvg,
       runQueueMax,
       freeMinMb: Number.isFinite(freeMin) ? Math.round(freeMin / 1024) : 0,
@@ -201,7 +213,13 @@ const topByHost = (resourceDir: string): Map<string, ProcessCpu[] | undefined> =
 const formatProcesses = (processes: ProcessCpu[]): string =>
   processes.map((p) => `${p.command} ${p.cpu.toFixed(0)}%`).join(" / ");
 
-const resourceSection = (dir: string): string => {
+/**
+ * Resources 節の本文。benchHost はベンチマーカーを動かしているホスト（bench.runner が local のとき）。
+ * ベンチのホストは「ここから手を付ける」の対象から外し、飽和していたら別に知らせる。
+ * 閉ループのベンチはこちらが速くなるほど負荷を増やすので、ベンチのホストが先に張り付くことがある。
+ * そのときスコアはサーバーではなくベンチの処理能力で決まる
+ */
+export const resourceSection = (dir: string, benchHost?: string): string => {
   const resourceDir = join(dir, "resource");
   if (!existsSync(resourceDir)) return "未取得: リソース計測の結果がありません。";
 
@@ -220,19 +238,34 @@ const resourceSection = (dir: string): string => {
 
   const parts: string[] = [];
   if (summaries.length > 0) {
-    parts.push("| host | CPU 使用率 平均 / 最大 | IO 待ち 平均 | run queue 最大 | free 最小 | |");
-    parts.push("|---|---|---|---|---|---|");
+    parts.push(
+      `| host | CPU 使用率 平均 / 最大 | ${SATURATED_BUSY}% 以上の時間 | IO 待ち 平均 | run queue 最大 | free 最小 | |`,
+    );
+    parts.push("|---|---|---|---|---|---|---|");
     for (const s of summaries) {
       const cpus = s.nproc === undefined ? "" : ` (${s.nproc} cpu)`;
+      const role = s.host === benchHost ? "（ベンチ）" : "";
       parts.push(
-        `| ${s.host}${cpus} | ${s.cpuBusyAvg.toFixed(1)}% / ${s.cpuBusyMax.toFixed(0)}% ` +
+        `| ${s.host}${role}${cpus} | ${s.cpuBusyAvg.toFixed(1)}% / ${s.cpuBusyMax.toFixed(0)}% ` +
+          `| ${(s.saturatedShare * 100).toFixed(0)}% ` +
           `| ${s.ioWaitAvg.toFixed(1)}% | ${s.runQueueMax} | ${s.freeMinMb} MB ` +
           `| ${s.problem ?? ""} |`,
       );
     }
 
-    const hot = summaries.filter((s) => s.problem !== undefined);
+    const bench = summaries.find((s) => s.host === benchHost);
+    const hot = summaries.filter((s) => s.problem !== undefined && s.host !== benchHost);
     parts.push("");
+    if (bench?.problem !== undefined) {
+      parts.push(
+        `**ベンチマーカーのホスト ${bench.host} が飽和した（平均 ${bench.cpuBusyAvg.toFixed(0)}%、` +
+          `${SATURATED_BUSY}% 以上の時間 ${(bench.saturatedShare * 100).toFixed(0)}%）。**` +
+          "スコアがサーバーではなくベンチの処理能力で頭打ちになっている可能性がある。" +
+          "このあいだはサーバー側の改善がスコアに出にくく、ベンチの仕事を減らす変更が良く見える。" +
+          "本番のベンチは運営のマシンで動く。見分け方は isucon-improve の references/plateau.md「ベンチマーカーのホスト」",
+        "",
+      );
+    }
     if (hot.length === 0) {
       parts.push(
         "どのホストも飽和していない。**ボトルネックはアプリのロジックか DB のクエリ側**にある可能性が高い。",
@@ -405,7 +438,7 @@ export const writeReport = async (dir: string, ctx: ReportContext): Promise<void
     "",
     "## Resources",
     "",
-    resourceSection(dir),
+    resourceSection(dir, ctx.cfg.bench.runner === "local" ? ctx.cfg.bench.local.host : undefined),
     "",
     "## Diff from previous run",
     "",
