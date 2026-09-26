@@ -15,7 +15,8 @@ export const config: Config = {
     // リハーサル（ISUCON14 の AMI を 2 台）。AWS 上の名前は test-1 = isu1、test-2 = isu2
     all: ["isu1", "isu2", "isu3"],
     app: ["isu1"],
-    nginx: ["isu1"],
+    // nginx（TLS の終端・静的ファイル）は isu2 に逃がし、isu1 はアプリだけにする
+    nginx: ["isu2"],
     // AMI の直後は DB も isu1 で動いている。DB を isu2 に移したら "isu2" にする
     db: "isu1",
     primary: "isu1",
@@ -91,7 +92,7 @@ export const config: Config = {
     local: {
       host: "isu3",
       command:
-        "./bench run --addr isu1:443 --target https://isuride.xiv.isucon.net --payment-url http://isu3:12346 --payment-bind-port 12346",
+        "./bench run --addr isu2:443 --target https://isuride.xiv.isucon.net --payment-url http://isu3:12346 --payment-bind-port 12346",
       scorePattern: "スコア=(\\d+)",
       passPattern: "pass=true",
     },
