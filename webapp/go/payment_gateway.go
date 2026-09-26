@@ -8,6 +8,7 @@ import (
 	json "github.com/goccy/go-json"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -73,4 +74,56 @@ func requestPaymentGatewayPostPayment(ctx context.Context, paymentGatewayURL str
 		}
 	}
 	return lastErr
+}
+
+// ---------------------------------------------------------------------------
+// 決済の先行。椅子が目的地に着いた（ARRIVED）時点で決済を始め、評価 API はその結果を待つだけにする。
+// 評価 API が決済を始めていたころは平均約 230ms 掛かり、その間椅子は次のライドに移れなかった。
+// ベンチの決済の検証は「ユーザーに進行中のライドがある・未払い・金額が一致」で、ARRIVED の時点で満たす。
+// 二重に払うとクリティカルエラーなので、ライドごとに 1 つだけ走らせる（加えて Idempotency-Key = ライド ID）
+// ---------------------------------------------------------------------------
+
+type paymentJob struct {
+	done chan struct{}
+	err  error
+}
+
+var paymentJobs sync.Map // ride_id → *paymentJob
+
+var errNotArrived = errors.New("not arrived yet")
+
+// startPayment はライドの決済を始める（始まっていればそのジョブを返す）。ロックを持たずに呼ぶ
+func startPayment(rideID string) *paymentJob {
+	j := &paymentJob{done: make(chan struct{})}
+	if v, loaded := paymentJobs.LoadOrStore(rideID, j); loaded {
+		return v.(*paymentJob)
+	}
+	go func() {
+		defer close(j.done)
+		j.err = runPayment(rideID)
+	}()
+	return j
+}
+
+func runPayment(rideID string) error {
+	unlock := lockTables(nil, []table{tPaymentTokens, tRides, tRideStatuses, tCoupons, tSettings})
+	ride := store.rides[rideID]
+	if ride == nil {
+		unlock()
+		return errors.New("ride not found")
+	}
+	if status, _ := store.latestStatus(ride.ID); status != "ARRIVED" {
+		unlock()
+		return errNotArrived
+	}
+	paymentToken := store.paymentTokens[ride.UserID]
+	if paymentToken == nil {
+		unlock()
+		return errors.New("payment token not registered")
+	}
+	fare := store.discountedFare(ride.UserID, ride, ride.PickupLatitude, ride.PickupLongitude, ride.DestinationLatitude, ride.DestinationLongitude)
+	paymentGatewayURL := store.paymentGatewayURL
+	token := paymentToken.Token
+	unlock()
+	return requestPaymentGatewayPostPayment(context.Background(), paymentGatewayURL, token, rideID, &paymentGatewayPostPaymentRequest{Amount: fare})
 }

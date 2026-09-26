@@ -407,15 +407,21 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("payment token not registered"))
 		return
 	}
-	fare := store.discountedFare(ride.UserID, ride, ride.PickupLatitude, ride.PickupLongitude, ride.DestinationLatitude, ride.DestinationLongitude)
-	paymentGatewayURL := store.paymentGatewayURL
-	token := paymentToken.Token
 	unlock()
 
-	paymentGatewayRequest := &paymentGatewayPostPaymentRequest{
-		Amount: fare,
+	// 決済は ARRIVED の時点で始めている（startPayment）。ここでは結果を待つだけ
+	job := startPayment(rideID)
+	select {
+	case <-job.done:
+	case <-ctx.Done():
+		return
 	}
-	if err := requestPaymentGatewayPostPayment(ctx, paymentGatewayURL, token, rideID, paymentGatewayRequest); err != nil {
+	if err := job.err; err != nil {
+		paymentJobs.CompareAndDelete(rideID, job) // 次の評価で試し直せるように
+		if errors.Is(err, errNotArrived) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		if errors.Is(err, erroredUpstream) {
 			writeError(w, http.StatusBadGateway, err)
 			return
@@ -423,6 +429,7 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+	paymentJobs.Delete(rideID) // 払い終えた。以降の評価は COMPLETED で弾く
 
 	// 評価を記録してレスポンスを返しきってから、COMPLETED を足す。
 	// 椅子が空き（付近の椅子に出る・次のライドが割り当たる）になるのは COMPLETED から。

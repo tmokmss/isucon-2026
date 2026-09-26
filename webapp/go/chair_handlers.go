@@ -122,11 +122,18 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	if next != "" {
 		unlock := lockTables([]table{tRideStatuses}, []table{tRides})
 		// 取り直す間に状態が変わっているかもしれないので、確かめ直してから足す
+		arrivedRide := ""
 		if coordinateTransition(chair.ID, req) == next {
 			ride := store.latestRideOfChair(chair.ID)
 			store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: ride.ID, Status: next, CreatedAt: now()})
+			if next == "ARRIVED" {
+				arrivedRide = ride.ID
+			}
 		}
 		unlock()
+		if arrivedRide != "" {
+			startPayment(arrivedRide) // 決済を先に始める（評価 API は結果を待つだけ）
+		}
 	}
 	dirty.Store(true)
 
