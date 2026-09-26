@@ -453,7 +453,7 @@ func (s *Store) chairStatsOf(chairID string) appGetNotificationResponseChairStat
 }
 
 // 完了したライドの椅子を、付近の椅子に含めない時間（ベンチマーカーの許容は 3 秒）
-const nearbyExcludeAfterCompleted = 2 * time.Second
+const nearbyExcludeAfterCompleted = 500 * time.Millisecond
 
 func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	latStr := r.URL.Query().Get("latitude")
