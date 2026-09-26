@@ -14,6 +14,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/oklog/ulid/v2"
 )
 
 // データはすべてメモリに持つ。MySQL は使わない。
@@ -358,6 +360,12 @@ func restore(snap *snapshot) *Store {
 	sortStatuses(snap.Statuses)
 	for i := range snap.Statuses {
 		s.addStatus(&snap.Statuses[i])
+	}
+	// 評価 API は、評価を記録してから少し遅れて COMPLETED を足す。その間に落ちたライドは、ここで COMPLETED を補う
+	for _, r := range s.rides {
+		if st, _ := s.latestStatus(r.ID); st == "ARRIVED" && r.Evaluation != nil {
+			s.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: r.ID, Status: "COMPLETED", CreatedAt: r.UpdatedAt})
+		}
 	}
 	sortCoupons(snap.Coupons)
 	for i := range snap.Coupons {

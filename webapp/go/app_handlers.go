@@ -366,6 +366,9 @@ func abs(a int) int {
 	return a
 }
 
+// 評価のレスポンスを返してから COMPLETED を足すまでの待ち
+const completeDelay = 50 * time.Millisecond
+
 func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	rideID := r.PathValue("ride_id")
@@ -442,19 +445,29 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 
-	unlock = lockTables([]table{tRideStatuses, tChairStats}, []table{tRides})
-	store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: rideID, Status: "COMPLETED", CreatedAt: completedAt})
-	if ride.ChairID.Valid {
-		st := store.chairStat[ride.ChairID.String]
-		if st == nil {
-			st = &chairStats{}
-			store.chairStat[ride.ChairID.String] = st
+	// ベンチは、評価のレスポンスを受け取ってから椅子を空きとみなす。負荷が高いとそれが遅れるので、少し待ってから足す
+	time.AfterFunc(completeDelay, func() {
+		unlock := lockTables([]table{tRideStatuses, tChairStats}, []table{tRides})
+		defer unlock()
+		// /api/initialize でストアが置き換わっていたら何もしない
+		if store.rides[rideID] != ride {
+			return
 		}
-		st.Count++
-		st.EvaluationSum += evaluation
-	}
-	dirty.Store(true)
-	unlock()
+		if st, _ := store.latestStatus(rideID); st != "ARRIVED" {
+			return
+		}
+		store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: rideID, Status: "COMPLETED", CreatedAt: completedAt})
+		if ride.ChairID.Valid {
+			st := store.chairStat[ride.ChairID.String]
+			if st == nil {
+				st = &chairStats{}
+				store.chairStat[ride.ChairID.String] = st
+			}
+			st.Count++
+			st.EvaluationSum += evaluation
+		}
+		dirty.Store(true)
+	})
 }
 
 func (s *Store) chairStatsOf(chairID string) appGetNotificationResponseChairStats {
