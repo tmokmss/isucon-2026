@@ -141,6 +141,9 @@ func (s *Store) addRide(r *Ride) {
 
 func (s *Store) addStatus(st *RideStatus) {
 	s.statuses[st.RideID] = append(s.statuses[st.RideID], st)
+	if ride := s.rides[st.RideID]; ride != nil {
+		s.wakeRide(ride) // 通知の SSE を起こす
+	}
 }
 
 func couponKey(userID, code string) string { return userID + "\x00" + code }

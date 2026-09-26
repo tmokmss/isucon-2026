@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/oklog/ulid/v2"
@@ -139,71 +138,6 @@ type chairGetNotificationResponseData struct {
 	PickupCoordinate      Coordinate `json:"pickup_coordinate"`
 	DestinationCoordinate Coordinate `json:"destination_coordinate"`
 	Status                string     `json:"status"`
-}
-
-func chairGetNotification(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	chair := ctx.Value("chair").(*Chair)
-
-	store.mu.Lock()
-	ride := store.latestRideOfChair(chair.ID)
-	if ride == nil {
-		store.mu.Unlock()
-		writeJSON(w, http.StatusOK, &chairGetNotificationResponse{
-			RetryAfterMs: 30,
-		})
-		return
-	}
-
-	var yetSent *RideStatus
-	for _, st := range store.statuses[ride.ID] {
-		if st.ChairSentAt == nil {
-			yetSent = st
-			break
-		}
-	}
-	status := ""
-	if yetSent != nil {
-		status = yetSent.Status
-	} else {
-		status, _ = store.latestStatus(ride.ID)
-	}
-
-	user := store.users[ride.UserID]
-	if user == nil {
-		store.mu.Unlock()
-		writeError(w, http.StatusInternalServerError, errors.New("sql: no rows in result set"))
-		return
-	}
-
-	if yetSent != nil {
-		t := now()
-		yetSent.ChairSentAt = &t
-		dirty.Store(true)
-	}
-
-	res := &chairGetNotificationResponse{
-		Data: &chairGetNotificationResponseData{
-			RideID: ride.ID,
-			User: simpleUser{
-				ID:   user.ID,
-				Name: fmt.Sprintf("%s %s", user.Firstname, user.Lastname),
-			},
-			PickupCoordinate: Coordinate{
-				Latitude:  ride.PickupLatitude,
-				Longitude: ride.PickupLongitude,
-			},
-			DestinationCoordinate: Coordinate{
-				Latitude:  ride.DestinationLatitude,
-				Longitude: ride.DestinationLongitude,
-			},
-			Status: status,
-		},
-		RetryAfterMs: 30,
-	}
-	store.mu.Unlock()
-
-	writeJSON(w, http.StatusOK, res)
 }
 
 type postChairRidesRideIDStatusRequest struct {

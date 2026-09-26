@@ -69,6 +69,7 @@ func matchRides() {
 		ride.ChairID = sql.NullString{String: matched.ID, Valid: true}
 		ride.UpdatedAt = now()
 		store.ridesByChair[matched.ID] = append(store.ridesByChair[matched.ID], ride)
+		store.wakeRide(ride) // 椅子に MATCHING を送る
 		dirty.Store(true)
 	}
 	store.unmatched = rest
