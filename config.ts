@@ -93,7 +93,7 @@ export const config: Config = {
     local: {
       host: "isu3",
       command:
-        "./bench run --addr isu2:443 --target https://isuride.xiv.isucon.net --payment-url http://isu3:12346 --payment-bind-port 12346",
+        "./bench run --addr isu4:443 --target https://isuride.xiv.isucon.net --payment-url http://isu3:12346 --payment-bind-port 12346",
       scorePattern: "スコア=(\\d+)",
       passPattern: "pass=true",
     },
