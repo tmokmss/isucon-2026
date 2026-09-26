@@ -28,18 +28,27 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 // matchRides は待っているライドを、待たせている順に、配車位置に最も近い空き椅子へ割り当てる。
 // 1 回の呼び出しで割り当てられるだけ割り当てる
 func matchRides() {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	unlock := lockTables([]table{tRides}, []table{tChairs, tChairLocs, tRideStatuses})
+	defer unlock()
 
 	if len(store.unmatched) == 0 {
 		return
 	}
 
-	// 空いている椅子（位置が分かるもの）
+	// 空いている椅子（位置が分かるもの）と、その位置
 	free := make([]*Chair, 0, len(store.chairList))
+	locs := make([]chairLocSnap, 0, len(store.chairList))
 	for _, c := range store.chairList {
-		if c.IsActive && store.chairLoc[c.ID] != nil && store.chairIsFree(c.ID) {
+		if !c.IsActive || !store.chairIsFree(c.ID) {
+			continue
+		}
+		agg := store.chairLoc[c.ID]
+		if agg == nil {
+			continue
+		}
+		if l, ok := agg.get(); ok {
 			free = append(free, c)
+			locs = append(locs, l)
 		}
 	}
 	if len(free) == 0 {
@@ -54,7 +63,7 @@ func matchRides() {
 			if c == nil {
 				continue
 			}
-			loc := store.chairLoc[c.ID]
+			loc := locs[i]
 			d := calculateDistance(loc.Latitude, loc.Longitude, ride.PickupLatitude, ride.PickupLongitude)
 			if best < 0 || d < bestDist {
 				best, bestDist = i, d

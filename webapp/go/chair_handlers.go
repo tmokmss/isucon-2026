@@ -32,10 +32,10 @@ func chairPostChairs(w http.ResponseWriter, r *http.Request) {
 	chairID := ulid.Make().String()
 	accessToken := secureRandomStr(32)
 
-	store.mu.Lock()
+	unlock := lockTables([]table{tChairs, tChairLocs}, []table{tOwners})
 	owner := store.ownersByRegister[req.ChairRegisterToken]
 	if owner == nil {
-		store.mu.Unlock()
+		unlock()
 		writeError(w, http.StatusUnauthorized, errors.New("invalid chair_register_token"))
 		return
 	}
@@ -45,7 +45,7 @@ func chairPostChairs(w http.ResponseWriter, r *http.Request) {
 		IsActive: false, AccessToken: accessToken, CreatedAt: t, UpdatedAt: t,
 	})
 	dirty.Store(true)
-	store.mu.Unlock()
+	unlock()
 
 	http.SetCookie(w, &http.Cookie{
 		Path:  "/",
@@ -73,13 +73,13 @@ func chairPostActivity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store.mu.Lock()
+	unlock := lockTables([]table{tChairs}, nil)
 	if chair.IsActive != req.IsActive {
 		chair.IsActive = req.IsActive
 		chair.UpdatedAt = now()
 		dirty.Store(true)
 	}
-	store.mu.Unlock()
+	unlock()
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -98,28 +98,58 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 
 	chair := ctx.Value("chair").(*Chair)
 
-	store.mu.Lock()
 	recordedAt := now()
-	store.addLocation(chair.ID, req.Latitude, req.Longitude, recordedAt)
 
-	if ride := store.latestRideOfChair(chair.ID); ride != nil {
-		status, _ := store.latestStatus(ride.ID)
-		if status != "COMPLETED" && status != "CANCELED" {
-			if req.Latitude == ride.PickupLatitude && req.Longitude == ride.PickupLongitude && status == "ENROUTE" {
-				store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: ride.ID, Status: "PICKUP", CreatedAt: now()})
-			}
+	// 位置は chairLocs の読みロック + 行ロックで書く（別の椅子の座標の送信と並列に走る）。
+	// ライドの状態は読むだけ。状態を足す必要があるときだけ、取り直して確かめ直す
+	unlock := lockTables(nil, []table{tChairLocs, tRides, tRideStatuses})
+	agg := store.chairLoc[chair.ID]
+	if agg != nil {
+		agg.add(req.Latitude, req.Longitude, recordedAt)
+	}
+	next := coordinateTransition(chair.ID, req)
+	unlock()
 
-			if req.Latitude == ride.DestinationLatitude && req.Longitude == ride.DestinationLongitude && status == "CARRYING" {
-				store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: ride.ID, Status: "ARRIVED", CreatedAt: now()})
-			}
+	if agg == nil {
+		// 位置の集約が無い（椅子の登録時に作るので通常は起きない）
+		unlock := lockTables([]table{tChairLocs}, nil)
+		if store.chairLoc[chair.ID] == nil {
+			store.chairLoc[chair.ID] = &chairLocAgg{}
 		}
+		store.chairLoc[chair.ID].add(req.Latitude, req.Longitude, recordedAt)
+		unlock()
+	}
+	if next != "" {
+		unlock := lockTables([]table{tRideStatuses}, []table{tRides})
+		// 取り直す間に状態が変わっているかもしれないので、確かめ直してから足す
+		if coordinateTransition(chair.ID, req) == next {
+			ride := store.latestRideOfChair(chair.ID)
+			store.addStatus(&RideStatus{ID: ulid.Make().String(), RideID: ride.ID, Status: next, CreatedAt: now()})
+		}
+		unlock()
 	}
 	dirty.Store(true)
-	store.mu.Unlock()
 
 	writeJSON(w, http.StatusOK, &chairPostCoordinateResponse{
 		RecordedAt: recordedAt.UnixMilli(),
 	})
+}
+
+// coordinateTransition は、椅子がこの座標に着いたことで足すべき状態を返す（無ければ ""）。
+// tRides と tRideStatuses の読みロック以上で呼ぶ
+func coordinateTransition(chairID string, c *Coordinate) string {
+	ride := store.latestRideOfChair(chairID)
+	if ride == nil {
+		return ""
+	}
+	status, _ := store.latestStatus(ride.ID)
+	if c.Latitude == ride.PickupLatitude && c.Longitude == ride.PickupLongitude && status == "ENROUTE" {
+		return "PICKUP"
+	}
+	if c.Latitude == ride.DestinationLatitude && c.Longitude == ride.DestinationLongitude && status == "CARRYING" {
+		return "ARRIVED"
+	}
+	return ""
 }
 
 type simpleUser struct {
@@ -156,8 +186,8 @@ func chairPostRideStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	unlock := lockTables([]table{tRideStatuses}, []table{tRides})
+	defer unlock()
 
 	ride := store.rides[rideID]
 	if ride == nil {

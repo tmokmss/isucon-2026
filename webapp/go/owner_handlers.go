@@ -39,16 +39,16 @@ func ownerPostOwners(w http.ResponseWriter, r *http.Request) {
 	accessToken := secureRandomStr(32)
 	chairRegisterToken := secureRandomStr(32)
 
-	store.mu.Lock()
+	unlock := lockTables([]table{tOwners}, nil)
 	if _, dup := store.ownerNames[req.Name]; dup {
-		store.mu.Unlock()
+		unlock()
 		writeError(w, http.StatusInternalServerError, errors.New("Error 1062 (23000): Duplicate entry for key 'owners.name'"))
 		return
 	}
 	t := now()
 	store.addOwner(&Owner{ID: ownerID, Name: req.Name, AccessToken: accessToken, ChairRegisterToken: chairRegisterToken, CreatedAt: t, UpdatedAt: t})
 	dirty.Store(true)
-	store.mu.Unlock()
+	unlock()
 
 	http.SetCookie(w, &http.Cookie{
 		Path:  "/",
@@ -108,7 +108,7 @@ func ownerGetSales(w http.ResponseWriter, r *http.Request) {
 	}
 
 	modelSalesByModel := map[string]int{}
-	store.mu.RLock()
+	unlock := lockTables(nil, []table{tChairs, tRides, tRideStatuses})
 	for _, chair := range store.chairsByOwner[owner.ID] {
 		sales := 0
 		for _, ride := range store.ridesByChair[chair.ID] {
@@ -131,7 +131,7 @@ func ownerGetSales(w http.ResponseWriter, r *http.Request) {
 
 		modelSalesByModel[chair.Model] += sales
 	}
-	store.mu.RUnlock()
+	unlock()
 
 	models := []modelSales{}
 	for model, sales := range modelSalesByModel {
@@ -188,20 +188,22 @@ func ownerGetChairs(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	owner := ctx.Value("owner").(*Owner)
 
-	store.mu.RLock()
+	unlock := lockTables(nil, []table{tChairs, tChairLocs})
 	chairs := make([]chairWithDetail, 0, len(store.chairsByOwner[owner.ID]))
 	for _, c := range store.chairsByOwner[owner.ID] {
 		d := chairWithDetail{
 			ID: c.ID, OwnerID: c.OwnerID, Name: c.Name, AccessToken: c.AccessToken, Model: c.Model,
 			IsActive: c.IsActive, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt,
 		}
-		if l := store.chairLoc[c.ID]; l != nil {
-			d.TotalDistance = l.TotalDistance
-			d.TotalDistanceUpdatedAt = sql.NullTime{Time: l.UpdatedAt, Valid: true}
+		if agg := store.chairLoc[c.ID]; agg != nil {
+			if l, ok := agg.get(); ok {
+				d.TotalDistance = l.TotalDistance
+				d.TotalDistanceUpdatedAt = sql.NullTime{Time: l.UpdatedAt, Valid: true}
+			}
 		}
 		chairs = append(chairs, d)
 	}
-	store.mu.RUnlock()
+	unlock()
 
 	res := ownerGetChairResponse{}
 	for _, chair := range chairs {

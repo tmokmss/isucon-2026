@@ -132,8 +132,8 @@ func appPostUsers(w http.ResponseWriter, r *http.Request) {
 	accessToken := secureRandomStr(32)
 	invitationCode := secureRandomStr(15)
 
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	unlock := lockTables([]table{tUsers, tCoupons}, nil)
+	defer unlock()
 
 	if _, dup := store.usernames[req.Username]; dup {
 		writeError(w, http.StatusInternalServerError, errors.New("Error 1062 (23000): Duplicate entry for key 'users.username'"))
@@ -207,15 +207,15 @@ func appPostPaymentMethods(w http.ResponseWriter, r *http.Request) {
 
 	user := ctx.Value("user").(*User)
 
-	store.mu.Lock()
+	unlock := lockTables([]table{tPaymentTokens}, nil)
 	if _, dup := store.paymentTokens[user.ID]; dup {
-		store.mu.Unlock()
+		unlock()
 		writeError(w, http.StatusInternalServerError, errors.New("Error 1062 (23000): Duplicate entry for key 'payment_tokens.PRIMARY'"))
 		return
 	}
 	store.paymentTokens[user.ID] = &PaymentToken{UserID: user.ID, Token: req.Token, CreatedAt: now()}
 	dirty.Store(true)
-	store.mu.Unlock()
+	unlock()
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -226,7 +226,7 @@ func appGetRides(w http.ResponseWriter, r *http.Request) {
 
 	items := []getAppRidesResponseItem{}
 
-	store.mu.RLock()
+	unlock := lockTables(nil, []table{tOwners, tChairs, tRides, tRideStatuses, tCoupons})
 	rides := store.ridesByUser[user.ID]
 	// ORDER BY created_at DESC
 	for i := len(rides) - 1; i >= 0; i-- {
@@ -249,14 +249,14 @@ func appGetRides(w http.ResponseWriter, r *http.Request) {
 
 		chair := store.chairs[ride.ChairID.String]
 		if chair == nil {
-			store.mu.RUnlock()
+			unlock()
 			writeError(w, http.StatusInternalServerError, errors.New("sql: no rows in result set"))
 			return
 		}
 		item.Chair = getAppRidesResponseItemChair{ID: chair.ID, Name: chair.Name, Model: chair.Model}
 		owner := store.owners[chair.OwnerID]
 		if owner == nil {
-			store.mu.RUnlock()
+			unlock()
 			writeError(w, http.StatusInternalServerError, errors.New("sql: no rows in result set"))
 			return
 		}
@@ -264,7 +264,7 @@ func appGetRides(w http.ResponseWriter, r *http.Request) {
 
 		items = append(items, item)
 	}
-	store.mu.RUnlock()
+	unlock()
 
 	writeJSON(w, http.StatusOK, &getAppRidesResponse{
 		Rides: items,
@@ -286,10 +286,10 @@ func appPostRides(w http.ResponseWriter, r *http.Request) {
 	user := ctx.Value("user").(*User)
 	rideID := ulid.Make().String()
 
-	store.mu.Lock()
+	unlock := lockTables([]table{tRides, tRideStatuses, tCoupons}, nil)
 	for _, ride := range store.ridesByUser[user.ID] {
 		if status, _ := store.latestStatus(ride.ID); status != "COMPLETED" {
-			store.mu.Unlock()
+			unlock()
 			writeError(w, http.StatusConflict, errors.New("ride already exists"))
 			return
 		}
@@ -322,7 +322,7 @@ func appPostRides(w http.ResponseWriter, r *http.Request) {
 
 	fare := store.discountedFare(user.ID, ride, req.PickupCoordinate.Latitude, req.PickupCoordinate.Longitude, req.DestinationCoordinate.Latitude, req.DestinationCoordinate.Longitude)
 	dirty.Store(true)
-	store.mu.Unlock()
+	unlock()
 
 	writeJSON(w, http.StatusAccepted, &appPostRidesResponse{
 		RideID: rideID,
@@ -344,9 +344,9 @@ func appPostRidesEstimatedFare(w http.ResponseWriter, r *http.Request) {
 
 	user := ctx.Value("user").(*User)
 
-	store.mu.RLock()
+	unlock := lockTables(nil, []table{tCoupons})
 	discounted := store.discountedFare(user.ID, nil, req.PickupCoordinate.Latitude, req.PickupCoordinate.Longitude, req.DestinationCoordinate.Latitude, req.DestinationCoordinate.Longitude)
-	store.mu.RUnlock()
+	unlock()
 
 	writeJSON(w, http.StatusOK, &appPostRidesEstimatedFareResponse{
 		Fare:     discounted,
@@ -380,28 +380,28 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 検証と決済額の計算はロック下で、決済ゲートウェイの呼び出しはロックの外で行う
-	store.mu.RLock()
+	unlock := lockTables(nil, []table{tPaymentTokens, tRides, tRideStatuses, tCoupons, tSettings})
 	ride := store.rides[rideID]
 	if ride == nil {
-		store.mu.RUnlock()
+		unlock()
 		writeError(w, http.StatusNotFound, errors.New("ride not found"))
 		return
 	}
 	if status, _ := store.latestStatus(ride.ID); status != "ARRIVED" {
-		store.mu.RUnlock()
+		unlock()
 		writeError(w, http.StatusBadRequest, errors.New("not arrived yet"))
 		return
 	}
 	paymentToken := store.paymentTokens[ride.UserID]
 	if paymentToken == nil {
-		store.mu.RUnlock()
+		unlock()
 		writeError(w, http.StatusBadRequest, errors.New("payment token not registered"))
 		return
 	}
 	fare := store.discountedFare(ride.UserID, ride, ride.PickupLatitude, ride.PickupLongitude, ride.DestinationLatitude, ride.DestinationLongitude)
 	paymentGatewayURL := store.paymentGatewayURL
 	token := paymentToken.Token
-	store.mu.RUnlock()
+	unlock()
 
 	paymentGatewayRequest := &paymentGatewayPostPaymentRequest{
 		Amount: fare,
@@ -415,9 +415,9 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store.mu.Lock()
+	unlock = lockTables([]table{tRides, tRideStatuses, tChairStats}, nil)
 	if status, _ := store.latestStatus(ride.ID); status != "ARRIVED" {
-		store.mu.Unlock()
+		unlock()
 		writeError(w, http.StatusBadRequest, errors.New("not arrived yet"))
 		return
 	}
@@ -436,7 +436,7 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 	}
 	completedAt := ride.UpdatedAt.UnixMilli()
 	dirty.Store(true)
-	store.mu.Unlock()
+	unlock()
 
 	writeJSON(w, http.StatusOK, &appPostRideEvaluationResponse{
 		CompletedAt: completedAt,
@@ -485,7 +485,7 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	coordinate := Coordinate{Latitude: lat, Longitude: lon}
 
 	nearbyChairs := []appGetNearbyChairsResponseChair{}
-	store.mu.RLock()
+	unlock := lockTables(nil, []table{tChairs, tChairLocs, tRides, tRideStatuses})
 	for _, chair := range store.chairList {
 		if !chair.IsActive {
 			continue
@@ -499,9 +499,13 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// 最新の位置情報
-		loc := store.chairLoc[chair.ID]
-		if loc == nil {
+		// 最新の位置情報（行ロックで読む）
+		agg := store.chairLoc[chair.ID]
+		if agg == nil {
+			continue
+		}
+		loc, ok := agg.get()
+		if !ok {
 			continue
 		}
 
@@ -517,7 +521,7 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-	store.mu.RUnlock()
+	unlock()
 
 	writeJSON(w, http.StatusOK, &appGetNearbyChairsResponse{
 		Chairs:      nearbyChairs,

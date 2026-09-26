@@ -24,11 +24,41 @@ import (
 // /api/initialize には依存しない。
 
 // chairLocAgg は chair_locations の代わり。全件は持たず、API が必要とする集約だけを持つ。
+// 椅子の登録時に作り（valid=false）、フィールドは行ロック mu で守る。
+// 座標の送信は chairLocs の読みロック + この行ロックで書くので、別の椅子の座標の送信とは並列に走る。
 type chairLocAgg struct {
+	mu            sync.RWMutex
+	valid         bool // 位置を 1 回でも受け取ったか
+	latitude      int
+	longitude     int
+	totalDistance int
+	updatedAt     time.Time // 最後の位置の created_at（= total_distance_updated_at）
+}
+
+// chairLocSnap はスナップショット用（ロックを含まない）。フィールド名は旧 chairLocAgg と同じなので、古いスナップショットも読める
+type chairLocSnap struct {
 	Latitude      int
 	Longitude     int
 	TotalDistance int
-	UpdatedAt     time.Time // 最後の位置の created_at（= total_distance_updated_at）
+	UpdatedAt     time.Time
+}
+
+// get は位置の集約を読む。ok=false なら位置がまだ無い
+func (a *chairLocAgg) get() (snap chairLocSnap, ok bool) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return chairLocSnap{Latitude: a.latitude, Longitude: a.longitude, TotalDistance: a.totalDistance, UpdatedAt: a.updatedAt}, a.valid
+}
+
+// add は位置を 1 件足す（累計距離は直前の位置からのマンハッタン距離）
+func (a *chairLocAgg) add(lat, lon int, at time.Time) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.valid {
+		a.totalDistance += abs(lat-a.latitude) + abs(lon-a.longitude)
+	}
+	a.valid = true
+	a.latitude, a.longitude, a.updatedAt = lat, lon, at
 }
 
 type chairStats struct {
@@ -36,40 +66,39 @@ type chairStats struct {
 	EvaluationSum int
 }
 
+// Store は全テーブルを持つ。ロックはテーブルごと（locks.go の lockTables）。フィールドの横にどのテーブルに属するかを書く
 type Store struct {
-	mu sync.RWMutex
+	paymentGatewayURL string // tSettings
 
-	paymentGatewayURL string
-
-	users             map[string]*User
-	usersByToken      map[string]*User
-	usersByInvitation map[string]*User
-	usernames         map[string]struct{}
-	owners            map[string]*Owner
-	ownersByToken     map[string]*Owner
-	ownersByRegister  map[string]*Owner
-	ownerNames        map[string]struct{}
-	chairs            map[string]*Chair
-	chairList         []*Chair // id 順（= SELECT * FROM chairs の順）
-	chairsByToken     map[string]*Chair
-	chairsByOwner     map[string][]*Chair
-	chairLoc          map[string]*chairLocAgg
-	chairStat         map[string]*chairStats
-	paymentTokens     map[string]*PaymentToken
-	rides             map[string]*Ride
-	ridesByUser       map[string][]*Ride       // created_at 順
-	ridesByChair      map[string][]*Ride       // 割り当て順
-	unmatched         []*Ride                  // chair_id IS NULL、created_at 順
-	statuses          map[string][]*RideStatus // ride_id → created_at 順
-	coupons           map[string][]*Coupon     // user_id → created_at 順
-	couponKeys        map[string]struct{}      // user_id + "\x00" + code
-	couponCodeCount   map[string]int           // code → 件数（招待コードの上限判定）
-	couponByRide      map[string]*Coupon       // used_by → coupon
+	users             map[string]*User         // tUsers
+	usersByToken      map[string]*User         // tUsers
+	usersByInvitation map[string]*User         // tUsers
+	usernames         map[string]struct{}      // tUsers
+	owners            map[string]*Owner        // tOwners
+	ownersByToken     map[string]*Owner        // tOwners
+	ownersByRegister  map[string]*Owner        // tOwners
+	ownerNames        map[string]struct{}      // tOwners
+	chairs            map[string]*Chair        // tChairs（Chair.IsActive / UpdatedAt も）
+	chairList         []*Chair                 // tChairs。id 順（= SELECT * FROM chairs の順）
+	chairsByToken     map[string]*Chair        // tChairs
+	chairsByOwner     map[string][]*Chair      // tChairs
+	chairLoc          map[string]*chairLocAgg  // tChairLocs（map）。中身は行ロック
+	chairStat         map[string]*chairStats   // tChairStats
+	paymentTokens     map[string]*PaymentToken // tPaymentTokens
+	rides             map[string]*Ride         // tRides（Ride.ChairID / UpdatedAt / Evaluation も）
+	ridesByUser       map[string][]*Ride       // tRides。created_at 順
+	ridesByChair      map[string][]*Ride       // tRides。割り当て順
+	unmatched         []*Ride                  // tRides。chair_id IS NULL、created_at 順
+	statuses          map[string][]*RideStatus // tRideStatuses（AppSentAt / ChairSentAt も）。ride_id → created_at 順
+	coupons           map[string][]*Coupon     // tCoupons。user_id → created_at 順（Coupon.UsedBy も）
+	couponKeys        map[string]struct{}      // tCoupons。user_id + "\x00" + code
+	couponCodeCount   map[string]int           // tCoupons。code → 件数（招待コードの上限判定）
+	couponByRide      map[string]*Coupon       // tCoupons。used_by → coupon
 }
 
 var store = newStore()
 
-// dirty はスナップショット以降に変更があったか。書き込み側は mu を握った状態で立てる。
+// dirty はスナップショット以降に変更があったか。書き込み側はテーブルのロックを握った状態で立てる。
 var dirty atomic.Bool
 
 func newStore() *Store {
@@ -105,7 +134,7 @@ func now() time.Time {
 }
 
 // ---------------------------------------------------------------------------
-// 追加（インデックスの更新をここに集める）。呼び出し側が mu を握る
+// 追加（インデックスの更新をここに集める）。呼び出し側が該当テーブルの書きロックを握る
 // ---------------------------------------------------------------------------
 
 func (s *Store) addUser(u *User) {
@@ -122,7 +151,11 @@ func (s *Store) addOwner(o *Owner) {
 	s.ownerNames[o.Name] = struct{}{}
 }
 
+// addChair は tChairs と tChairLocs の書きロックで呼ぶ（位置の集約も作る）
 func (s *Store) addChair(c *Chair) {
+	if s.chairLoc[c.ID] == nil {
+		s.chairLoc[c.ID] = &chairLocAgg{}
+	}
 	s.chairs[c.ID] = c
 	s.chairList = append(s.chairList, c)
 	s.chairsByToken[c.AccessToken] = c
@@ -139,6 +172,7 @@ func (s *Store) addRide(r *Ride) {
 	}
 }
 
+// addStatus は tRideStatuses の書きロックと、tRides の読みロック以上で呼ぶ
 func (s *Store) addStatus(st *RideStatus) {
 	s.statuses[st.RideID] = append(s.statuses[st.RideID], st)
 	if ride := s.rides[st.RideID]; ride != nil {
@@ -155,16 +189,6 @@ func (s *Store) addCoupon(c *Coupon) {
 	if c.UsedBy != nil {
 		s.couponByRide[*c.UsedBy] = c
 	}
-}
-
-func (s *Store) addLocation(chairID string, lat, lon int, at time.Time) {
-	agg := s.chairLoc[chairID]
-	if agg == nil {
-		s.chairLoc[chairID] = &chairLocAgg{Latitude: lat, Longitude: lon, UpdatedAt: at}
-		return
-	}
-	agg.TotalDistance += abs(lat-agg.Latitude) + abs(lon-agg.Longitude)
-	agg.Latitude, agg.Longitude, agg.UpdatedAt = lat, lon, at
 }
 
 // ---------------------------------------------------------------------------
@@ -215,21 +239,21 @@ type snapshot struct {
 	Users             []User
 	Owners            []Owner
 	Chairs            []Chair
-	ChairLoc          map[string]chairLocAgg
+	ChairLoc          map[string]chairLocSnap
 	PaymentTokens     []PaymentToken
 	Rides             []Ride
 	Statuses          []RideStatus
 	Coupons           []Coupon
 }
 
-// capture は mu を握った状態で呼ぶ。値をコピーするだけで、エンコードはロックの外でやる。
+// capture は全テーブルの読みロック以上を握った状態で呼ぶ。値をコピーするだけで、エンコードはロックの外でやる。
 func (s *Store) capture() *snapshot {
 	snap := &snapshot{
 		PaymentGatewayURL: s.paymentGatewayURL,
 		Users:             make([]User, 0, len(s.users)),
 		Owners:            make([]Owner, 0, len(s.owners)),
 		Chairs:            make([]Chair, 0, len(s.chairList)),
-		ChairLoc:          make(map[string]chairLocAgg, len(s.chairLoc)),
+		ChairLoc:          make(map[string]chairLocSnap, len(s.chairLoc)),
 		PaymentTokens:     make([]PaymentToken, 0, len(s.paymentTokens)),
 		Rides:             make([]Ride, 0, len(s.rides)),
 	}
@@ -243,7 +267,9 @@ func (s *Store) capture() *snapshot {
 		snap.Chairs = append(snap.Chairs, *c)
 	}
 	for id, l := range s.chairLoc {
-		snap.ChairLoc[id] = *l
+		if v, ok := l.get(); ok {
+			snap.ChairLoc[id] = v
+		}
 	}
 	for _, p := range s.paymentTokens {
 		snap.PaymentTokens = append(snap.PaymentTokens, *p)
@@ -299,8 +325,13 @@ func restore(snap *snapshot) *Store {
 		s.addChair(&snap.Chairs[i])
 	}
 	for id, l := range snap.ChairLoc {
-		l := l
-		s.chairLoc[id] = &l
+		agg := s.chairLoc[id]
+		if agg == nil {
+			agg = &chairLocAgg{}
+			s.chairLoc[id] = agg
+		}
+		agg.valid = true
+		agg.latitude, agg.longitude, agg.totalDistance, agg.updatedAt = l.Latitude, l.Longitude, l.TotalDistance, l.UpdatedAt
 	}
 	for i := range snap.PaymentTokens {
 		s.paymentTokens[snap.PaymentTokens[i].UserID] = &snap.PaymentTokens[i]
@@ -360,14 +391,13 @@ func saveSnapshot() error {
 	saveMu.Lock()
 	defer saveMu.Unlock()
 
-	store.mu.RLock()
 	if !dirty.Load() {
-		store.mu.RUnlock()
 		return nil
 	}
+	unlock := lockTables(nil, allTables)
 	snap := store.capture()
 	dirty.Store(false)
-	store.mu.RUnlock()
+	unlock()
 
 	if err := writeSnapshot(snap); err != nil {
 		dirty.Store(true) // 次の周期で書き直す
@@ -458,8 +488,8 @@ func initStore() {
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGHUP)
 	go func() {
 		s := <-sig
-		// 以降の書き込みを止めてから書く
-		store.mu.Lock()
+		// 以降の書き込みを止めてから書く（全テーブルの書きロックを取り、放さずに終了する）
+		lockTables(allTables, nil)
 		snap := store.capture()
 		if err := writeSnapshot(snap); err != nil {
 			slog.Error("failed to save snapshot on signal", "signal", s, "err", err)
@@ -472,8 +502,8 @@ func initStore() {
 
 // replaceWith は /api/initialize 用。ポインタを差し替えると並行するハンドラと競合するので、ロック下で中身を入れ替える。
 func (s *Store) replaceWith(n *Store) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	unlock := lockTables(allTables, nil)
+	defer unlock()
 	s.paymentGatewayURL = n.paymentGatewayURL
 	s.users, s.usersByToken, s.usersByInvitation, s.usernames = n.users, n.usersByToken, n.usersByInvitation, n.usernames
 	s.owners, s.ownersByToken, s.ownersByRegister, s.ownerNames = n.owners, n.ownersByToken, n.ownersByRegister, n.ownerNames

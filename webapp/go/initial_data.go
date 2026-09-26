@@ -66,7 +66,7 @@ func parseInitialData(path string) (*snapshot, error) {
 		return nil, err
 	}
 
-	snap := &snapshot{PaymentGatewayURL: defaultPaymentURL, ChairLoc: map[string]chairLocAgg{}}
+	snap := &snapshot{PaymentGatewayURL: defaultPaymentURL, ChairLoc: map[string]chairLocSnap{}}
 	type loc struct {
 		chairID  string
 		lat, lon int

@@ -41,7 +41,7 @@ func wake(m map[string]chan struct{}, id string) {
 	}
 }
 
-// wakeRide はライドの状態や割り当てが変わったときに、そのユーザーと椅子の接続を起こす。store.mu を握った状態で呼ぶ
+// wakeRide はライドの状態や割り当てが変わったときに、そのユーザーと椅子の接続を起こす。tRides の読みロック以上で呼ぶ
 func (s *Store) wakeRide(ride *Ride) {
 	wake(userWake, ride.UserID)
 	if ride.ChairID.Valid {
@@ -52,8 +52,8 @@ func (s *Store) wakeRide(ride *Ride) {
 // appNextNotification は次に送るユーザー向けの通知を作る。未送信の状態があれば送信済みにして sent=true を返す。
 // ライドが無ければ nil
 func appNextNotification(user *User) (data *appGetNotificationResponseData, sent bool) {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	unlock := lockTables([]table{tRideStatuses}, []table{tChairs, tRides, tCoupons, tChairStats})
+	defer unlock()
 
 	rides := store.ridesByUser[user.ID]
 	if len(rides) == 0 {
@@ -108,8 +108,8 @@ func appNextNotification(user *User) (data *appGetNotificationResponseData, sent
 // chairNextNotification は次に送る椅子向けの通知を作る。未送信の状態があれば送信済みにして sent=true を返す。
 // ライドが無ければ nil
 func chairNextNotification(chair *Chair) (data *chairGetNotificationResponseData, sent bool) {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	unlock := lockTables([]table{tRideStatuses}, []table{tUsers, tRides})
+	defer unlock()
 
 	ride := store.latestRideOfChair(chair.ID)
 	if ride == nil {
