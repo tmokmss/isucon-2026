@@ -35,3 +35,4 @@ run_id	started_at	sha	ref	score	status	note
 20260926-114139-1dbc074	2026-09-26T11:41:39+09:00	1dbc074d387751b13fe56afd40ce76897b761edf	1dbc074	189965	pass	再計測: SSE + Idempotency-Key（除く処理なし）
 20260926-124839-f6deeaa	2026-09-26T12:48:39+09:00	f6deeaa19b8563eaa931f18b01adbef1eac36d4c	HEAD	231517	pass	ベンチマーカーを isu3（c5.2xlarge）へ
 20260926-125515-93abdf8	2026-09-26T12:55:15+09:00	93abdf8ac1905c6bad8af85785beee6a24dc0bb8	HEAD	168406	pass	付近の椅子: 完了直後 500ms を本人以外に隠す
+20260926-125654-f6deeaa	2026-09-26T12:56:54+09:00	f6deeaa19b8563eaa931f18b01adbef1eac36d4c	f6deeaa	213036	pass	再計測: isu3 での基準（隠す処理なし）
