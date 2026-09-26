@@ -18,7 +18,7 @@ const starvationLimit = 10 * time.Second
 const matchDeadline = 0 // 0 で無効（待ち時間はマッチングのコストの補正で見る）
 
 // マッチングのコストで、待ち 1 秒を迎え何 tick 分と見なすか（kyosu.dev の記事では 8）
-const waitWeight = 8
+const waitWeight = 16
 
 // 期限の近いライドに割り当てる椅子の近さ（距離 < nearRadiusTicks × 速度 = 迎えがこの tick 数未満）。
 // ベンチの「乗車地点まで」の評価は 10 tick 未満で合格
