@@ -212,19 +212,16 @@ func matchRides() {
 		if rideDone[ri] {
 			continue
 		}
-		carry := calculateDistance(ride.PickupLatitude, ride.PickupLongitude, ride.DestinationLatitude, ride.DestinationLongitude)
 		best, bestCost := -1, 0
 		for ci := range free {
 			if chairDone[ci] {
 				continue
 			}
 			d := calculateDistance(locs[ci].Latitude, locs[ci].Longitude, ride.PickupLatitude, ride.PickupLongitude)
-			sp := chairSpeed(free[ci].Model)
-			if d >= 10*sp {
+			if d >= 10*chairSpeed(free[ci].Model) {
 				continue
 			}
-			// 迎えと乗車の合計の時間（長いライドほど速い椅子へ。椅子の占有時間と座標の送信の回数が減る）
-			if c := (d + carry) * 420 / sp; best < 0 || c < bestCost {
+			if c := cost(ri, ci); best < 0 || c < bestCost {
 				best, bestCost = ci, c
 			}
 		}
