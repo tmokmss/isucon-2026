@@ -369,8 +369,10 @@ func abs(a int) int {
 	return a
 }
 
-// 評価のレスポンスを返してから COMPLETED を足すまでの待ち
-const completeDelay = 50 * time.Millisecond
+// 評価のレスポンスを返してから COMPLETED を足すまでの待ち。
+// 完了直後の椅子を付近の椅子に出さないのは、マッチングが作る一覧の側で行う（nearbyCompletedHide）。
+// ここで待つと、椅子を次のライドに割り当てるのも遅れる（50ms 待っていた）
+const completeDelay = 0
 
 func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -448,7 +450,7 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 
-	// ベンチは、評価のレスポンスを受け取ってから椅子を空きとみなす。負荷が高いとそれが遅れるので、少し待ってから足す
+	// レスポンスを返しきってから足す
 	time.AfterFunc(completeDelay, func() {
 		unlock := lockTables([]table{tRideStatuses, tChairStats}, []table{tRides})
 		defer unlock()

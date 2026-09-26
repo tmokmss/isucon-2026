@@ -49,6 +49,24 @@ type freeChair struct {
 //     割り当てた時刻で 2 秒としたら、評価のレスポンスが遅れた椅子で CODE 30 が 1 秒に 35 件出た）
 var freeChairs atomic.Pointer[[]freeChair]
 
+// 完了（COMPLETED）してからこの時間は、空いていても付近の椅子に出さない。
+// ベンチは評価のレスポンスを受け取るまで椅子をライド中とみなし、負荷が高いとそれが遅れる（出すと CODE 30）
+const nearbyCompletedHide = 500 * time.Millisecond
+
+// recentlyCompleted は椅子の直近のライドが nearbyCompletedHide 以内に完了したか。tRides と tRideStatuses の読みロック以上で呼ぶ
+func (s *Store) recentlyCompleted(chairID string, t time.Time) bool {
+	r := s.latestRideOfChair(chairID)
+	if r == nil {
+		return false
+	}
+	sts := s.statuses[r.ID]
+	if len(sts) == 0 {
+		return false
+	}
+	last := sts[len(sts)-1]
+	return last.Status == "COMPLETED" && t.Sub(last.CreatedAt) < nearbyCompletedHide
+}
+
 // 椅子が受理（ENROUTE）してからこの時間は、付近の椅子に出す（ベンチの許容は受理から 3 秒）
 const nearbyAcceptedGrace = 1500 * time.Millisecond
 
@@ -96,7 +114,9 @@ func matchRides() {
 		t := now()
 		list := make([]freeChair, 0, len(free)+len(recentMatched))
 		for ci, c := range free {
-			list = append(list, freeChair{c, aggs[ci]})
+			if !store.recentlyCompleted(c.ID, t) {
+				list = append(list, freeChair{c, aggs[ci]})
+			}
 			if chairDone[ci] {
 				recentMatched = append(recentMatched, matchedChair{freeChair{c, aggs[ci]}, matchedRide[ci], t})
 			}
