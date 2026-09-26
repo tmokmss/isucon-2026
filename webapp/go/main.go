@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	_ "net/http/pprof"
+	"runtime"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -14,6 +15,8 @@ import (
 
 func main() {
 	// pprof（計測用。localhost でだけ待ち受ける。本番の最後に外す）
+	// ロック待ちを /debug/pprof/mutex で見る（100 回に 1 回だけ記録する）
+	runtime.SetMutexProfileFraction(100)
 	go func() { _ = http.ListenAndServe("localhost:6060", nil) }()
 	mux := setup()
 	slog.Info("Listening on :8080")
