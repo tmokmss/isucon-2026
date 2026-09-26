@@ -44,18 +44,24 @@ type freeChair struct {
 // ユーザーは付近に椅子が無いと配車をやめるので、出せる椅子はできるだけ出す（割り当て後に残った空き椅子だけにしたら、
 // 依頼が減ってスコアが 61 万 → 25 万に落ちた）。ベンチが許すのは次の椅子:
 //   - 空いている椅子（空いてから 3 秒以内なら、含まれていなくてもよい）
-//   - ベンチがマッチを受理してから 3 秒以内の椅子。受理はこちらの割り当てより後なので、割り当てから 2 秒以内なら確実に収まる
+//   - ベンチが椅子にマッチを受理させてから 3 秒以内の椅子。受理は ENROUTE の送信なので、こちらが ENROUTE を受け取ってから
+//     1.5 秒以内なら、通信の遅れを見込んでも収まる。受理の前は出さない（ベンチ側で前のライドの評価が済んでいるか分からない。
+//     割り当てた時刻で 2 秒としたら、評価のレスポンスが遅れた椅子で CODE 30 が 1 秒に 35 件出た）
 var freeChairs atomic.Pointer[[]freeChair]
 
-// 割り当ててからこの時間は、付近の椅子に出す（ベンチの許容は受理から 3 秒）
-const nearbyMatchedGrace = 2 * time.Second
+// 椅子が受理（ENROUTE）してからこの時間は、付近の椅子に出す（ベンチの許容は受理から 3 秒）
+const nearbyAcceptedGrace = 1500 * time.Millisecond
+
+// 割り当てた椅子を、受理を待って付近の椅子に出す候補として持っておく時間
+const recentMatchedKeep = 5 * time.Second
 
 type matchedChair struct {
 	freeChair
-	at time.Time
+	ride *Ride
+	at   time.Time
 }
 
-// recentMatched は割り当ててから nearbyMatchedGrace 以内の椅子。matchRides だけが触る（tRides の書きロックの下）
+// recentMatched は割り当ててから recentMatchedKeep 以内の椅子。matchRides だけが触る（tRides の書きロックの下）
 var recentMatched []matchedChair
 
 // matchRides は空き椅子と待っているライドの全組み合わせを、乗車地点までの時間（迎えの距離 ÷ 速度）の短い順に割り当てる。
@@ -84,6 +90,7 @@ func matchRides() {
 		}
 	}
 	chairDone := make([]bool, len(free))
+	matchedRide := make([]*Ride, len(free))
 	// 付近の椅子の API に渡す一覧: 割り当て前の空き椅子すべてと、割り当ててから nearbyMatchedGrace 以内の椅子
 	defer func() {
 		t := now()
@@ -91,22 +98,28 @@ func matchRides() {
 		for ci, c := range free {
 			list = append(list, freeChair{c, aggs[ci]})
 			if chairDone[ci] {
-				recentMatched = append(recentMatched, matchedChair{freeChair{c, aggs[ci]}, t})
+				recentMatched = append(recentMatched, matchedChair{freeChair{c, aggs[ci]}, matchedRide[ci], t})
 			}
 		}
 		keep := recentMatched[:0]
 		for _, m := range recentMatched {
-			if t.Sub(m.at) < nearbyMatchedGrace {
+			if t.Sub(m.at) < recentMatchedKeep {
 				keep = append(keep, m)
 			}
 		}
 		recentMatched = keep
 		for _, m := range recentMatched {
 			// 今回割り当てた椅子は free に入っている。/api/initialize の後は前のストアの椅子を出さない
-			if m.at.Equal(t) || store.chairs[m.chair.ID] != m.chair || store.chairIsFree(m.chair.ID) {
+			if m.at.Equal(t) || store.chairs[m.chair.ID] != m.chair || store.rides[m.ride.ID] != m.ride {
 				continue
 			}
-			list = append(list, m.freeChair)
+			// 椅子が受理（ENROUTE）してから nearbyAcceptedGrace 以内だけ出す
+			for _, st := range store.statuses[m.ride.ID] {
+				if st.Status == "ENROUTE" && t.Sub(st.CreatedAt) < nearbyAcceptedGrace {
+					list = append(list, m.freeChair)
+					break
+				}
+			}
 		}
 		freeChairs.Store(&list)
 	}()
@@ -118,6 +131,7 @@ func matchRides() {
 	assign := func(ri, ci int) {
 		rideDone[ri], chairDone[ci] = true, true
 		ride, matched := store.unmatched[ri], free[ci]
+		matchedRide[ci] = ride
 		ride.ChairID = sql.NullString{String: matched.ID, Valid: true}
 		ride.UpdatedAt = now()
 		store.ridesByChair[matched.ID] = append(store.ridesByChair[matched.ID], ride)
