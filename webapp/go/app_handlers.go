@@ -452,6 +452,9 @@ func (s *Store) chairStatsOf(chairID string) appGetNotificationResponseChairStat
 	return stats
 }
 
+// 完了したライドの椅子を、付近の椅子に含めない時間（ベンチマーカーの許容は 3 秒）
+const nearbyExcludeAfterCompleted = 2 * time.Second
+
 func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	latStr := r.URL.Query().Get("latitude")
 	lonStr := r.URL.Query().Get("longitude")
@@ -485,6 +488,7 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	coordinate := Coordinate{Latitude: lat, Longitude: lon}
 
 	nearbyChairs := []appGetNearbyChairsResponseChair{}
+	nowT := now()
 	store.mu.RLock()
 	for _, chair := range store.chairList {
 		if !chair.IsActive {
@@ -493,8 +497,10 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 
 		// 過去にライドが存在し、かつ、それが完了していない場合はスキップ
 		// （前のライドが完了してから次が割り当てられるので、最新のライドだけを見れば足りる）
+		// 完了してから nearbyExcludeAfterCompleted の間も除く。ベンチマーカーは評価の応答を処理するまでその椅子を
+		// ライド中とみなす（CODE 30）。完了から 3 秒以内なら含めなくても許容される（CODE 31 の判定）
 		if ride := store.latestRideOfChair(chair.ID); ride != nil {
-			if status, _ := store.latestStatus(ride.ID); status != "COMPLETED" {
+			if status, _ := store.latestStatus(ride.ID); status != "COMPLETED" || nowT.Sub(ride.UpdatedAt) < nearbyExcludeAfterCompleted {
 				continue
 			}
 		}
