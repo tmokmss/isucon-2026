@@ -54,7 +54,7 @@ ssh -F test/.work/ssh_config isu1 'curl -s localhost:8080/version'
 | `digest.sh` / `digest-probe.ts` | report.md で alp / pt-query-digest の出力を畳む処理の検証 |
 | `setup.sh` / `setup-probe.ts` | `setup` の通し検証と、手元の `~/.ssh` を書き換える部分の検証 |
 | `top-probe.ts` | top の要約ロジックの確認 |
-| `fake-portal.ts` | ポータルの代役。Django 風の 302 / CSRF / ジョブ進行を返す |
+| `fake-portal.ts` | ポータルの代役。isuxportal 風の protobuf / 302 / CSRF / ジョブ進行を返す |
 | `lock-probe.ts` | ロックの取り合いを再現するための小さなプログラム |
 | `.work/` | 生成物（鍵・ssh_config・ダミーリポジトリ）。git 管理外 |
 

@@ -36,13 +36,13 @@ run_id_from_err() { sed -n 's/.*runId=\([^ ]*\).*/\1/p' "$ERR" | head -1; }
 rm -rf "$ISUH_RUNS_DIR"
 mkdir -p "$ISUH_RUNS_DIR"
 rm -f "$WORK/fake-score"
-printf 'sessionid=valid-session; csrftoken=tok123\n' >"$WORK/portal-cookie"
+printf 'isuxportal_session=valid-session\n' >"$WORK/portal-cookie"
 
 node --import tsx fake-portal.ts >"$WORK/fake-portal.log" 2>&1 &
 portal_pid=$!
 trap 'kill "$portal_pid" 2>/dev/null || true' EXIT
 i=0
-until curl -s -o /dev/null "http://127.0.0.1:18080/auth/login/" 2>/dev/null; do
+until curl -s -o /dev/null "http://127.0.0.1:18080/api/session" 2>/dev/null; do
   i=$((i + 1))
   [ "$i" -gt 50 ] && ng "fake-portal が起動しません"
   sleep 0.1

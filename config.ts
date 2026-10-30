@@ -57,19 +57,17 @@ export const config: Config = {
     resourceIntervalSec: 1,
   },
 
-  // 公開 API は無くブラウザ操作が前提。GitHub 認証の Django セッション Cookie を
-  // 手元に持ち出して使う。詳細は #3 と docs/DESIGN.md §7。
+  // 公開 API は無くブラウザ操作が前提。GitHub ログイン後のセッション Cookie
+  // （isuxportal_session）を手元に持ち出して使う。詳細は src/lib/portal.ts。
   portal: {
     base: "https://portal.isucon.net",
     cookieFile: `${process.env["HOME"]}/.isucon/portal-cookie`,
     teamId: "",
-    // Cookie の生死確認に使うページ。未ログインだと /auth/login/ へ 302 するところを選ぶ。
-    // トップ (/) は未ログインでも 200 を返すので向かない（実物で確認済み）。
-    whoamiPath: "/auth/settings/team/",
-    // 当日埋める。まずは `isuh portal get <path>` で探る。
-    enqueuePath: "",
-    jobPath: "", // 例: "/api/job/{job}" — {job} が job-id に置換される
-    scorePath: "",
+    // isuxportal の API（ポータルの JS から読み取ったもの）
+    whoamiPath: "/api/session",
+    enqueuePath: "/api/contestant/benchmark_jobs",
+    jobPath: "/api/contestant/benchmark_jobs/{job}",
+    scorePath: "/api/contestant/dashboard",
   },
 
   bench: {
