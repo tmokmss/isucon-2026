@@ -37,7 +37,7 @@ grep -q '"/api/user/.+"' "$CFG" || ng "alpMatches を差し込めません"
 
 rm -rf "$ISUH_RUNS_DIR"
 rm -f "$WORK/fake-score" "$WORK/fake-status"
-printf 'sessionid=valid-session; csrftoken=tok123\n' >"$WORK/portal-cookie"
+printf 'isuxportal_session=valid-session\n' >"$WORK/portal-cookie"
 
 ISUH_CONFIG="$CFG" "$ISUH" setup --only tools,logs >/dev/null 2>"$ERR" || ng "setup が失敗しました"
 
@@ -46,7 +46,7 @@ portal_pid=$!
 load_pids=""
 trap 'kill $portal_pid $load_pids 2>/dev/null || true' EXIT
 i=0
-until curl -s -o /dev/null "http://127.0.0.1:18080/auth/login/" 2>/dev/null; do
+until curl -s -o /dev/null "http://127.0.0.1:18080/api/session" 2>/dev/null; do
   i=$((i + 1))
   [ "$i" -gt 50 ] && ng "fake-portal が起動しません"
   sleep 0.1

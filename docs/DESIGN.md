@@ -164,41 +164,32 @@ bench は毎回自分の ref をデプロイし直すので、悪い版が載っ
 
 | サブコマンド | 役割 |
 |---|---|
-| `whoami` | Cookie が有効かの確認 |
-| `get <path>` | 任意のページを Cookie 付きで引いて stdout に出す |
+| `whoami` | Cookie が有効かの確認。チーム名と参加者名を出す |
+| `get <path>` | 任意の API を Cookie 付きで引いて stdout に出す（protobuf はフィールド番号で展開） |
 | `post <path> [k=v ...]` | 任意のパスへ CSRF 付きで POST する |
 | `enqueue` | ベンチを登録し、ジョブ ID を **stdout に出す** |
 | `status <job-id>` | ジョブ状態を出す（`pending` / `running` / `done` / `failed`） |
 | `wait <job-id>` | 完了まで待ち、結果 JSON を stdout に出す |
 | `score` | 最新の確定スコアを stdout に出す |
 
-`get` / `post` は**当日エンドポイントを探るため**にある。ブラウザの DevTools で
-フォームの action や fetch 先を見つけたら、まずここで叩いて形を確かめ、
-`config.portal` に書く。
+ポータルは isuxportal（Rails）。ブラウザの JS が叩く `/api/...` を protobuf で使う。
+エンドポイントとメッセージの形はポータルの JS に埋め込まれた descriptor から読み取り、
+`config.portal` に書いてある。`get` / `post` はそれが変わったときに探るためにある。
 
 **Cookie** — `portal.cookieFile` に Cookie ヘッダの中身を 1 行で置く。
 `#` 始まりの行は無視、複数行は `; ` で連結する。
 
 ```
-sessionid=<値>; csrftoken=<値>
+isuxportal_session=<値>
 ```
 
-POST は Django の CSRF を通すため、Cookie の `csrftoken` を `X-CSRFToken` ヘッダに
-載せ、`Referer` と `Origin` も付けて送る。
+POST の CSRF トークンはトップページの `<meta name="csrf-token">` から取り、
+`X-Csrf-Token` ヘッダに載せる。
 
-**ログイン切れの判定** — 3xx で `/auth/login` へ飛ばされる、401/403、のほかに
-**HTML 本文も見る**。ポータルのトップは未ログインでも 200 を返すため
-（実物で確認済み）、ステータスだけでは判定できない。未ログインなら
-`/auth/login/` へのリンク、ログイン済みならログアウトのフォーム
-（`<form action="/auth/logout/">`）が出る。
+**ログイン切れの判定** — 3xx で `/session/new/github` へ飛ばされる、401/403。
+`/api/session` は未ログインでも 200 を返すので、`whoami` は contestant が空かどうかで見る。
 
-中身の推測は壊れやすいので、`whoamiPath` の既定値は**未ログインだと 302 を返す**
-`/auth/settings/team/` にしてある（実物で確認済み。Cookie ありで 200、なしで
-`/auth/login/?next=...` へ 302）。
-
-> **ベンチ用のエンドポイントは当日にならないと分からない。**
-> URL とパラメータは `config.portal` に集約し、当日は埋めるだけにする。
-> 事前に検証できるのは `whoami` と `get` まで。
+**ベンチの対象** — ポータルの画面と同じく、`/api/session` の `contestant_instances` の先頭。
 
 ### `isuh deploy` が配るもの
 
@@ -572,7 +563,8 @@ kill しても実作業のプロセスが生き残り、ロックが残る。`bi
 | `lib/git.ts` | `resolveSha`（`config.app.repoLocal` で解決） |
 | `lib/lock.ts` | `acquireLock` / `Lock.release` |
 | `lib/collect.ts` | `resetLogs` / `startResourceSampling` / `collectMetrics` |
-| `lib/portal.ts` | `loadCookie` / `portalRequest` / `assertLoggedIn` / `asJson` / `pick` |
+| `lib/portal.ts` | `loadCookie` / `portalRequest` / `assertLoggedIn` / `isProto` |
+| `lib/proto.ts` | protobuf のワイヤ形式の最小限の読み書き |
 | `lib/run.ts` | `RunMeta` / `writeMeta` / `readHistory` / `appendHistory` / `bestRun` / `localIso` |
 | `lib/report.ts` | `writeReport` |
 | `lib/command.ts` | `Command` インターフェース |
@@ -618,7 +610,6 @@ deploy・bench・計測の回収は ssh を数十回張るため。`ISUH_SSH_MUX
 
 当日にならないと確定しないもの。**確定したら `config.ts` を埋めるだけで済む**ように作る。
 
-- ベンチ起動のエンドポイントとパラメータ（`portal.enqueuePath` / `portal.jobPath`）
 - サーバの台数と役割（`hosts.*`）
 - アプリのサービス名・バイナリ名・ビルドコマンド（`app.*`）
 - alp の URI 正規化パターン（`metrics.alpMatches`）

@@ -79,16 +79,17 @@ export interface MetricsConfig {
 
 export interface PortalConfig {
   base: string;
-  /** ブラウザから持ち出した sessionid / csrftoken を置くファイル */
+  /** ブラウザから持ち出した isuxportal_session を置くファイル */
   cookieFile: string;
+  /** 使っていない（ベンチの対象はセッションのインスタンス一覧から決まる） */
   teamId: string;
-  /** whoami が引く「ログインが必要なページ」。Cookie の生死確認だけに使う */
+  /** セッション（GetCurrentSessionResponse）を返す API。Cookie の生死確認とベンチの対象選びに使う */
   whoamiPath: string;
-  /** 当日判明したら埋める（ベンチ登録） */
+  /** ベンチ登録（EnqueueBenchmarkJobRequest を POST） */
   enqueuePath: string;
-  /** 当日判明したら埋める（ジョブ状態の取得）。`{job}` を job-id に置換する */
+  /** ジョブ状態の取得。`{job}` を job-id に置換する */
   jobPath: string;
-  /** 当日判明したら埋める（確定スコアの取得） */
+  /** 確定スコアの取得（DashboardResponse） */
   scorePath: string;
 }
 

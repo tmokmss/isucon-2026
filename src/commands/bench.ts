@@ -14,7 +14,6 @@ import { resolveSha, sameContent } from "../lib/git.js";
 import { acquireLock } from "../lib/lock.js";
 import { log, out } from "../lib/log.js";
 import { newRunId, runDir } from "../lib/paths.js";
-import { asJson, pick } from "../lib/portal.js";
 import { writeReport } from "../lib/report.js";
 import { sshOpts } from "../lib/ssh.js";
 import {
@@ -30,7 +29,7 @@ import {
 } from "../lib/run.js";
 import { command as checkCommand } from "./check.js";
 import { deploy } from "./deploy.js";
-import { SCORE_KEYS, STATUS_KEYS, enqueueBench, isPassStatus, waitBench } from "./portal.js";
+import { enqueueBench, waitBench } from "./portal.js";
 
 interface BenchOutcome {
   /** ポータルのジョブ ID。local では "local" */
@@ -44,25 +43,20 @@ interface BenchOutcome {
 
 const withNewline = (text: string): string => (text.endsWith("\n") ? text : `${text}\n`);
 
-/**
- * ポータルでベンチを起動して完了まで待つ。
- *
- * ポータルのエンドポイントは当日まで分からないので、パスは config.portal に集約し、
- * ここでは「登録 → 完了待ち → 生出力を bench.log に落とす」だけを行う。
- */
+/** ポータルでベンチを起動して完了まで待ち、ベンチマーカーの出力を bench.log に落とす。 */
 const runPortalBenchmark = async (cfg: Config, dir: string): Promise<BenchOutcome> => {
   const jobId = await enqueueBench(cfg);
-  const response = await waitBench(cfg, jobId);
-  writeFileSync(join(dir, "bench.log"), withNewline(response.body));
-
-  const json = asJson(response);
-  const rawStatus = (pick(json, STATUS_KEYS) ?? "unknown").toLowerCase();
-  const parsed = Number(pick(json, SCORE_KEYS) ?? "0");
+  const job = await waitBench(cfg, jobId);
+  const { stdout, stderr, ...summary } = job;
+  writeFileSync(
+    join(dir, "bench.log"),
+    `${JSON.stringify(summary)}\n\n--- stdout ---\n${withNewline(stdout)}\n--- stderr ---\n${withNewline(stderr)}`,
+  );
   return {
     jobId,
-    rawStatus,
-    status: isPassStatus(rawStatus) ? "pass" : "fail",
-    score: Number.isFinite(parsed) ? parsed : 0,
+    rawStatus: job.portalStatus,
+    status: job.status === "done" ? "pass" : "fail",
+    score: job.score,
   };
 };
 

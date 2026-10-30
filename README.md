@@ -35,14 +35,14 @@ bin/isuh history            # スコア台帳
 ## ポータルの Cookie を用意する
 
 ポータル（https://portal.isucon.net/ ）に公開 API は無く、ブラウザ操作が前提。
-GitHub 認証後の Django セッション Cookie を手元に持ち出して使う。
+GitHub 認証後のセッション Cookie を手元に持ち出して使う。
 
 1. ブラウザで https://portal.isucon.net/ にログインする
 2. DevTools → Application → Cookies → `https://portal.isucon.net`
-3. `sessionid` と `csrftoken` の値をコピーして、次の **1 行**をファイルに保存する
+3. `isuxportal_session` の値をコピーして、次の **1 行**をファイルに保存する
 
    ```
-   sessionid=<値>; csrftoken=<値>
+   isuxportal_session=<値>
    ```
 
 4. 置き場所を `config.ts` の `portal.cookieFile` に書く（既定 `~/.isucon/portal-cookie`）
@@ -51,15 +51,11 @@ DevTools の Network タブでリクエストを右クリック → Copy → Cop
 `-H 'Cookie: ...'` の中身を貼っても同じ。`#` 始まりの行はコメントとして無視される。
 
 ```sh
-bin/isuh portal whoami        # Cookie が生きているかの確認
-bin/isuh portal get /         # 任意のページを Cookie 付きで引く
+bin/isuh portal whoami            # Cookie が生きているかの確認（チーム名と参加者名が出る）
+bin/isuh portal get /api/session  # 任意の API を Cookie 付きで引く
 ```
 
 Cookie が切れていれば終了コード 65 で、取り直す手順ごと表示される。
-
-> **ベンチ起動のエンドポイントは当日まで分からない。**
-> `isuh portal get` で探って、`config.ts` の `portal.enqueuePath` /
-> `jobPath` / `scorePath` を埋める。
 
 ## コマンド
 

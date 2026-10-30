@@ -11,6 +11,7 @@ WORK="$TEST_DIR/.work"
 COOKIE="$WORK/portal-cookie"
 ERR="$WORK/portal.err"
 mkdir -p "$WORK"
+rm -f "$WORK/fake-score" "$WORK/fake-status"
 
 passed=0
 ng() {
@@ -36,7 +37,7 @@ portal_pid=$!
 trap 'kill "$portal_pid" 2>/dev/null || true' EXIT
 
 i=0
-until curl -s -o /dev/null "http://127.0.0.1:18080/auth/login/" 2>/dev/null; do
+until curl -s -o /dev/null "http://127.0.0.1:18080/api/session" 2>/dev/null; do
   i=$((i + 1))
   [ "$i" -gt 50 ] && ng "fake-portal が起動しません"
   sleep 0.1
@@ -49,67 +50,43 @@ run portal whoami
 grep -q "DevTools" "$ERR" || ng "Cookie の取り出し手順が出ていません"
 ok "Cookie が無いときに取り方を教えて 65 で落ちる"
 
-echo "== 2. Cookie が切れていれば exit 65"
-printf 'sessionid=expired; csrftoken=tok123\n' >"$COOKIE"
+echo "== 2. 200 を返す /api/session でもログイン切れを見分ける"
+printf 'isuxportal_session=expired\n' >"$COOKIE"
 run portal whoami
-[ "$rc" = 65 ] || ng "exit=$rc (65 のはず)"
+[ "$rc" = 65 ] || ng "exit=$rc (65 のはず) — contestant が空のセッションを有効と誤判定している"
 grep -q "Cookie が効いていません" "$ERR" || ng "ログイン切れと言っていません"
-grep -q "/auth/login" "$ERR" || ng "リダイレクト先が出ていません"
-ok "302 → /auth/login をログイン切れとして見分ける"
+ok "contestant の無いセッションをログイン切れとして扱う（実物のポータルで確認済みの挙動）"
 
-echo "== 3. 有効な Cookie なら whoami が通る"
-printf '# ブラウザから持ち出した Cookie\nsessionid=valid-session; csrftoken=tok123\n' >"$COOKIE"
+echo "== 3. 認証が要る API の 302 → /session/new をログイン切れとして見分ける"
+run portal score
+[ "$rc" = 65 ] || ng "exit=$rc (65 のはず)"
+grep -q "/session/new/github" "$ERR" || ng "リダイレクト先が出ていません"
+ok "302 → /session/new/github を 65 にする"
+
+echo "== 4. 有効な Cookie なら whoami がチーム名と参加者名を出す"
+printf '# ブラウザから持ち出した Cookie\nisuxportal_session=valid-session\n' >"$COOKIE"
 run portal whoami
 [ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
-[ "$out" = "チーム情報 | ISUCON" ] || ng "stdout='$out'"
-ok "認証必須ページを Cookie 付きで引ける（#3 の完了条件）"
+[ "$out" = "isuh-test / tester" ] || ng "stdout='$out'"
+grep -q "instance #1 id=101 public=192.0.2.1" "$ERR" || ng "インスタンス一覧が出ていません"
+ok "セッションを protobuf で読める"
 
-echo "== 3b. 200 を返すトップページでもログイン切れを見分ける"
-# 本物のポータルの / は未ログインでも 200 を返す。ステータスだけでは判定できない。
-TOPCFG="$WORK/config.top.ts"
-sed -e 's|whoamiPath: "/team/"|whoamiPath: "/"|' -e 's|join(here, ".work", "portal-cookie")|join(here, "portal-cookie")|' \
-  "$TEST_DIR/config.test.ts" >"$TOPCFG"
-printf 'sessionid=expired; csrftoken=tok123\n' >"$WORK/portal-cookie"
-set +e
-out=$(ISUH_CONFIG="$TOPCFG" "$ISUH" portal whoami 2>"$ERR")
-rc=$?
-set -e
-[ "$rc" = 65 ] || ng "exit=$rc (65 のはず) — 200 のトップを有効と誤判定している"
-printf '# ブラウザから持ち出した Cookie\nsessionid=valid-session; csrftoken=tok123\n' >"$WORK/portal-cookie"
-set +e
-out=$(ISUH_CONFIG="$TOPCFG" "$ISUH" portal whoami 2>"$ERR")
-rc=$?
-set -e
-[ "$rc" = 0 ] || ng "exit=$rc (0 のはず)"
-[ "$out" = "ISUCON2026 Portal" ] || ng "stdout='$out'"
-ok "ナビのログイン/ログアウトリンクで見分ける（実物のポータルで確認済みの挙動）"
-
-echo "== 4. get は任意のページを引ける"
-run portal get /team/
+echo "== 5. get は protobuf をフィールド番号で展開して出す"
+run portal get /api/session
 [ "$rc" = 0 ] || ng "exit=$rc"
 case "$out" in
-  *"チーム情報"*) ok "get で生のページが取れる" ;;
+  *'"2": "isuh-test"'*) ok "get で API の中身が読める" ;;
   *) ng "stdout='$out'" ;;
 esac
 
-echo "== 5. POST は CSRF が通る"
-run portal post /api/bench/enqueue team=7
-[ "$rc" = 0 ] || ng "exit=$rc (CSRF で弾かれた可能性): $(tail -2 "$ERR")"
-case "$out" in
-  *'"job_id":"4321"'*) ok "X-CSRFToken が受理される" ;;
-  *) ng "stdout='$out'" ;;
-esac
+echo "== 6. POST はトップの csrf-token を X-Csrf-Token に載せる"
+run portal post /api/contestant/benchmark_jobs
+# 本体が空なので target_id 違いの 400 になる。CSRF で弾かれたなら 422
+[ "$rc" = 0 ] || ng "exit=$rc"
+grep -q "HTTP 400" "$ERR" || ng "CSRF を通っていません: $(grep HTTP "$ERR")"
+ok "CSRF を通る"
 
-echo "== 6. csrftoken が無ければ POST は 403 になる（警告が出る）"
-printf 'sessionid=valid-session\n' >"$COOKIE"
-run portal post /api/bench/enqueue
-[ "$rc" = 65 ] || ng "exit=$rc (65 のはず)"
-grep -q "csrftoken がありません" "$ERR" || ng "csrftoken が無いことを警告していません"
-ok "csrftoken 欠けを警告し、403 をログイン切れとして扱う"
-
-printf 'sessionid=valid-session; csrftoken=tok123\n' >"$COOKIE"
-
-echo "== 7. enqueue が job-id を stdout に出す"
+echo "== 7. enqueue が job-id を stdout に出す（対象はインスタンス一覧の先頭）"
 run portal enqueue
 [ "$rc" = 0 ] || ng "exit=$rc"
 [ "$out" = "4321" ] || ng "stdout='$out' (4321 のはず)"
@@ -122,27 +99,38 @@ run portal status 4321
 run portal wait 4321
 [ "$rc" = 0 ] || ng "exit=$rc"
 case "$out" in
-  *'"status":"done"'*) ok "wait が完了まで追って結果 JSON を出す" ;;
+  *'"status":"done"'*'"score":12345,"raw":12445,"deduction":100'*) ok "wait が完了まで追って減点の内訳つきの結果 JSON を出す" ;;
   *) ng "stdout='$out'" ;;
 esac
 
-echo "== 9. score が取れる"
+echo "== 9. 不合格のジョブは failed になる"
+echo fail >"$WORK/fake-status"
+run portal enqueue
+run portal wait 4321
+rm -f "$WORK/fake-status"
+[ "$rc" = 0 ] || ng "exit=$rc"
+case "$out" in
+  *'"status":"failed"'*'"portalStatus":"finished"'*'整合性チェック'*) ok "passed=false を failed として理由つきで出す" ;;
+  *) ng "stdout='$out'" ;;
+esac
+
+echo "== 10. score が取れる"
 run portal score
 [ "$rc" = 0 ] || ng "exit=$rc"
 [ "$out" = "12345" ] || ng "stdout='$out' (12345 のはず)"
 ok "score が確定スコアだけを出す"
 
-echo "== 10. 未設定のエンドポイントは 65 で「当日埋める」と言う"
+echo "== 11. 未設定のエンドポイントは 65"
 ISUH_CONFIG="$TEST_DIR/.work/config.noendpoint.ts"
-sed 's|scorePath: "/api/score"|scorePath: ""|' "$TEST_DIR/config.test.ts" >"$ISUH_CONFIG"
+sed 's|scorePath: "/api/contestant/dashboard"|scorePath: ""|' "$TEST_DIR/config.test.ts" >"$ISUH_CONFIG"
 export ISUH_CONFIG
 run portal score
 [ "$rc" = 65 ] || ng "exit=$rc (65 のはず)"
-grep -q "当日" "$ERR" || ng "当日埋めるという案内が出ていません"
+grep -q "scorePath が空" "$ERR" || ng "どの設定が空かを言っていません"
 export ISUH_CONFIG="$TEST_DIR/config.test.ts"
 ok "未設定のパスは設定不備として落ちる"
 
-echo "== 11. 引数不正は 64"
+echo "== 12. 引数不正は 64"
 run portal
 [ "$rc" = 64 ] || ng "exit=$rc"
 run portal nosuchsub

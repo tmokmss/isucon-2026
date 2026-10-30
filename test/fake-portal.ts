@@ -1,33 +1,31 @@
 /**
- * ポータルの代役。Django 風の挙動だけを真似る。
+ * ポータルの代役。isuxportal の挙動だけを真似る。
  *
- *   - 認証が要るページに未認証で来たら /auth/login/ へ 302
- *   - POST は Cookie の csrftoken と X-CSRFToken が一致しなければ 403
- *   - ベンチのジョブは pending → running → done と進む
- *
- * 本物のポータルは当日までエンドポイントが分からないので、ここで確かめるのは
- * 「Cookie を付けて叩けるか」「ログイン切れを見分けられるか」「CSRF が通るか」
- * の 3 点だけ。
+ *   - Cookie は isuxportal_session。/api/session は未ログインでも 200（contestant が空）
+ *   - /api/contestant/* に未ログインで来たら /session/new/github へ 302
+ *   - POST は X-Csrf-Token がトップの <meta name="csrf-token"> と一致しなければ 422
+ *   - 本体は protobuf。ベンチのジョブは PENDING → RUNNING → FINISHED と進む
  */
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
+import { decode, encodeInt, encodeMsg, encodeStr, int } from "../src/lib/proto.js";
 
 const PORT = Number(process.env["ISUH_FAKE_PORTAL_PORT"] ?? "18080");
 const VALID_SESSION = "valid-session";
+const CSRF_TOKEN = "csrf-for-valid-session";
+const TARGET_ID = 101;
 
-/** 返すスコア。テストから .work/fake-score を書き換えて変えられる。 */
-const SCORE_FILE = new URL(".work/fake-score", import.meta.url);
-const currentScore = (): number => {
+/** テストから .work/ のファイルで挙動を変える。fake-score はスコア、fake-status に fail と書くと不合格。 */
+const readWork = (name: string): string | undefined => {
   try {
-    const value = Number(readFileSync(SCORE_FILE, "utf8").trim());
-    if (Number.isFinite(value)) return value;
+    return readFileSync(new URL(`.work/${name}`, import.meta.url), "utf8").trim();
   } catch {
-    /* 無ければ既定値 */
+    return undefined;
   }
-  return 12345;
 };
+const currentScore = (): number => Number(readWork("fake-score") ?? "12345");
 
-/** job-id → status を返した回数。3 回目で done にする。 */
+/** job-id → 状態を返した回数。3 回目で FINISHED にする。 */
 const polls = new Map<string, number>();
 
 const cookiesOf = (header: string | undefined): Record<string, string> => {
@@ -39,84 +37,99 @@ const cookiesOf = (header: string | undefined): Record<string, string> => {
   return result;
 };
 
+// isuxportal/resources/benchmark_job.proto の BenchmarkJob
+const job = (id: number, status: number, result?: Uint8Array): Uint8Array =>
+  encodeMsg(1, encodeInt(1, id), encodeInt(3, TARGET_ID), encodeInt(4, status), ...(result ? [result] : []));
+
 const server = createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://127.0.0.1:${PORT}`);
-  const cookies = cookiesOf(req.headers.cookie);
-  const authed = cookies["sessionid"] === VALID_SESSION;
+  const authed = cookiesOf(req.headers.cookie)["isuxportal_session"] === VALID_SESSION;
+  const chunks: Buffer[] = [];
+  req.on("data", (chunk: Buffer) => chunks.push(chunk));
+  req.on("end", () => {
+    const body = Buffer.concat(chunks);
+    const proto = (name: string, bytes: Uint8Array, status = 200): void => {
+      res.writeHead(status, { "content-type": `application/protobuf; proto=isuxportal.proto.${name}` });
+      res.end(bytes);
+    };
+    const html = (status: number, text: string): void => {
+      res.writeHead(status, { "content-type": "text/html; charset=utf-8" });
+      res.end(text);
+    };
 
-  const send = (status: number, contentType: string, body: string): void => {
-    res.writeHead(status, { "content-type": contentType, vary: "Cookie" });
-    res.end(body);
-  };
-  const json = (status: number, value: unknown): void =>
-    send(status, "application/json", JSON.stringify(value));
-
-  // ログインページは誰でも見られる
-  if (url.pathname === "/auth/login/") {
-    send(200, "text/html; charset=utf-8", "<html><title>Sign in</title></html>");
-    return;
-  }
-
-  // トップは未ログインでも 200 を返す（本物のポータルがそうなっている）。
-  // 見分けはナビ: 未ログインならログインのリンク、ログイン済みならログアウトのフォーム。
-  if (url.pathname === "/") {
-    const nav = authed
-      ? '<form method="post" action="/auth/logout/"><button>ログアウト</button></form>'
-      : '<a href="/auth/login/">ログイン</a>';
-    send(200, "text/html; charset=utf-8", `<html><head><title>ISUCON2026 Portal</title></head><body>${nav}</body></html>`);
-    return;
-  }
-
-  if (!authed) {
-    res.writeHead(302, { location: `/auth/login/?next=${encodeURIComponent(url.pathname)}` });
-    res.end();
-    return;
-  }
-
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    const sent = req.headers["x-csrftoken"];
-    if (typeof sent !== "string" || sent === "" || sent !== cookies["csrftoken"]) {
-      send(403, "text/html; charset=utf-8", "<html><title>CSRF verification failed</title></html>");
+    if (url.pathname === "/") {
+      const token = authed ? CSRF_TOKEN : "csrf-for-guest";
+      html(200, `<html><head><title>ISUCON2026 Portal</title><meta name="csrf-token" content="${token}"></head></html>`);
       return;
     }
-  }
 
-  if (url.pathname === "/team/") {
-    send(
-      200,
-      "text/html; charset=utf-8",
-      '<html><head><title>チーム情報 | ISUCON</title></head><body><a href="/auth/logout/">ログアウト</a></body></html>',
-    );
-    return;
-  }
-
-  if (url.pathname === "/api/bench/enqueue" && req.method === "POST") {
-    // 登録のたびに進行をリセットする。毎回 pending → running → done を辿らせて、
-    // ベンチがある程度の時間続く状況（= リソース計測が意味を持つ状況）を作る。
-    polls.delete("4321");
-    json(200, { job_id: "4321", status: "pending" });
-    return;
-  }
-
-  const jobMatch = /^\/api\/bench\/job\/([^/]+)$/.exec(url.pathname);
-  if (jobMatch !== null) {
-    const id = jobMatch[1]!;
-    const seen = (polls.get(id) ?? 0) + 1;
-    polls.set(id, seen);
-    if (seen >= 3) {
-      json(200, { job_id: id, status: "done", score: currentScore(), reason: "" });
+    if (url.pathname === "/api/session") {
+      const session = authed
+        ? Buffer.concat([
+            encodeMsg(1, encodeInt(1, 7), encodeStr(2, "isuh-test")),
+            encodeMsg(2, encodeInt(1, 70), encodeStr(3, "tester")),
+            encodeMsg(5, encodeInt(7, TARGET_ID), encodeInt(3, 1), encodeStr(4, "192.0.2.1"), encodeStr(5, "10.0.0.1")),
+            encodeMsg(5, encodeInt(7, 102), encodeInt(3, 2), encodeStr(4, "192.0.2.2"), encodeStr(5, "10.0.0.2")),
+          ])
+        : new Uint8Array();
+      proto("services.common.GetCurrentSessionResponse", session);
       return;
     }
-    json(200, { job_id: id, status: seen === 1 ? "pending" : "running" });
-    return;
-  }
 
-  if (url.pathname === "/api/score") {
-    json(200, { team: "7", score: currentScore() });
-    return;
-  }
+    if (!authed) {
+      res.writeHead(302, { location: `/session/new/github?back_to=${encodeURIComponent(url.pathname)}` });
+      res.end();
+      return;
+    }
 
-  send(404, "text/html; charset=utf-8", "<html><title>Not Found</title></html>");
+    if (req.method !== "GET" && req.headers["x-csrf-token"] !== CSRF_TOKEN) {
+      proto("Error", encodeStr(3, "ActionController::InvalidAuthenticityToken"), 422);
+      return;
+    }
+
+    if (url.pathname === "/api/contestant/benchmark_jobs" && req.method === "POST") {
+      if (int(decode(body), 1) !== TARGET_ID) {
+        proto("Error", encodeStr(3, "target_id が違います"), 400);
+        return;
+      }
+      // 登録のたびに進行をリセットする。毎回 PENDING → RUNNING → FINISHED を辿らせて、
+      // ベンチがある程度の時間続く状況（= リソース計測が意味を持つ状況）を作る。
+      polls.delete("4321");
+      proto("services.contestant.EnqueueBenchmarkJobResponse", job(4321, 0));
+      return;
+    }
+
+    const jobMatch = /^\/api\/contestant\/benchmark_jobs\/(\d+)$/.exec(url.pathname);
+    if (jobMatch !== null) {
+      const id = Number(jobMatch[1]);
+      const seen = (polls.get(String(id)) ?? 0) + 1;
+      polls.set(String(id), seen);
+      if (seen < 3) {
+        proto("services.contestant.GetBenchmarkJobResponse", job(id, seen === 1 ? 0 : 1));
+        return;
+      }
+      const passed = readWork("fake-status") !== "fail";
+      // BenchmarkResult { finished=1 passed=2 score=3 score_breakdown=4 { raw=1 deduction=2 } execution=5 { reason=1 stdout=2 stderr=3 } }
+      const result = encodeMsg(
+        18,
+        encodeInt(1, 1),
+        encodeInt(2, passed ? 1 : 0),
+        encodeInt(3, passed ? currentScore() : 0),
+        encodeMsg(4, encodeInt(1, passed ? currentScore() + 100 : 0), encodeInt(2, passed ? 100 : 0)),
+        encodeMsg(5, encodeStr(1, passed ? "" : "fail: 整合性チェックに失敗"), encodeStr(2, "bench stdout"), encodeStr(3, "bench stderr")),
+      );
+      proto("services.contestant.GetBenchmarkJobResponse", job(id, 4, result));
+      return;
+    }
+
+    if (url.pathname === "/api/contestant/dashboard") {
+      // DashboardResponse { leaderboard_item=1 { latest_score=3 { score=1 } } }
+      proto("services.contestant.DashboardResponse", encodeMsg(1, encodeMsg(3, encodeInt(1, currentScore()))));
+      return;
+    }
+
+    html(404, "<html><title>Not Found</title></html>");
+  });
 });
 
 server.listen(PORT, "127.0.0.1", () => {

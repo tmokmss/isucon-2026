@@ -5,12 +5,12 @@ import { EXIT, HarnessError, configError, usageError } from "../lib/exit.js";
 import { log, out } from "../lib/log.js";
 import {
   type PortalResponse,
-  asJson,
   assertLoggedIn,
-  pick,
+  isProto,
+  loggedOutError,
   portalRequest,
-  titleOf,
 } from "../lib/portal.js";
+import { type Fields, bool, decode, dumpFields, encodeInt, int, msg, msgs, str } from "../lib/proto.js";
 
 const SUBCOMMANDS = ["whoami", "get", "post", "enqueue", "status", "wait", "score"] as const;
 type Sub = (typeof SUBCOMMANDS)[number];
@@ -22,98 +22,164 @@ const requirePath = (value: string, name: string): string => {
   if (value !== "") return value;
   throw configError(
     `config.ts の portal.${name} が空です。当日、ポータルの該当エンドポイントを埋めてください。\n` +
-      `  探すには: isuh portal get / でページを引いて、フォームの action や fetch 先を見る。`,
+      `  探すには: isuh portal get <path> で API を引いて中身を見る。`,
   );
 };
 
-const dump = (response: PortalResponse): void => {
-  out(response.body);
-};
-
-/** ジョブ状態の候補キー。当日の JSON の形が分からないので順に見る。 */
-export const STATUS_KEYS = ["status", "state", "job_status", "jobStatus"] as const;
-export const JOB_ID_KEYS = ["job_id", "jobId", "id", "uuid"] as const;
-export const SCORE_KEYS = ["score", "total_score", "totalScore"] as const;
-
-const TERMINAL = new Set(["done", "finished", "completed", "success", "failed", "error", "aborted"]);
-
-/** 完走してスコアが付いた状態か。 */
-export const isPassStatus = (status: string): boolean =>
-  ["done", "finished", "completed", "success", "passed"].includes(status.toLowerCase());
-
-const jobPathFor = (cfg: Config, jobId: string): string =>
-  requirePath(cfg.portal.jobPath, "jobPath").replace("{job}", encodeURIComponent(jobId));
-
-const fetchStatus = async (cfg: Config, jobId: string): Promise<{ status: string; response: PortalResponse }> => {
-  const response = await portalRequest(cfg, jobPathFor(cfg, jobId));
-  assertLoggedIn(cfg, response);
-  if (response.status >= 400) {
-    throw benchError(`ジョブ状態を取得できません (HTTP ${response.status}) ${response.url}`);
-  }
-  const json = asJson(response);
-  const status = pick(json, STATUS_KEYS);
-  if (status === undefined) {
+/** API を引いて protobuf を読む。ログイン切れ・エラー応答はここで落とす。 */
+const fetchProto = async (
+  cfg: Config,
+  path: string,
+  what: string,
+  proto?: Uint8Array,
+): Promise<Fields> => {
+  const response = await portalRequest(cfg, path, proto === undefined ? {} : { proto });
+  assertLoggedIn(response);
+  if (response.status >= 400 || !isProto(response)) {
     throw benchError(
-      `ジョブ状態を読み取れません。返ってきたものを見て portal.jobPath を直してください。\n` +
-        `  ${response.url} (HTTP ${response.status}, ${response.contentType})\n` +
-        `${response.body.slice(0, 800)}`,
+      `${what}に失敗しました (HTTP ${response.status}, ${response.contentType}) ${response.url}\n` +
+        `${describe(response).slice(0, 800)}`,
     );
   }
-  return { status: status.toLowerCase(), response };
+  return decode(response.bytes);
 };
 
-/** ベンチを登録して job-id を返す。bench(#2) から呼ぶ。 */
+/** エラー応答の中身。protobuf の Error（human_message 等）なら読めるように展開する。 */
+const describe = (response: PortalResponse): string => {
+  if (!/protobuf/i.test(response.contentType)) return response.body;
+  try {
+    return JSON.stringify(dumpFields(decode(response.bytes)));
+  } catch {
+    return response.body;
+  }
+};
+
+/** isuxportal.proto.resources.BenchmarkJob.Status */
+const JOB_STATUS = ["pending", "running", "errored", "cancelled", "finished"] as const;
+
+export interface BenchJob {
+  id: string;
+  /** docs/DESIGN.md の isuh portal status の値（pending / running / done / failed） */
+  status: "pending" | "running" | "done" | "failed";
+  /** ポータルの BenchmarkJob.Status をそのまま小文字にしたもの */
+  portalStatus: string;
+  passed: boolean;
+  score: number;
+  /** 減点前のスコア */
+  raw: number;
+  deduction: number;
+  reason: string;
+  stdout: string;
+  stderr: string;
+}
+
+/** {Get,Enqueue}BenchmarkJobResponse の job（field 1）を読む */
+const jobOf = (response: Fields): BenchJob => {
+  const job = msg(response, 1);
+  const result = msg(job, 18);
+  const execution = msg(result, 5);
+  const portalStatus = JOB_STATUS[int(job, 4)] ?? `unknown(${int(job, 4)})`;
+  const status =
+    portalStatus === "pending" || portalStatus === "running"
+      ? portalStatus
+      : portalStatus === "finished" && bool(result, 2)
+        ? "done"
+        : "failed";
+  return {
+    id: String(int(job, 1)),
+    status,
+    portalStatus,
+    passed: bool(result, 2),
+    score: int(result, 3),
+    // BenchmarkResult.ScoreBreakdown { raw = 1, deduction = 2 }
+    raw: int(msg(result, 4), 1),
+    deduction: int(msg(result, 4), 2),
+    reason: str(execution, 1),
+    stdout: str(execution, 2),
+    stderr: str(execution, 3),
+  };
+};
+
+interface Session {
+  team: string;
+  contestant: string;
+  instances: { id: number; number: number; publicIp: string; privateIp: string }[];
+}
+
+/** GetCurrentSessionResponse。/api/session は未ログインでも 200 を返すので contestant の有無で見る。 */
+const fetchSession = async (cfg: Config): Promise<Session> => {
+  const path = cfg.portal.whoamiPath === "" ? "/api/session" : cfg.portal.whoamiPath;
+  const response = await portalRequest(cfg, path);
+  assertLoggedIn(response);
+  if (response.status >= 400 || !isProto(response)) {
+    throw benchError(`ポータルが想定外の応答を返しました (HTTP ${response.status}, ${response.contentType}) ${response.url}`);
+  }
+  const session = decode(response.bytes);
+  const contestant = msg(session, 2);
+  if (contestant.size === 0) throw loggedOutError(response);
+  return {
+    team: str(msg(session, 1), 2),
+    contestant: str(contestant, 3),
+    instances: msgs(session, 5).map((instance) => ({
+      id: int(instance, 7),
+      number: int(instance, 3),
+      publicIp: str(instance, 4),
+      privateIp: str(instance, 5),
+    })),
+  };
+};
+
+const fetchJob = async (cfg: Config, jobId: string): Promise<BenchJob> => {
+  const path = requirePath(cfg.portal.jobPath, "jobPath").replace("{job}", encodeURIComponent(jobId));
+  return jobOf(await fetchProto(cfg, path, "ジョブ状態の取得"));
+};
+
+/**
+ * ベンチを登録して job-id を返す。bench(#2) から呼ぶ。
+ * 対象はポータルの画面と同じく、セッションの contestant_instances の先頭。
+ */
 export const enqueueBench = async (cfg: Config): Promise<string> => {
   const path = requirePath(cfg.portal.enqueuePath, "enqueuePath");
-  const form: Record<string, string> = {};
-  if (cfg.portal.teamId !== "") form["team"] = cfg.portal.teamId;
-  const response = await portalRequest(cfg, path, { form });
-  assertLoggedIn(cfg, response);
-  if (response.status >= 400) {
-    throw benchError(
-      `ベンチを登録できません (HTTP ${response.status}) ${response.url}\n${response.body.slice(0, 800)}`,
-    );
+  const target = (await fetchSession(cfg)).instances[0];
+  if (target === undefined) {
+    throw benchError("ポータルにチームのインスタンスがありません（ベンチの対象が決まりません）");
   }
-  // JSON に job id があればそれ。無ければリダイレクト先の末尾を見る。
-  const jobId =
-    pick(asJson(response), JOB_ID_KEYS) ?? /\/(\w[\w-]*)\/?$/.exec(response.location ?? "")?.[1];
-  if (jobId === undefined) {
-    throw benchError(
-      `ジョブ ID を読み取れません。返ってきたものを見て実装を合わせてください。\n` +
-        `  HTTP ${response.status} ${response.contentType} Location=${response.location}\n` +
-        `${response.body.slice(0, 800)}`,
-    );
-  }
-  log.info(`ベンチを登録しました job=${jobId}`);
-  return jobId;
+  // EnqueueBenchmarkJobRequest { int64 target_id = 1 }
+  const job = jobOf(await fetchProto(cfg, path, "ベンチの登録", encodeInt(1, target.id)));
+  log.info(`ベンチを登録しました job=${job.id} target=${target.publicIp}`);
+  return job.id;
 };
 
-/** 完了まで待って最後のレスポンスを返す。bench(#2) から呼ぶ。 */
-export const waitBench = async (cfg: Config, jobId: string): Promise<PortalResponse> => {
+/** 完了まで待って最後のジョブを返す。bench(#2) から呼ぶ。 */
+export const waitBench = async (cfg: Config, jobId: string): Promise<BenchJob> => {
   const deadline = Date.now() + cfg.bench.timeoutSec * 1000;
   let last = "";
   for (;;) {
-    const { status, response } = await fetchStatus(cfg, jobId);
-    if (status !== last) {
-      log.info(`job=${jobId} ${status}`);
-      last = status;
+    const job = await fetchJob(cfg, jobId);
+    if (job.portalStatus !== last) {
+      log.info(`job=${jobId} ${job.portalStatus}`);
+      last = job.portalStatus;
     }
-    if (TERMINAL.has(status)) return response;
+    if (job.status === "done" || job.status === "failed") return job;
     if (Date.now() > deadline) {
       throw benchError(
-        `ベンチの完了を待てませんでした (${cfg.bench.timeoutSec}s, 最後の状態: ${status})`,
+        `ベンチの完了を待てませんでした (${cfg.bench.timeoutSec}s, 最後の状態: ${job.portalStatus})`,
       );
     }
     await delay(2000);
   }
 };
 
+const dump = (response: PortalResponse): void => {
+  out(/protobuf/i.test(response.contentType) ? JSON.stringify(dumpFields(decode(response.bytes)), null, 2) : response.body);
+};
+
 export const command: Command = {
   summary: "ポータルを Cookie 付きの HTTP で操作する",
   usage: `usage: isuh portal <subcommand> [args]
 
-  whoami            Cookie が有効か確認する（認証必須ページを引けるか）
-  get <path>        任意のページを Cookie 付きで引いて stdout に出す
+  whoami            Cookie が有効か確認し、チーム名と参加者名を出す
+  get <path>        任意の API を Cookie 付きで引いて stdout に出す（protobuf はフィールド番号で展開）
   post <path> [k=v ...]
                     任意のパスへ CSRF 付きで POST する
   enqueue           ベンチを登録し、ジョブ ID を stdout に出す
@@ -121,19 +187,16 @@ export const command: Command = {
   wait <job-id>     完了まで待ち、結果 JSON を stdout に出す
   score             最新の確定スコアを stdout に出す
 
-ポータル (https://portal.isucon.net/) に公開 API は無く、ブラウザ操作が前提。
-認証は /auth/login/ からの GitHub 認証で、Django のセッション Cookie 方式
-（レスポンスに vary: Cookie）。ブラウザでログインした後の sessionid と
-csrftoken を portal.cookieFile に 1 行で置いて使う。
+ポータル (https://portal.isucon.net/) は isuxportal。公開 API は無く、
+ブラウザの JS が叩く /api/... を protobuf で使う。認証は GitHub ログイン後の
+セッション Cookie。ブラウザから isuxportal_session を portal.cookieFile に
+1 行で置いて使う。
 
-    sessionid=<値>; csrftoken=<値>
+    isuxportal_session=<値>
 
-POST には CSRF が要る。Cookie の csrftoken を X-CSRFToken ヘッダに載せ、
-Referer / Origin も付けて送る。
-
-ベンチ用のエンドポイントは当日にならないと分からない。
-まず get で探り、判明したら config.ts の portal.enqueuePath / jobPath /
-scorePath を埋める。事前に検証できるのは whoami と get まで。
+POST の CSRF トークンはトップページの <meta name="csrf-token"> から取って
+X-Csrf-Token ヘッダに載せる。ベンチの対象はポータルの画面と同じく、
+チームのインスタンス一覧の先頭。
 
 終了コード: 0 / 40 ポータルの応答が想定外 / 64 引数不正 / 65 Cookie 切れ・設定不備`,
 
@@ -141,7 +204,6 @@ scorePath を埋める。事前に検証できるのは whoami と get まで。
     const sub = argv[0];
     if (sub === undefined) throw usageError("サブコマンドが必要です");
     if (!SUBCOMMANDS.includes(sub as Sub)) throw usageError(`不明なサブコマンド: ${sub}`);
-
     // 引数の検証は設定の読み込みより先。
     if (sub === "status" || sub === "wait") {
       if (argv[1] === undefined) throw usageError(`${sub} には job-id が必要です`);
@@ -154,27 +216,24 @@ scorePath を埋める。事前に検証できるのは whoami と get まで。
 
     switch (sub) {
       case "whoami": {
-        const path = cfg.portal.whoamiPath === "" ? "/" : cfg.portal.whoamiPath;
-        const response = await portalRequest(cfg, path);
-        assertLoggedIn(cfg, response);
-        if (response.status >= 400) {
-          throw benchError(`ポータルが ${response.status} を返しました: ${response.url}`);
+        const session = await fetchSession(cfg);
+        log.info("Cookie は有効です");
+        for (const instance of session.instances) {
+          log.info(
+            `  instance #${instance.number} id=${instance.id} public=${instance.publicIp} private=${instance.privateIp}`,
+          );
         }
-        const title = titleOf(response.body);
-        log.info(`Cookie は有効です (HTTP ${response.status}) ${response.url}`);
-        out(title ?? `ok ${response.status}`);
+        out(`${session.team} / ${session.contestant}`);
         return;
       }
-
       case "get": {
         const response = await portalRequest(cfg, argv[1]!);
-        assertLoggedIn(cfg, response);
+        assertLoggedIn(response);
         log.info(`HTTP ${response.status} ${response.contentType} ${response.url}`);
         if (response.location !== null) log.info(`Location: ${response.location}`);
         dump(response);
         return;
       }
-
       case "post": {
         const form: Record<string, string> = {};
         for (const pair of argv.slice(2)) {
@@ -183,45 +242,30 @@ scorePath を埋める。事前に検証できるのは whoami と get まで。
           form[pair.slice(0, index)] = pair.slice(index + 1);
         }
         const response = await portalRequest(cfg, argv[1]!, { form });
-        assertLoggedIn(cfg, response);
+        assertLoggedIn(response);
         log.info(`HTTP ${response.status} ${response.contentType} ${response.url}`);
         if (response.location !== null) log.info(`Location: ${response.location}`);
         dump(response);
         return;
       }
-
       case "enqueue": {
         out(await enqueueBench(cfg));
         return;
       }
-
       case "status": {
-        const { status } = await fetchStatus(cfg, argv[1]!);
-        out(status);
+        out((await fetchJob(cfg, argv[1]!)).status);
         return;
       }
-
       case "wait": {
-        out((await waitBench(cfg, argv[1]!)).body);
+        out(JSON.stringify(await waitBench(cfg, argv[1]!)));
         return;
       }
-
       case "score": {
-        const path = requirePath(cfg.portal.scorePath, "scorePath");
-        const response = await portalRequest(cfg, path);
-        assertLoggedIn(cfg, response);
-        if (response.status >= 400) {
-          throw benchError(`スコアを取得できません (HTTP ${response.status}) ${response.url}`);
-        }
-        const score = pick(asJson(response), SCORE_KEYS);
-        if (score === undefined) {
-          throw benchError(
-            `スコアを読み取れません。返ってきたものを見て portal.scorePath を直してください。\n` +
-              `  ${response.url} (HTTP ${response.status}, ${response.contentType})\n` +
-              `${response.body.slice(0, 800)}`,
-          );
-        }
-        out(score);
+        // DashboardResponse { LeaderboardItem leaderboard_item = 1 { LeaderboardScore latest_score = 3 { int64 score = 1 } } }
+        const dashboard = await fetchProto(cfg, requirePath(cfg.portal.scorePath, "scorePath"), "スコアの取得");
+        const item = msg(dashboard, 1);
+        if (!item.has(3)) throw benchError("確定したスコアがまだありません");
+        out(String(int(msg(item, 3), 1)));
         return;
       }
     }
