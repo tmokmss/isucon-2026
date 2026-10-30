@@ -99,7 +99,7 @@ run portal status 4321
 run portal wait 4321
 [ "$rc" = 0 ] || ng "exit=$rc"
 case "$out" in
-  *'"status":"done"'*'"score":12345'*) ok "wait が完了まで追って結果 JSON を出す" ;;
+  *'"status":"done"'*'"score":12345,"raw":12445,"deduction":100'*) ok "wait が完了まで追って減点の内訳つきの結果 JSON を出す" ;;
   *) ng "stdout='$out'" ;;
 esac
 

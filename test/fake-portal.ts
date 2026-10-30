@@ -109,12 +109,13 @@ const server = createServer((req, res) => {
         return;
       }
       const passed = readWork("fake-status") !== "fail";
-      // BenchmarkResult { finished=1 passed=2 score=3 execution=5 { reason=1 stdout=2 stderr=3 } }
+      // BenchmarkResult { finished=1 passed=2 score=3 score_breakdown=4 { raw=1 deduction=2 } execution=5 { reason=1 stdout=2 stderr=3 } }
       const result = encodeMsg(
         18,
         encodeInt(1, 1),
         encodeInt(2, passed ? 1 : 0),
         encodeInt(3, passed ? currentScore() : 0),
+        encodeMsg(4, encodeInt(1, passed ? currentScore() + 100 : 0), encodeInt(2, passed ? 100 : 0)),
         encodeMsg(5, encodeStr(1, passed ? "" : "fail: 整合性チェックに失敗"), encodeStr(2, "bench stdout"), encodeStr(3, "bench stderr")),
       );
       proto("services.contestant.GetBenchmarkJobResponse", job(id, 4, result));

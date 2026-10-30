@@ -65,6 +65,9 @@ export interface BenchJob {
   portalStatus: string;
   passed: boolean;
   score: number;
+  /** 減点前のスコア */
+  raw: number;
+  deduction: number;
   reason: string;
   stdout: string;
   stderr: string;
@@ -88,6 +91,9 @@ const jobOf = (response: Fields): BenchJob => {
     portalStatus,
     passed: bool(result, 2),
     score: int(result, 3),
+    // BenchmarkResult.ScoreBreakdown { raw = 1, deduction = 2 }
+    raw: int(msg(result, 4), 1),
+    deduction: int(msg(result, 4), 2),
     reason: str(execution, 1),
     stdout: str(execution, 2),
     stderr: str(execution, 3),
