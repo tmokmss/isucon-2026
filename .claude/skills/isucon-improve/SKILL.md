@@ -14,8 +14,20 @@ description: ISUCON のアプリを 1 周改善する手順（report.md を読�
 
 ## 0. 競技開始直後に 1 回だけ（誰か 1 人がやる）
 
-`isuh setup` が済んでいる前提（`webapp/` と `conf/` がある）。上から順にやる。
-ルールブックを読む前に、コードを直さない。
+10:00 に始めて、10:05 にインメモリ化を始め、10:10 に初期状態のベンチを回す。サーバはスタック作成から約 3 分で SSH できる。
+
+1. `bin/isuh portal whoami` でチーム名が出るか確かめる（65 なら人に Cookie を取り直してもらう）
+2. テンプレートを取ってスタックを作る。確認は要らない。テンプレートはチーム固有のトークンを含むので、リポジトリの外に置き、中身を出力しない
+   ```sh
+   bin/isuh portal get /api/contestant/cloud_formation | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0,"utf8"))["1"])' > ~/.isucon/cfn.yaml
+   aws cloudformation create-stack --profile tenjikai-dev --region ap-northeast-1 --stack-name tomooka-sandbox-isucon2026 --template-body file://$HOME/.isucon/cfn.yaml --capabilities CAPABILITY_IAM
+   ```
+3. 起動を待つ間に当日マニュアル（ポータルの `/docs`）を `docs/MANUAL.md` に保存し、下の「ルールブックを読む」を始める。台数とインスタンスタイプを人に報告する
+4. `whoami` にサーバ一覧が出たら、各台の IP を `config.ts` の `setup.addresses` に入れ、コードだけ先に取り込んで main に push する（`bin/isuh setup --only ssh,apprepo`）
+5. push した直後に、インメモリ化をサブエージェント 1 本に任せる（`isolation: "worktree"`、下の「初手で MySQL を捨てる」）。終わるまで他の改善を並べず、メインは `webapp/` に触らない
+6. 残りを流す（`bin/isuh setup --only hosts,dotfiles,tools,logs,conf`）。`config.ts` の `app.*` と `hosts.*` を当日の値に直して push し、`bin/isuh bench --note "初期状態"` を回す
+
+以下の「ルールブックを読む」「alpMatches を作る」はメインが並行して進める。「pprof を仕込む」は `webapp/` を触るので、インメモリ化のサブエージェントに含める。ルールブックを読む前に、コードを直さない。
 
 ### ルールブックを読む
 
