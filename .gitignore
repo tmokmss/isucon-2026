@@ -9,6 +9,9 @@ runs/*
 # deploy のビルドキャッシュ
 .isuh/
 
+# Claude Code のサブエージェントの作業場所
+/.claude/worktrees/
+
 # test/ のコンテナ環境が生成するもの（鍵・ssh_config・作業用リポジトリ）
 test/.work/
 
