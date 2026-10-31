@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-135652-8b16848",
+  "startedAt": "2026-10-31T13:56:52+09:00",
+  "finishedAt": "2026-10-31T14:01:19+09:00",
+  "ref": "8b16848",
+  "sha": "8b168481ecd678a06cac7114b7ca4ead8d0bef64",
+  "score": 110598,
+  "status": "pass",
+  "note": "複製 検証: shadow＋照合（利用者を最後に読む修正、main c6abd65 取り込み済み）",
+  "benchJobId": "15209",
+  "prevRunId": "20261031-121235-e0e4cb3",
+  "bestRunId": "20261031-135652-8b16848"
+}
