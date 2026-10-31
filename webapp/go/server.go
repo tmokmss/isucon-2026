@@ -78,6 +78,7 @@ func NewServer(config *Config) *echo.Echo {
 		originStore.Store(handlerContext.Store)
 		storeImageHolderLookup(handlerContext.Store)
 		handlerContext.Store.startPersist()
+		go presignNextMinuteForever()
 		close(ready)
 	}()
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {

@@ -12,6 +12,7 @@ package isureal
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -307,4 +309,61 @@ func offloadHandler() http.Handler {
 // 逃がし先として受け付ける（戻らない）
 func ServeOffload() error {
 	return http.ListenAndServe(offloadPort, offloadHandler())
+}
+
+const presignBatch = 1000
+
+// 毎分 30 秒を過ぎたら、今の exp で署名した画像を次の exp でも逃がし先に署名させておく。
+// exp が切り替わった直後に、それまで見えていた画像の署名を手元で一斉に計算し直さないため
+func presignNextMinuteForever() {
+	if len(offloadPeers) == 0 {
+		return
+	}
+	var done int64
+	for range time.Tick(time.Second) {
+		if time.Now().Second() < 30 {
+			continue
+		}
+		exp := imageURLExp()
+		next := exp + 60
+		if done == next {
+			continue
+		}
+		done = next
+		prefix := strconv.FormatInt(exp, 10) + ":"
+		var targets []signTarget
+		imageSignatureCacheMu.RLock()
+		for k := range imageSignatureCache {
+			if len(k) > sha256.Size+len(prefix) && k[sha256.Size:sha256.Size+len(prefix)] == prefix {
+				targets = append(targets, signTarget{[]byte(k[:sha256.Size]), k[sha256.Size+len(prefix):]})
+			}
+		}
+		imageSignatureCacheMu.RUnlock()
+		for len(targets) > 0 {
+			n := min(presignBatch, len(targets))
+			presignImageSignatures(targets[:n], next)
+			targets = targets[n:]
+		}
+	}
+}
+
+func presignImageSignatures(targets []signTarget, exp int64) {
+	var body []byte
+	keys := make([]string, 0, len(targets))
+	for _, t := range targets {
+		keys = append(keys, imageSignatureCacheKey(t.key, t.imageID, exp))
+		body = appendSignRequest(body, t.key, t.imageID, exp)
+	}
+	res, err := offloadCall(offloadPeers, "/sign", body, 5*time.Second)
+	if err != nil || len(res) != len(keys)*32 {
+		return
+	}
+	imageSignatureCacheMu.Lock()
+	if len(imageSignatureCache)+len(keys) > imageSignatureCacheMax {
+		imageSignatureCache = make(map[string][]byte)
+	}
+	for i, k := range keys {
+		imageSignatureCache[k] = res[i*32 : (i+1)*32 : (i+1)*32]
+	}
+	imageSignatureCacheMu.Unlock()
 }
