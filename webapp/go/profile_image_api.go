@@ -51,6 +51,10 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := storeNewImage(imageID, data); err != nil {
 			return err
 		}
+		// 検証を待つ間にクライアントが切ったら当てない。応答を受け取れなかった変更が後から当たると、前の画像が 403 になる
+		if err := c.Request().Context().Err(); err != nil {
+			return err
+		}
 		s.mu.Lock()
 		rw := s.commitLocked(&opProfileImage{UserID: u.ID, ImageID: &imageID, CreatedAt: &createdAt})
 		s.mu.Unlock()

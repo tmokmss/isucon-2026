@@ -119,6 +119,10 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		if !held {
 			imageCache.put(imageID, imageData, "image/jpeg")
 		}
+		// 検証を待つ間にクライアントが切ったら当てない
+		if err := c.Request().Context().Err(); err != nil {
+			return err
+		}
 		s.mu.Lock()
 		rw := s.commitLocked(newOpPostAdd(p))
 		post := p.post()
