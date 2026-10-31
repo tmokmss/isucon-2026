@@ -90,6 +90,7 @@ func NewServer(config *Config) *echo.Echo {
 			return next(c)
 		}
 	})
+	e.Use(SlowMiddleware(handlerContext))
 	e.Use(IPBanMiddleware(handlerContext))
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
