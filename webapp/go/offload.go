@@ -20,7 +20,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -35,6 +34,7 @@ const (
 	offloadSignTimeout = 2 * time.Second
 	offloadJPEGTimeout = 2 * time.Second
 	offloadPeerBackoff = 5 * time.Second
+	offloadPeerSlots   = 8
 )
 
 type offloadPeer struct {
@@ -44,14 +44,6 @@ type offloadPeer struct {
 }
 
 var offloadPeerByAddr = map[string]*offloadPeer{}
-
-// 逃がし先 1 台に同時に頼める数。既定は 8。
-var offloadPeerSlots = func() int {
-	if n, err := strconv.Atoi(os.Getenv("ISUREAL_OFFLOAD_PEER_SLOTS")); err == nil && n > 0 {
-		return n
-	}
-	return 8
-}()
 
 func offloadPeersFromEnv(key string) []*offloadPeer {
 	var peers []*offloadPeer
@@ -201,7 +193,7 @@ func prefetchImageSignatures(targets []signTarget) {
 			continue
 		}
 		seen[cacheKey] = true
-		if _, ok := imageSignatureCache[exp][cacheKey]; ok {
+		if _, ok := imageSignatureCache[cacheKey]; ok {
 			continue
 		}
 		keys = append(keys, cacheKey)
@@ -216,13 +208,11 @@ func prefetchImageSignatures(targets []signTarget) {
 		return
 	}
 	imageSignatureCacheMu.Lock()
-	m := imageSignatureCache[exp]
-	if m == nil {
-		m = make(map[string][]byte)
-		imageSignatureCache[exp] = m
+	if len(imageSignatureCache)+len(keys) > imageSignatureCacheMax {
+		imageSignatureCache = make(map[string][]byte)
 	}
 	for i, k := range keys {
-		m[k] = res[i*32 : (i+1)*32 : (i+1)*32]
+		imageSignatureCache[k] = res[i*32 : (i+1)*32 : (i+1)*32]
 	}
 	imageSignatureCacheMu.Unlock()
 }
