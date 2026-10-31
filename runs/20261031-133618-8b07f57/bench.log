@@ -1,0 +1,45 @@
+{"id":"13626","status":"done","portalStatus":"finished","passed":true,"score":104121,"raw":104121,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:40:25.300Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:40:28.267Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:40:31.263Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:40:32.092Z level=INFO msg="user moved" user=nuhete5096 from=europe to=asia
+time=2026-10-31T04:40:34.298Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T04:40:36.417Z level=INFO msg="user moved" user=nuhete5096 from=asia to=europe
+time=2026-10-31T04:40:37.441Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T04:40:40.264Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T04:40:43.299Z level=INFO msg="asia 3 日目: 152 人"
+time=2026-10-31T04:40:44.574Z level=INFO msg="user moved" user=madan_5685 from=asia to=america
+time=2026-10-31T04:40:45.189Z level=INFO msg="user moved" user=maxyofu-5838 from=asia to=america
+time=2026-10-31T04:40:46.313Z level=INFO msg="europe 3 日目: 52 人"
+time=2026-10-31T04:40:46.382Z level=INFO msg="user moved" user=tormiaor_5995 from=asia to=europe
+time=2026-10-31T04:40:46.535Z level=INFO msg="user moved" user=maxyofu-5838 from=america to=europe
+time=2026-10-31T04:40:46.835Z level=INFO msg="user moved" user=danma_6208 from=asia to=america
+time=2026-10-31T04:40:48.026Z level=INFO msg="user moved" user=danma_6208 from=america to=europe
+time=2026-10-31T04:40:48.855Z level=INFO msg="user moved" user=madan_5685 from=america to=europe
+time=2026-10-31T04:40:49.289Z level=INFO msg="america 3 日目: 54 人"
+time=2026-10-31T04:40:52.296Z level=INFO msg="asia 4 日目: 429 人"
+time=2026-10-31T04:40:55.274Z level=INFO msg="europe 4 日目: 145 人"
+time=2026-10-31T04:40:57.701Z level=INFO msg="user moved" user=maxyofu-5838 from=europe to=america
+time=2026-10-31T04:40:58.412Z level=INFO msg="america 4 日目: 123 人"
+time=2026-10-31T04:41:01.409Z level=INFO msg="user moved" user=leolia-6706 from=asia to=europe
+time=2026-10-31T04:41:01.480Z level=INFO msg="asia 5 日目: 959 人"
+time=2026-10-31T04:41:01.844Z level=INFO msg="user moved" user=chinuzoe_7195 from=asia to=europe
+time=2026-10-31T04:41:04.361Z level=INFO msg="europe 5 日目: 146 人"
+time=2026-10-31T04:41:07.509Z level=INFO msg="america 5 日目: 123 人"
+time=2026-10-31T04:41:16.343Z level=INFO msg="europe 最終日（グランプリ）: 146 人"
+time=2026-10-31T04:41:16.482Z level=INFO msg="america 最終日（グランプリ）: 122 人"
+time=2026-10-31T04:41:16.690Z level=INFO msg="asia 最終日（グランプリ）: 957 人"
+time=2026-10-31T04:41:25.301Z level=INFO msg="グランプリ: アジア 259 人, ヨーロッパ 42 人, アメリカ 23 人"
+{
+  "pass": true,
+  "score": 104121,
+  "messages": [
+    "evatolia5034: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "anni10022: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
+
+--- stderr ---
+

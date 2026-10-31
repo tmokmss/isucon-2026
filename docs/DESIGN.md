@@ -334,7 +334,7 @@ runs/
             └── isu1.txt ...          # top -b（プロセス単位の CPU）
 ```
 
-`runs/<run-id>/` は `.gitignore` 済み（`history.tsv` のみ追跡）。
+`runs/<run-id>/` も git で追跡する（`resource/top/` だけは 1 回 6MB あるので `.gitignore` で外す）。ラン記録のコミットに含めて main へ取り込む。worktree を消しても、別レーンのランを main から読める。
 
 **誰が書くか** — 生ファイル（`alp.txt` / `ptquery.txt` / `pprof.txt` / `resource/*`）は
 `lib/collect.ts` がベンチの前後に書く。

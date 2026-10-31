@@ -1,0 +1,53 @@
+{"id":"4670","status":"done","portalStatus":"finished","passed":true,"score":21198,"raw":21198,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:37:56.042Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:37:58.902Z level=INFO msg="user moved" user=nesane-5052 from=asia to=europe
+time=2026-10-31T02:37:59.006Z level=INFO msg="europe 1 日目: 8 人"
+time=2026-10-31T02:38:01.998Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:38:05.040Z level=INFO msg="asia 2 日目: 53 人"
+time=2026-10-31T02:38:06.844Z level=INFO msg="user moved" user=kona-5177 from=asia to=europe
+time=2026-10-31T02:38:08.039Z level=INFO msg="europe 2 日目: 21 人"
+time=2026-10-31T02:38:08.460Z level=INFO msg="user moved" user=toneku5308 from=asia to=europe
+time=2026-10-31T02:38:11.000Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T02:38:14.024Z level=INFO msg="asia 3 日目: 152 人"
+time=2026-10-31T02:38:17.140Z level=INFO msg="europe 3 日目: 49 人"
+time=2026-10-31T02:38:20.068Z level=INFO msg="america 3 日目: 18 人"
+time=2026-10-31T02:38:23.140Z level=INFO msg="asia 4 日目: 152 人"
+time=2026-10-31T02:38:26.142Z level=INFO msg="europe 4 日目: 49 人"
+time=2026-10-31T02:38:29.049Z level=INFO msg="america 4 日目: 18 人"
+time=2026-10-31T02:38:32.215Z level=INFO msg="asia 5 日目: 152 人"
+time=2026-10-31T02:38:35.044Z level=INFO msg="europe 5 日目: 49 人"
+time=2026-10-31T02:38:38.035Z level=INFO msg="america 5 日目: 18 人"
+time=2026-10-31T02:38:47.064Z level=INFO msg="america 最終日（グランプリ）: 18 人"
+time=2026-10-31T02:38:47.119Z level=INFO msg="europe 最終日（グランプリ）: 49 人"
+time=2026-10-31T02:38:47.208Z level=INFO msg="asia 最終日（グランプリ）: 152 人"
+time=2026-10-31T02:38:55.998Z level=INFO msg="グランプリ: アジア 65 人, ヨーロッパ 17 人, アメリカ 12 人"
+{
+  "pass": true,
+  "score": 21198,
+  "messages": [
+    "yuxin_wu_4950: 履歴を読めません: GET /api/memories?month=2026-04: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "rita_5296: Memories を取得できません: GET /api/memories?month=2026-11: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "moisre5320: Memories を取得できません: GET /api/memories?month=2026-11: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "evara.5935: プロフィール画像を変えられません: PUT /api/me/profile-image: ステータスコード 503 が返りました（期待値 204、busy）（5 回試行）",
+    "techiben_5039: Memories を取得できません: GET /api/memories?month=2026-10: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "zoenoa_6127: プロフィール画像を変えられません: PUT /api/me/profile-image: ステータスコード 503 が返りました（期待値 204、busy）（5 回試行）",
+    "jihun_park_57: 履歴を読めません: GET /api/memories?month=2026-05: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "hano6315: プロフィール画像を変えられません: PUT /api/me/profile-image: ステータスコード 503 が返りました（期待値 204、busy）（5 回試行）",
+    "musol6294: プロフィール画像を変えられません: PUT /api/me/profile-image: ステータスコード 503 が返りました（期待値 204、busy）（5 回試行）",
+    "hina_nakamura_38: 履歴を読めません: GET /api/memories?month=2026-06: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "fukemia-6263: プロフィール画像を変えられません: PUT /api/me/profile-image: ステータスコード 503 が返りました（期待値 204、busy）（5 回試行）",
+    "noato.5192: Memories を取得できません: GET /api/memories?month=2026-11: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "yomaxtsu.5207: Memories を取得できません: GET /api/memories?month=2026-11: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "yorimichi_rocket_1474: 履歴を読めません: GET /api/memories/2026-05-27: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "mara.5329: Memories を取得できません: GET /api/memories?month=2026-11: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "salmon_bin_3577: 履歴を読めません: GET /api/memories?month=2026-07: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "gabriel_dubois_2059: 履歴を読めません: GET /api/memories/2025-12-28: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "zoemia-5077: Memories を取得できません: GET /api/memories?month=2026-11: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）",
+    "liayunoa.5159: Memories を取得できません: GET /api/memories?month=2026-11: ステータスコード 503 が返りました（期待値 200、busy）（5 回試行）"
+  ]
+}
+
+--- stderr ---
+

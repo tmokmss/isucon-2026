@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-122244-5443d83",
+  "startedAt": "2026-10-31T12:22:44+09:00",
+  "finishedAt": "2026-10-31T12:24:00+09:00",
+  "ref": "slow-before-1700",
+  "sha": "5443d831ac90c6baff3cf47d5992a10b793fb945",
+  "score": 0,
+  "status": "fail",
+  "note": "17:00 直前用の低い点の版（試験 1000ms）",
+  "benchJobId": "7848",
+  "prevRunId": "20261031-122039-fdbe826",
+  "bestRunId": "20261031-122039-fdbe826"
+}

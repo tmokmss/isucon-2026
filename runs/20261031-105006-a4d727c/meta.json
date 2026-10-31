@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-105006-a4d727c",
+  "startedAt": "2026-10-31T10:50:06+09:00",
+  "finishedAt": "2026-10-31T10:54:43+09:00",
+  "ref": "HEAD",
+  "sha": "a4d727c84688e487111e064fb5cfe873dd4dbb72",
+  "score": 16943,
+  "status": "pass",
+  "note": "TLS無効+export主キー+ID共有+GOMEMLIMIT2200",
+  "benchJobId": "1898",
+  "prevRunId": "20261031-104641-d3eb91b",
+  "bestRunId": "20261031-103811-cef5fe3"
+}

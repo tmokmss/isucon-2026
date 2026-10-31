@@ -1,0 +1,32 @@
+{"id":"4503","status":"done","portalStatus":"finished","passed":true,"score":17072,"raw":17072,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:36:06.689Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:36:09.706Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:36:12.738Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:36:15.660Z level=INFO msg="asia 2 日目: 46 人"
+time=2026-10-31T02:36:18.861Z level=INFO msg="europe 2 日目: 7 人"
+time=2026-10-31T02:36:21.418Z level=INFO msg="user moved" user=herite_5268 from=asia to=europe
+time=2026-10-31T02:36:21.641Z level=INFO msg="america 2 日目: 10 人"
+time=2026-10-31T02:36:21.651Z level=INFO msg="user moved" user=raben_5252 from=asia to=europe
+time=2026-10-31T02:36:25.038Z level=INFO msg="asia 3 日目: 125 人"
+time=2026-10-31T02:36:28.360Z level=INFO msg="europe 3 日目: 10 人"
+time=2026-10-31T02:36:31.110Z level=INFO msg="america 3 日目: 14 人"
+time=2026-10-31T02:36:33.984Z level=INFO msg="asia 4 日目: 125 人"
+time=2026-10-31T02:36:37.462Z level=INFO msg="europe 4 日目: 10 人"
+time=2026-10-31T02:36:40.066Z level=INFO msg="america 4 日目: 14 人"
+time=2026-10-31T02:36:43.389Z level=INFO msg="asia 5 日目: 125 人"
+time=2026-10-31T02:36:48.309Z level=INFO msg="europe 5 日目: 10 人"
+time=2026-10-31T02:36:50.132Z level=INFO msg="america 5 日目: 14 人"
+time=2026-10-31T02:36:58.001Z level=INFO msg="america 最終日（グランプリ）: 14 人"
+time=2026-10-31T02:36:58.140Z level=INFO msg="asia 最終日（グランプリ）: 125 人"
+time=2026-10-31T02:36:58.183Z level=INFO msg="europe 最終日（グランプリ）: 10 人"
+time=2026-10-31T02:37:06.601Z level=INFO msg="グランプリ: アジア 10 人, ヨーロッパ 0 人, アメリカ 2 人"
+{
+  "pass": true,
+  "score": 17072,
+  "messages": []
+}
+
+--- stderr ---
+

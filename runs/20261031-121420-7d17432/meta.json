@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-121420-7d17432",
+  "startedAt": "2026-10-31T12:14:20+09:00",
+  "finishedAt": "2026-10-31T12:18:01+09:00",
+  "ref": "relation-pair-locks",
+  "sha": "7d17432731d353ee2a91e951b88fde04f79a4f31",
+  "score": 67674,
+  "status": "pass",
+  "note": "relation pair locks + max_connections 300",
+  "benchJobId": "7366",
+  "prevRunId": "20261031-120912-249be25",
+  "bestRunId": "20261031-121420-7d17432"
+}

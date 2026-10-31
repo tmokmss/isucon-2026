@@ -1,0 +1,37 @@
+{"id":"10763","status":"done","portalStatus":"finished","passed":true,"score":37886,"raw":37886,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:02:19.990Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:02:22.957Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:02:25.952Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:02:28.982Z level=INFO msg="asia 2 日目: 27 人"
+time=2026-10-31T04:02:35.541Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T04:02:35.653Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T04:02:38.122Z level=INFO msg="asia 3 日目: 66 人"
+time=2026-10-31T04:02:45.589Z level=INFO msg="europe 3 日目: 25 人"
+time=2026-10-31T04:02:45.796Z level=INFO msg="america 3 日目: 20 人"
+time=2026-10-31T04:02:46.498Z level=INFO msg="user moved" user=yohite5518 from=asia to=europe
+time=2026-10-31T04:02:47.128Z level=INFO msg="asia 4 日目: 154 人"
+time=2026-10-31T04:02:48.067Z level=INFO msg="user moved" user=moka5602 from=asia to=america
+time=2026-10-31T04:02:49.474Z level=INFO msg="user moved" user=yomar5780 from=asia to=america
+time=2026-10-31T04:02:50.164Z level=INFO msg="europe 4 日目: 26 人"
+time=2026-10-31T04:02:57.691Z level=INFO msg="america 4 日目: 26 人"
+time=2026-10-31T04:02:57.920Z level=INFO msg="asia 5 日目: 314 人"
+time=2026-10-31T04:02:59.181Z level=INFO msg="europe 5 日目: 26 人"
+time=2026-10-31T04:03:06.237Z level=INFO msg="america 5 日目: 26 人"
+time=2026-10-31T04:03:15.553Z level=INFO msg="america 最終日（グランプリ）: 25 人"
+time=2026-10-31T04:03:15.563Z level=INFO msg="europe 最終日（グランプリ）: 25 人"
+time=2026-10-31T04:03:16.119Z level=INFO msg="asia 最終日（グランプリ）: 313 人"
+time=2026-10-31T04:03:19.957Z level=INFO msg="グランプリ: アジア 115 人, ヨーロッパ 24 人, アメリカ 24 人"
+{
+  "pass": true,
+  "score": 37886,
+  "messages": [
+    "shileomar-5085: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "ortane.5135: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "fumasol-5045: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）"
+  ]
+}
+
+--- stderr ---
+

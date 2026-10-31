@@ -1,0 +1,49 @@
+{"id":"12749","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"post-validation evidence"}
+
+--- stdout ---
+time=2026-10-31T04:28:55.304Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:28:58.271Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:29:01.267Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:29:04.293Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T04:29:07.270Z level=INFO msg="europe 2 日目: 14 人"
+time=2026-10-31T04:29:07.457Z level=INFO msg="user moved" user=yuhi5338 from=asia to=america
+time=2026-10-31T04:29:09.019Z level=INFO msg="user moved" user=yuhi5338 from=america to=asia
+time=2026-10-31T04:29:10.278Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T04:29:11.770Z level=INFO msg="user moved" user=solse_5403 from=europe to=asia
+time=2026-10-31T04:29:13.300Z level=INFO msg="asia 3 日目: 149 人"
+time=2026-10-31T04:29:15.732Z level=INFO msg="user moved" user=solansol_5839 from=asia to=europe
+time=2026-10-31T04:29:16.091Z level=INFO msg="user moved" user=solse_5403 from=asia to=europe
+time=2026-10-31T04:29:16.156Z level=INFO msg="user moved" user=numia.6006 from=asia to=europe
+time=2026-10-31T04:29:16.268Z level=INFO msg="europe 3 日目: 34 人"
+time=2026-10-31T04:29:19.267Z level=INFO msg="america 3 日目: 41 人"
+time=2026-10-31T04:29:20.161Z level=INFO msg="user moved" user=hakatsu-6221 from=europe to=asia
+time=2026-10-31T04:29:22.328Z level=INFO msg="asia 4 日目: 416 人"
+time=2026-10-31T04:29:25.296Z level=INFO msg="europe 4 日目: 74 人"
+time=2026-10-31T04:29:25.429Z level=INFO msg="user moved" user=hakatsu-6221 from=asia to=america
+time=2026-10-31T04:29:25.522Z level=INFO msg="user moved" user=yuhi5338 from=asia to=america
+time=2026-10-31T04:29:26.731Z level=INFO msg="user moved" user=nakochi-7722 from=asia to=europe
+time=2026-10-31T04:29:27.031Z level=INFO msg="user moved" user=sanoako.6746 from=asia to=europe
+time=2026-10-31T04:29:27.339Z level=INFO msg="user moved" user=noasu6666 from=asia to=america
+time=2026-10-31T04:29:28.330Z level=INFO msg="america 4 日目: 75 人"
+time=2026-10-31T04:29:29.332Z level=INFO msg="user moved" user=orsamo_7726 from=asia to=america
+time=2026-10-31T04:29:30.488Z level=INFO msg="user moved" user=numia.6006 from=europe to=asia
+time=2026-10-31T04:29:30.630Z level=INFO msg="user moved" user=hoso.8349 from=asia to=europe
+time=2026-10-31T04:29:31.556Z level=INFO msg="asia 5 日目: 968 人"
+time=2026-10-31T04:29:31.845Z level=INFO msg="user moved" user=solse_5403 from=europe to=asia
+time=2026-10-31T04:29:34.366Z level=INFO msg="europe 5 日目: 76 人"
+time=2026-10-31T04:29:37.357Z level=INFO msg="america 5 日目: 76 人"
+time=2026-10-31T04:29:46.325Z level=INFO msg="europe 最終日（グランプリ）: 76 人"
+time=2026-10-31T04:29:46.371Z level=INFO msg="america 最終日（グランプリ）: 76 人"
+time=2026-10-31T04:29:46.634Z level=INFO msg="asia 最終日（グランプリ）: 969 人"
+time=2026-10-31T04:29:55.303Z level=INFO msg="グランプリ: アジア 481 人, ヨーロッパ 21 人, アメリカ 17 人"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "post-validation evidence: GET /api/images/474382c5-accb-4d0c-95f6-8d2f5e538cf3?exp=1793507400\u0026sig=yWdo5nxeKf4a0Ono7svCxZf3n33gXi_qXmQzvT8f02M: ステータスコード 403 が返りました（期待値 200、image_forbidden）",
+    "dantari.5068: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）"
+  ]
+}
+
+--- stderr ---
+

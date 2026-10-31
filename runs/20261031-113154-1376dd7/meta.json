@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-113154-1376dd7",
+  "startedAt": "2026-10-31T11:31:54+09:00",
+  "finishedAt": "2026-10-31T11:34:04+09:00",
+  "ref": "origin/main",
+  "sha": "1376dd789552b1634f4e335fcd133bb65803b8d4",
+  "score": 0,
+  "status": "fail",
+  "note": "main: +#67 無効化の受領待ち +登録のロックを予約だけに",
+  "benchJobId": "4363",
+  "prevRunId": "20261031-112920-4764fb5",
+  "bestRunId": "20261031-103811-cef5fe3"
+}

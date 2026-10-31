@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-135233-2d10aad",
+  "startedAt": "2026-10-31T13:52:33+09:00",
+  "finishedAt": "2026-10-31T13:56:54+09:00",
+  "ref": "jpegcheck-fast",
+  "sha": "2d10aadebfbf906549a31e44845d4f0bd035503c",
+  "score": 119317,
+  "status": "pass",
+  "note": "JPEG の検証を 1.5 倍速く（main c6abd65 の上）",
+  "benchJobId": "14844",
+  "prevRunId": "20261031-133618-8b07f57",
+  "bestRunId": "20261031-135233-2d10aad"
+}

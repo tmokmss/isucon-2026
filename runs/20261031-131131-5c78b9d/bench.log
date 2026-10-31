@@ -1,0 +1,34 @@
+{"id":"11495","status":"done","portalStatus":"finished","passed":true,"score":96430,"raw":96430,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:12:16.620Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:12:19.580Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:12:22.678Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:12:25.728Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T04:12:28.684Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T04:12:31.677Z level=INFO msg="america 2 日目: 12 人"
+time=2026-10-31T04:12:34.738Z level=INFO msg="asia 3 日目: 143 人"
+time=2026-10-31T04:12:37.686Z level=INFO msg="europe 3 日目: 48 人"
+time=2026-10-31T04:12:40.694Z level=INFO msg="america 3 日目: 29 人"
+time=2026-10-31T04:12:42.897Z level=INFO msg="user moved" user=metehi.6226 from=europe to=america
+time=2026-10-31T04:12:43.765Z level=INFO msg="asia 4 日目: 406 人"
+time=2026-10-31T04:12:45.689Z level=INFO msg="user moved" user=solmeyo.6279 from=europe to=asia
+time=2026-10-31T04:12:46.760Z level=INFO msg="europe 4 日目: 123 人"
+time=2026-10-31T04:12:49.970Z level=INFO msg="america 4 日目: 65 人"
+time=2026-10-31T04:12:50.840Z level=INFO msg="user moved" user=solmeyo.6279 from=asia to=europe
+time=2026-10-31T04:12:51.177Z level=INFO msg="user moved" user=yunema.8003 from=asia to=america
+time=2026-10-31T04:12:53.060Z level=INFO msg="asia 5 日目: 939 人"
+time=2026-10-31T04:12:56.415Z level=INFO msg="europe 5 日目: 124 人"
+time=2026-10-31T04:12:59.551Z level=INFO msg="america 5 日目: 66 人"
+time=2026-10-31T04:13:08.343Z level=INFO msg="america 最終日（グランプリ）: 66 人"
+time=2026-10-31T04:13:09.190Z level=INFO msg="asia 最終日（グランプリ）: 939 人"
+time=2026-10-31T04:13:09.430Z level=INFO msg="europe 最終日（グランプリ）: 123 人"
+time=2026-10-31T04:13:16.614Z level=INFO msg="グランプリ: アジア 361 人, ヨーロッパ 14 人, アメリカ 30 人"
+{
+  "pass": true,
+  "score": 96430,
+  "messages": []
+}
+
+--- stderr ---
+

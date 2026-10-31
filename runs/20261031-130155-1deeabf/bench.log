@@ -1,0 +1,39 @@
+{"id":"11038","status":"done","portalStatus":"finished","passed":true,"score":84880,"raw":84880,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:06:13.961Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:06:16.923Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:06:19.924Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:06:22.951Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T04:06:25.924Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T04:06:28.922Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T04:06:31.947Z level=INFO msg="asia 3 日目: 150 人"
+time=2026-10-31T04:06:32.740Z level=INFO msg="user moved" user=tase-5586 from=asia to=europe
+time=2026-10-31T04:06:35.010Z level=INFO msg="europe 3 日目: 50 人"
+time=2026-10-31T04:06:37.928Z level=INFO msg="america 3 日目: 36 人"
+time=2026-10-31T04:06:40.958Z level=INFO msg="asia 4 日目: 426 人"
+time=2026-10-31T04:06:42.614Z level=INFO msg="user moved" user=miamia_6634 from=asia to=europe
+time=2026-10-31T04:06:44.066Z level=INFO msg="europe 4 日目: 124 人"
+time=2026-10-31T04:06:45.972Z level=INFO msg="user moved" user=yaru6804 from=asia to=america
+time=2026-10-31T04:06:47.064Z level=INFO msg="america 4 日目: 72 人"
+time=2026-10-31T04:06:49.775Z level=INFO msg="user moved" user=hanu.7186 from=asia to=europe
+time=2026-10-31T04:06:50.189Z level=INFO msg="asia 5 日目: 888 人"
+time=2026-10-31T04:06:52.419Z level=INFO msg="user moved" user=evaya-7225 from=asia to=america
+time=2026-10-31T04:06:53.054Z level=INFO msg="europe 5 日目: 125 人"
+time=2026-10-31T04:06:55.382Z level=INFO msg="user moved" user=anshi-8009 from=asia to=america
+time=2026-10-31T04:06:56.240Z level=INFO msg="america 5 日目: 74 人"
+time=2026-10-31T04:07:05.341Z level=INFO msg="asia 最終日（グランプリ）: 885 人"
+time=2026-10-31T04:07:05.586Z level=INFO msg="europe 最終日（グランプリ）: 125 人"
+time=2026-10-31T04:07:05.692Z level=INFO msg="america 最終日（グランプリ）: 74 人"
+time=2026-10-31T04:07:13.960Z level=INFO msg="グランプリ: アジア 171 人, ヨーロッパ 4 人, アメリカ 4 人"
+{
+  "pass": true,
+  "score": 84880,
+  "messages": [
+    "shihi-5026: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "daniel_rodriguez_4850: ログインできません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

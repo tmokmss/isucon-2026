@@ -1,0 +1,14 @@
+{"id":"13372","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"初期データの検証に失敗しました"}
+
+--- stdout ---
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "初期データの検証に失敗しました: 初期データのユーザー charcoal_mini_turkey_2371: GET /api/images/1de3bc25-8f41-475b-b0a5-41eac65a9ce4?exp=1793507880\u0026sig=H53Vz55BeMnSCgNVmKRxQVVSlEaF_3GTjFd9b7GyUDk: ステータスコード 500 が返りました（期待値 200、ERROR: syntax error at or near \"FROM\" (SQLSTATE 42601)）",
+    "初期データのユーザー davi_pereira_3221: GET /api/images/8353d8df-b8a5-481b-acc5-1e5fca566c66?exp=1793507880\u0026sig=2GUzxT5bhgSo-0ZP83fDdGeFNJyE1FWnx3zlyMfzoiA: ステータスコード 500 が返りました（期待値 200、ERROR: syntax error at or near \"FROM\" (SQLSTATE 42601)）"
+  ]
+}
+
+--- stderr ---
+

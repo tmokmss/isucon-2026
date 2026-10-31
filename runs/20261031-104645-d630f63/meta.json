@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-104645-d630f63",
+  "startedAt": "2026-10-31T10:46:45+09:00",
+  "finishedAt": "2026-10-31T10:50:53+09:00",
+  "ref": "db-drop-table-locks",
+  "sha": "d630f63a84c30ab370fca7d9675753ae53a0d45f",
+  "score": 7550,
+  "status": "pass",
+  "note": "登録のLOCK TABLEを一意インデックス+ON CONFLICTに",
+  "benchJobId": "1678",
+  "prevRunId": "20261031-103328-02acb51",
+  "bestRunId": "20261031-103328-02acb51"
+}

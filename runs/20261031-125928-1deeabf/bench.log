@@ -1,0 +1,42 @@
+{"id":"10609","status":"done","portalStatus":"finished","passed":true,"score":101157,"raw":101157,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:00:09.555Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:00:12.522Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:00:15.518Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:00:18.544Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T04:00:20.341Z level=INFO msg="user moved" user=nehemu5184 from=asia to=america
+time=2026-10-31T04:00:21.525Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T04:00:24.517Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T04:00:26.557Z level=INFO msg="user moved" user=reri5433 from=europe to=asia
+time=2026-10-31T04:00:27.541Z level=INFO msg="asia 3 日目: 147 人"
+time=2026-10-31T04:00:29.798Z level=INFO msg="user moved" user=reri5433 from=asia to=europe
+time=2026-10-31T04:00:30.480Z level=INFO msg="user moved" user=torlia.5976 from=asia to=europe
+time=2026-10-31T04:00:30.522Z level=INFO msg="europe 3 日目: 49 人"
+time=2026-10-31T04:00:30.797Z level=INFO msg="user moved" user=chiwaeva6033 from=asia to=europe
+time=2026-10-31T04:00:33.548Z level=INFO msg="america 3 日目: 42 人"
+time=2026-10-31T04:00:36.553Z level=INFO msg="asia 4 日目: 414 人"
+time=2026-10-31T04:00:39.671Z level=INFO msg="europe 4 日目: 119 人"
+time=2026-10-31T04:00:41.674Z level=INFO msg="user moved" user=resawa_7204 from=asia to=europe
+time=2026-10-31T04:00:42.798Z level=INFO msg="america 4 日目: 87 人"
+time=2026-10-31T04:00:44.370Z level=INFO msg="user moved" user=reri5433 from=europe to=asia
+time=2026-10-31T04:00:44.825Z level=INFO msg="user moved" user=chiwaeva6033 from=europe to=america
+time=2026-10-31T04:00:45.991Z level=INFO msg="asia 5 日目: 931 人"
+time=2026-10-31T04:00:48.610Z level=INFO msg="europe 5 日目: 118 人"
+time=2026-10-31T04:00:51.561Z level=INFO msg="america 5 日目: 88 人"
+time=2026-10-31T04:01:01.034Z level=INFO msg="asia 最終日（グランプリ）: 930 人"
+time=2026-10-31T04:01:01.285Z level=INFO msg="europe 最終日（グランプリ）: 117 人"
+time=2026-10-31T04:01:01.332Z level=INFO msg="america 最終日（グランプリ）: 87 人"
+time=2026-10-31T04:01:09.550Z level=INFO msg="グランプリ: アジア 327 人, ヨーロッパ 19 人, アメリカ 9 人"
+{
+  "pass": true,
+  "score": 101157,
+  "messages": [
+    "reor.5110: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "annu.10550: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "tsuku5057: 投稿 37fd3dc8-8a5c-455a-a00f-e16a792d0fc1 に RealMoji を送れません: POST /api/posts/37fd3dc8-8a5c-455a-a00f-e16a792d0fc1/realmojis: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

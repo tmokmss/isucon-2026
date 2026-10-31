@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-104641-d3eb91b",
+  "startedAt": "2026-10-31T10:46:41+09:00",
+  "finishedAt": "2026-10-31T10:48:22+09:00",
+  "ref": "HEAD",
+  "sha": "d3eb91bbfe86e169f1727cb48d46f85247f28131",
+  "score": 20225,
+  "status": "pass",
+  "note": "インメモリ化+TLS無効+通知非同期+export主キー",
+  "benchJobId": "1586",
+  "prevRunId": "20261031-103811-cef5fe3",
+  "bestRunId": "20261031-103811-cef5fe3"
+}
