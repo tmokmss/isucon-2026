@@ -1,10 +1,10 @@
 #!/bin/bash
 # 初期データの画像を、各アプリ台の手元の PostgreSQL（AMI から来た止まったデータ）からファイルに書き出す。
 # ルーター越しのコピーはしない。手元のデータが asia2 の初期データと同じことを照合してから書き出す。
-# 使い方（手元の PC から）: setup/image-export.sh isu2
+# 使い方（手元の PC から）: setup/image-export.sh isu2  （ベンチのロック isu1:/tmp/isucon-bench.lock を flock で取っている間に流す）
 #   1. 止まっている PostgreSQL を 127.0.0.1:5433・ソケット /tmp/pgimg で一時的に起動する（5432 のアプリの接続先と取り違えない）
 #   2. 境界以前の image_objects の (id, owner, media_type, created_at) と、id 先頭 '000' のバイト列の md5 を asia2 と比べる
-#   3. nice 19・ionice -c3（idle）で、毎秒 20MB までに抑えて /home/isucon/images/init/ に書き出す（既にあるファイルは飛ばす）
+#   3. nice 19・ionice -c3（idle）で /home/isucon/images/init/ に書き出す（既にあるファイルは飛ばす）
 #   4. PostgreSQL を止め、postgresql.service が disabled・inactive のままであることを確かめる
 set -euo pipefail
 host="$1"
