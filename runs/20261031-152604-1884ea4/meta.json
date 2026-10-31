@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-152604-1884ea4",
+  "startedAt": "2026-10-31T15:26:04+09:00",
+  "finishedAt": "2026-10-31T15:28:07+09:00",
+  "ref": "final-no-metrics",
+  "sha": "1884ea4d7c35696bbf80b8ed2c11d3bf44d33367",
+  "score": 185078,
+  "status": "pass",
+  "note": "final: access log and pprof off (on main 710ad2d)",
+  "benchJobId": "22542",
+  "prevRunId": "20261031-152137-8c13252",
+  "bestRunId": "20261031-151339-5a230a4"
+}

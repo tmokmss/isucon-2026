@@ -121,3 +121,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-151629-200016f	2026-10-31T15:16:29+09:00	200016f64d9139ecfd9a3a3f277abdbb21b4282c	lane2-ipban	180317	pass	ip_bans bg reload only on 5a230a4
 20261031-151835-2fe5b6e	2026-10-31T15:18:35+09:00	2fe5b6ea68ff6bfdf40bb66091bd66c68cd67179	2fe5b6e	183184	pass	RealMoji の画像も受けた台に置く（main 5a230a4 の上）
 20261031-152137-8c13252	2026-10-31T15:21:37+09:00	8c13252c30647a9d6e7624eff3fe75f10e8118b4	8c13252	183331	pass	RealMoji の画像も受けた台に置く（main 5fcd3e6 の上）2回目
+20261031-152604-1884ea4	2026-10-31T15:26:04+09:00	1884ea4d7c35696bbf80b8ed2c11d3bf44d33367	final-no-metrics	185078	pass	final: access log and pprof off (on main 710ad2d)
