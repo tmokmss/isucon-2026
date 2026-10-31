@@ -93,3 +93,5 @@ run_id	started_at	sha	ref	score	status	note
 20261031-134736-319c947	2026-10-31T13:47:36+09:00	319c9472f411af43016dcbcab0a0d450c011fc9a	repl-replica	104789	pass	複製 検証: 時刻の印で待つ形の shadow＋照合（main fbae0df 取り込み済み）
 20261031-135233-2d10aad	2026-10-31T13:52:33+09:00	2d10aadebfbf906549a31e44845d4f0bd035503c	jpegcheck-fast	119317	pass	JPEG の検証を 1.5 倍速く（main c6abd65 の上）
 20261031-135423-25c2db4	2026-10-31T13:54:23+09:00	25c2db44de6311345df6915ef385642c92b2a22d	image-files	82880	pass	image files, no per-file fsync (sync every 1s) + main c6abd65
+20261031-135832-1338f93	2026-10-31T13:58:32+09:00	1338f938d5631cbd118caf0caf26466c1fa8412a	lane2-tune	112525	pass	pool 100 + GOGC 400 on c6abd65
+20261031-140924-a0e6742	2026-10-31T14:09:24+09:00	a0e674282db2faf1aa480ff05027aa88794e8596	lane2-tune	127403	pass	reset: VACUUM (TRUNCATE false) image_objects on c6abd65
