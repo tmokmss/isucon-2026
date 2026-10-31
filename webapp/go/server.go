@@ -58,8 +58,9 @@ func NewServer(config *Config) *echo.Echo {
 	ready := make(chan struct{})
 	go func() {
 		db := openDatabase(config)
-		db.SetMaxOpenConns(40)
-		db.SetMaxIdleConns(40)
+		// 画像の INSERT が TOAST の拡張のロックで並ぶと 40 本が埋まり、軽い書き込みまで接続の空き待ちになる
+		db.SetMaxOpenConns(100)
+		db.SetMaxIdleConns(100)
 		for {
 			start := time.Now()
 			err := handlerContext.Store.LoadAll(context.Background(), db)
