@@ -12,6 +12,11 @@ description: ISUCON のアプリを 1 周改善する手順（report.md を読�
 1 周 = 「report.md を読む → 1 つ直す → コミット → `isuh bench` → 採否を決める」。
 1 周で直すのは 1 つだけ（2 つ同時に変えると、どちらが効いたか分からない）。
 
+ISUCON の判断は、一般のソフトウェア開発の常識と前提が違う。次を前提に動く。
+- 実装はたいてい 5 分で終わる。手間を理由に試さず見送らない。案は全部実装し、採否はベンチの点で決める
+- 堅牢性・保守性・運用の常識は要らない。要るのは、ベンチの検証と当日マニュアル（追試・再起動後のデータの保持）を通ることだけ。検証に要らない DB・ミドルウェアは、書き込みの経路から丸ごと外す
+- 守りに入る（計測を切る・試作を止める）のは、18:00 から最後のランと再起動試験にかかる時間を逆算した時刻から。根拠の無い締めを置かない
+
 ## 0. 競技開始直後に 1 回だけ（誰か 1 人がやる）
 
 10:00 に始めて、10:05 にインメモリ化を始め、10:10 に初期状態のベンチを回す。サーバはスタック作成から約 3 分で SSH できる。
@@ -23,6 +28,7 @@ description: ISUCON のアプリを 1 周改善する手順（report.md を読�
    aws cloudformation create-stack --profile tenjikai-dev --region ap-northeast-1 --stack-name tomooka-sandbox-isucon2026 --template-body file://$HOME/.isucon/cfn.yaml --capabilities CAPABILITY_IAM
    ```
 3. 起動を待つ間に当日マニュアル（ポータルの `/docs`）を `docs/MANUAL.md` に保存し、下の「ルールブックを読む」を始める。台数とインスタンスタイプを人に報告する
+   - インスタンスタイプが台ごとに違えば、出題の意図とみなす。各台の CPU の命令セット（`grep -o -w -E 'sha_ni|avx512f|aes' /proc/cpuinfo | sort -u`）を確かめ、重い計算（ハッシュ・署名・画像の検証）をどの台に置くかを台の役割の設計に入れる。台ごとの速さは `docs/isucon2026/sigbench/` のような小さなプログラムを各台で動かして比べる
 4. `whoami` にサーバ一覧が出たら、各台の IP を `config.ts` の `setup.addresses` に入れ、コードだけ先に取り込んで main に push する（`bin/isuh setup --only ssh,apprepo`）
 5. push した直後に、インメモリ化をサブエージェント 1 本に任せる（`isolation: "worktree"`、下の「初手で MySQL を捨てる」）。終わるまで他の改善を並べず、メインは `webapp/` に触らない
 6. 残りを流す（`bin/isuh setup --only hosts,dotfiles,tools,logs,conf`）。`config.ts` の `app.*` と `hosts.*` を当日の値に直して push し、`bin/isuh bench --note "初期状態"` を回す
@@ -136,6 +142,8 @@ report.md だけ読めば判断できるように作ってある。生ファイ�
 
 ## 2. 直す
 
+- 直す前に、`runs/` の note で同じ変更が測り済みかを確かめる。効く仕組みかは、ベンチを使わない小さな検証（pprof の呼び出し元、キャッシュに当たった件数、計算の速さ）で先に確かめる
+- 負荷の置き場所を変えたら（読み取りを別の台へ回すなど）、詰まる台が移る。全台の pprof（`runs/<run-id>/pprof-<host>.txt`）と Resources 節で、移った先を見る
 - アプリは `webapp/` を、nginx / MySQL / systemd の設定は `conf/<host>/...` を編集する
   - サーバの `/etc` を直接編集しない。deploy で配られず、`deploy <古い sha>` でも戻らない
   - 参考: `setup/templates/`（nginx・mysqld のチューニングの定番）。計測で必要と分かってから写す
@@ -184,7 +192,8 @@ report.md の Summary に前回比・ベスト比が出る。ハーネスは良�
   （`bin/isuh bench <sha> --note "再計測"`）
 - ぶれの幅は、`runs/history.tsv` で同じ sha のまま 2 回以上 pass したランの (最大 − 最小) ÷ 平均 で見積もる。
   普段は 1 ランで回し、再計測したランが貯まるたびに見直す。プロファイルの取得など条件の違うランは除く。
-  この幅に収まった差は「効果なし」ではなく「判定できない」。ISUCON14 のリハーサルでは多くが 2〜4%、ときどき 10% 近くあった
+  この幅に収まった差は「効果なし」ではなく「判定できない」。ISUCON14 のリハーサルでは多くが 2〜4%、ときどき 10% 近くあった。
+  ISUCON2026 では同じ sha で最大 15% 開いた。見送るときは 2 回の平均で決める
 - 良くなった → そのまま次の周へ
 - 悪くなった・変わらない → 戻す。コミットを revert してから次へ
 
