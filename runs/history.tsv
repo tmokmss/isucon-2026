@@ -96,3 +96,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-140017-04990e1	2026-10-31T14:00:17+09:00	04990e175c3ebdd5cc52753fc47b97bcab325270	image-files	134480	pass	hybrid: new images in asia1 files, initial from DB + main c6abd65
 20261031-135709-3bc4182	2026-10-31T13:57:09+09:00	3bc4182721735b3dd6fb8e3a75eda33e51b2742e	jpeg-peer-asia2	114092	pass	JPEG の検証を asia2 にも逃がす（jpegcheck-fast の上）
 20261031-140544-247167c	2026-10-31T14:05:44+09:00	247167c3ec73b18ed02639f598c50a9c64999fbd	image-storage-external	123551	pass	画像の列で圧縮を試さない（main 14640b7 の上）
+20261031-141508-a8128f2	2026-10-31T14:15:08+09:00	a8128f2ba3081f3ab26670e53751109ad694982d	image-files	134342	pass	image-files (no fsync/sync) on main e42c64c
