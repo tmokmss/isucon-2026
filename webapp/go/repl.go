@@ -171,14 +171,9 @@ type opWindowOpen struct {
 	Notified map[string]notificationRow
 }
 
+// 読み込んだ後に当て直すときは、読み込みに入っていた新しい投稿期間を終わらせない
 func (o *opWindowOpen) apply(s *Store) {
 	region := o.W.Region
-	if old := s.activeWindows[region]; old != nil && old.ID != o.W.ID && old.EndedAt == nil {
-		t := o.W.StartsAt
-		old.EndedAt = &t
-		// 終わった投稿期間の通知はもう読まれない
-		old.notified = map[string]notificationRow{}
-	}
 	w := s.windows[o.W.ID]
 	if w == nil {
 		w = o.W
@@ -189,6 +184,20 @@ func (o *opWindowOpen) apply(s *Store) {
 			}
 		}
 		s.windows[w.ID] = w
+	}
+	if w.EndedAt != nil {
+		return
+	}
+	if old := s.activeWindows[region]; old != nil && old != w {
+		if old.StartsAt.After(w.StartsAt) {
+			return
+		}
+		if old.EndedAt == nil {
+			t := w.StartsAt
+			old.EndedAt = &t
+			// 終わった投稿期間の通知はもう読まれない
+			old.notified = map[string]notificationRow{}
+		}
 	}
 	s.activeWindows[region] = w
 	if d, ok := s.maxLocalDate[region]; !ok || w.LocalDate.After(d) {
@@ -356,7 +365,22 @@ type opFollowRemove struct{ Follower, Followee string }
 
 func (o *opFollowRemove) apply(s *Store) { s.removeFollowLocked(o.Follower, o.Followee) }
 
-type opBlockAdd struct{ B *BlockRow }
+// Cancel は取り消す保留中の申請。当て直しのときに、読み込みに入っていた後の申請まで取り消さないよう asia1 で決める
+type opBlockAdd struct {
+	B      *BlockRow
+	Cancel []string
+}
+
+func newOpBlockAddLocked(s *Store, b *BlockRow) *opBlockAdd {
+	op := &opBlockAdd{B: b}
+	u := s.users[b.BlockerID]
+	for _, r := range []*FriendRequest{u.pendingOut[b.BlockedID], u.pendingIn[b.BlockedID]} {
+		if r != nil {
+			op.Cancel = append(op.Cancel, r.ID)
+		}
+	}
+	return op
+}
 
 func (o *opBlockAdd) apply(s *Store) {
 	actor, target, at := o.B.BlockerID, o.B.BlockedID, o.B.CreatedAt
@@ -371,8 +395,8 @@ func (o *opBlockAdd) apply(s *Store) {
 	s.removeFriendshipLocked(actor, target)
 	s.removeFollowLocked(actor, target)
 	s.removeFollowLocked(target, actor)
-	for _, r := range []*FriendRequest{s.users[actor].pendingOut[target], s.users[actor].pendingIn[target]} {
-		if r != nil {
+	for _, id := range o.Cancel {
+		if r := s.friendRequests[id]; r != nil && r.Status == "pending" {
 			s.setRequestStatusLocked(r, "cancelled", at)
 		}
 	}

@@ -167,7 +167,7 @@ func blockHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		rw := s.commitLocked(&opBlockAdd{B: b})
+		rw := s.commitLocked(newOpBlockAddLocked(s, b))
 		s.mu.Unlock()
 		rw.wait()
 		return c.NoContent(http.StatusNoContent)
