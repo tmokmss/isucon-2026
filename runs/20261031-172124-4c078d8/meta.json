@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-172124-4c078d8",
+  "startedAt": "2026-10-31T17:21:24+09:00",
+  "finishedAt": "2026-10-31T17:25:33+09:00",
+  "ref": "4c078d8",
+  "sha": "4c078d8c5a8c40e82c1b2ac7305f90d12c211e35",
+  "score": 223434,
+  "status": "pass",
+  "note": "presign-wide EU/US precompute next-minute signatures, 2-gen exp cache",
+  "benchJobId": "33949",
+  "prevRunId": "20261031-171010-53bad13",
+  "bestRunId": "20261031-164055-bdf05cd"
+}
