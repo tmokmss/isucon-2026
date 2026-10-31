@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"example.com/isureal-company/isureal/jpegcheck"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
@@ -21,7 +22,7 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		cfg, err := jpeg.DecodeConfig(bytes.NewReader(data))
 		if err == nil {
-			_, err = jpeg.Decode(bytes.NewReader(data))
+			_, _, err = jpegcheck.Check(bytes.NewReader(data))
 		}
 		if err != nil {
 			c.Set("abuse", "invalid_image")
