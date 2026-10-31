@@ -15,12 +15,16 @@ import (
 const imageURLLifetime = 24 * time.Hour
 const imageSignatureIterations = 1000
 
-// 同じ (鍵, 画像 ID, exp) の署名を使い回す。exp を 1 分単位に切り上げるので、同じ 1 分の間は同じ URL になる
-const imageSignatureCacheMax = 1_000_000
+// 同じ (鍵, 画像 ID, exp) の署名を使い回す。exp を 1 分単位に切り上げるので、同じ 1 分の間は同じ URL になる。
+// exp ごとに分けて持ち、今の exp より古いものは捨てる（今の分と、先回りで入れる次の分だけが残る）
+type imageSignatureEntry struct {
+	sig       []byte
+	presigned bool
+}
 
 var (
 	imageSignatureCacheMu sync.RWMutex
-	imageSignatureCache   = make(map[string][]byte)
+	imageSignatureCaches  = map[int64]map[string]imageSignatureEntry{}
 )
 
 func imageSigningKey(secretKeyHash string) ([]byte, error) {
@@ -31,24 +35,47 @@ func imageSigningKey(secretKeyHash string) ([]byte, error) {
 	return key, nil
 }
 
-func imageSignature(key []byte, imageID string, exp int64) []byte {
-	cacheKey := imageSignatureCacheKey(key, imageID, exp)
-
+func lookupImageSignature(key []byte, imageID string, exp int64) (imageSignatureEntry, bool) {
 	imageSignatureCacheMu.RLock()
-	cached, ok := imageSignatureCache[cacheKey]
+	e, ok := imageSignatureCaches[exp][imageSignatureCacheKey(key, imageID)]
 	imageSignatureCacheMu.RUnlock()
-	if ok {
-		return cached
-	}
+	return e, ok
+}
 
-	value := computeImageSignature(key, imageID, exp)
-
+func storeImageSignatures(exp int64, keys []string, sigs [][]byte, presigned bool) {
+	cur := imageURLExp()
 	imageSignatureCacheMu.Lock()
-	if len(imageSignatureCache) >= imageSignatureCacheMax {
-		imageSignatureCache = make(map[string][]byte)
+	for e := range imageSignatureCaches {
+		if e < cur {
+			delete(imageSignatureCaches, e)
+		}
 	}
-	imageSignatureCache[cacheKey] = value
+	if exp >= cur {
+		m := imageSignatureCaches[exp]
+		if m == nil {
+			m = make(map[string]imageSignatureEntry, len(keys))
+			imageSignatureCaches[exp] = m
+		}
+		for i, k := range keys {
+			m[k] = imageSignatureEntry{sigs[i], presigned}
+		}
+	}
 	imageSignatureCacheMu.Unlock()
+}
+
+func imageSignature(key []byte, imageID string, exp int64) []byte {
+	if e, ok := lookupImageSignature(key, imageID, exp); ok {
+		if e.presigned {
+			presignHit.Add(1)
+		} else {
+			presignCacheHit.Add(1)
+		}
+		return e.sig
+	}
+	presignLocal.Add(1)
+	recordPresignTarget(key, imageID)
+	value := computeImageSignature(key, imageID, exp)
+	storeImageSignatures(exp, []string{imageSignatureCacheKey(key, imageID)}, [][]byte{value}, false)
 	return value
 }
 
@@ -65,8 +92,8 @@ func computeImageSignature(key []byte, imageID string, exp int64) []byte {
 	return value
 }
 
-func imageSignatureCacheKey(key []byte, imageID string, exp int64) string {
-	return string(key) + strconv.FormatInt(exp, 10) + ":" + imageID
+func imageSignatureCacheKey(key []byte, imageID string) string {
+	return string(key) + imageID
 }
 
 func imageURLExp() int64 {

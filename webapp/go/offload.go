@@ -186,20 +186,19 @@ func prefetchImageSignatures(targets []signTarget) {
 	var body []byte
 	var keys []string
 	seen := make(map[string]bool, len(targets))
-	imageSignatureCacheMu.RLock()
 	for _, t := range targets {
-		cacheKey := imageSignatureCacheKey(t.key, t.imageID, exp)
+		cacheKey := imageSignatureCacheKey(t.key, t.imageID)
 		if seen[cacheKey] {
 			continue
 		}
 		seen[cacheKey] = true
-		if _, ok := imageSignatureCache[cacheKey]; ok {
+		if _, ok := lookupImageSignature(t.key, t.imageID, exp); ok {
 			continue
 		}
+		recordPresignTarget(t.key, t.imageID)
 		keys = append(keys, cacheKey)
 		body = appendSignRequest(body, t.key, t.imageID, exp)
 	}
-	imageSignatureCacheMu.RUnlock()
 	if len(keys) == 0 {
 		return
 	}
@@ -207,14 +206,15 @@ func prefetchImageSignatures(targets []signTarget) {
 	if err != nil || len(res) != len(keys)*32 {
 		return
 	}
-	imageSignatureCacheMu.Lock()
-	if len(imageSignatureCache)+len(keys) > imageSignatureCacheMax {
-		imageSignatureCache = make(map[string][]byte)
+	storeImageSignatures(exp, keys, splitSignatures(res, len(keys)), false)
+}
+
+func splitSignatures(res []byte, n int) [][]byte {
+	sigs := make([][]byte, n)
+	for i := range sigs {
+		sigs[i] = res[i*32 : (i+1)*32 : (i+1)*32]
 	}
-	for i, k := range keys {
-		imageSignatureCache[k] = res[i*32 : (i+1)*32 : (i+1)*32]
-	}
-	imageSignatureCacheMu.Unlock()
+	return sigs
 }
 
 // 1 件 = 鍵の長さ(1) 鍵 exp(8) 画像 ID の長さ(2) 画像 ID
