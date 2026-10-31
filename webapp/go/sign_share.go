@@ -8,8 +8,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"time"
 )
 
@@ -61,7 +63,11 @@ func signShareForever(ch chan signShareEntry, url string) {
 				continue
 			}
 		}
-		offloadPost(url, body, time.Second)
+		if _, err := offloadPost(url, body, time.Second); err != nil {
+			signShareFailed.Add(int64(n))
+		} else {
+			signShareSent.Add(int64(n))
+		}
 		body = body[:0]
 		n = 0
 	}
@@ -102,4 +108,17 @@ func signShareHandler(w http.ResponseWriter, r *http.Request) {
 		imageSignatureCache[k] = sigs[i]
 	}
 	imageSignatureCacheMu.Unlock()
+	signShareReceived.Add(int64(len(keys)))
+}
+
+var signShareSent, signShareFailed, signShareReceived atomic.Int64
+
+func init() {
+	go func() {
+		for range time.Tick(10 * time.Second) {
+			if s, f, r := signShareSent.Swap(0), signShareFailed.Swap(0), signShareReceived.Swap(0); s+f+r > 0 {
+				log.Printf("sign-share sent=%d failed=%d received=%d", s, f, r)
+			}
+		}
+	}()
 }
