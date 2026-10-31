@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-145346-4535807",
+  "startedAt": "2026-10-31T14:53:46+09:00",
+  "finishedAt": "2026-10-31T14:58:22+09:00",
+  "ref": "4535807",
+  "sha": "45358075366fe5105b7cde99b8d4aec2e0e1364a",
+  "score": 133663,
+  "status": "pass",
+  "note": "JPEG の検証を asia2 にも逃がす（main 6ad2e36 の上）",
+  "benchJobId": "19942",
+  "prevRunId": "20261031-144830-3c8fc33",
+  "bestRunId": "20261031-141027-bd0fe45"
+}
