@@ -109,11 +109,22 @@ func NewReplicaServer(config *Config) http.Handler {
 	e.GET("/api/memories", getMemoriesHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
 	e.GET("/api/memories/:date", getMemoriesByDateHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
 	e.GET("/api/relationships/:kind", getRelationshipsHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	// 新しい画像の本体は PostgreSQL に無い（image_file.go）ので、手元に無ければ asia1 から取って置く
 	exportLocalImage = func(id string) ([]byte, bool) {
 		if !localImageIDPattern.MatchString(id) || len(id) < 2 {
 			return nil, false
 		}
-		return readLocalImage(id)
+		if data, ok := readLocalImage(id); ok {
+			return data, true
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		data, initial, err := fetchOriginImage(ctx, rep.upstream, id)
+		if err != nil {
+			return nil, false
+		}
+		writeLocalImage(id, data, initial)
+		return data, true
 	}
 
 	f := &replicaFront{mode: os.Getenv("ISUREAL_REPLICA_MODE"), rep: rep, images: NewImageServer(config), local: e, proxy: proxy}

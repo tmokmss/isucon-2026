@@ -41,6 +41,7 @@ func initializeHandler(h *HandlerContext) echo.HandlerFunc {
 		s.rebuildIndexes()
 		s.mu.Unlock()
 		imageCache.reset()
+		resetNewImages()
 		imagesReset()
 		resetReplicas()
 		log.Printf("initialize done in %s", time.Since(start))

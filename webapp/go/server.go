@@ -72,6 +72,7 @@ func NewServer(config *Config) *echo.Echo {
 		}
 		handlerContext.DB = db
 		StartReplDigest(handlerContext.Store)
+		originImageDB.Store(db)
 		close(ready)
 	}()
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
