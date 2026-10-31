@@ -273,6 +273,7 @@ func updateMeHandler(h *HandlerContext) echo.HandlerFunc {
 			if input.DisplayName != nil {
 				u.DisplayName = *input.DisplayName
 				u.normDisplayName = normalizeSearchText(u.DisplayName)
+				s.refreshUserSearchLocked(u)
 			}
 			if input.Bio != nil {
 				u.Bio = *input.Bio
