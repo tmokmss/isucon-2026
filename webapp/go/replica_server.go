@@ -27,9 +27,13 @@ import (
 )
 
 func replicaLocalRoute(path string) bool {
+	switch path {
+	case "/api/posting-window/current", "/api/posts/me/current", "/api/users", "/api/me", "/api/me/export", "/api/memories":
+		return true
+	}
 	parts := strings.Split(strings.TrimPrefix(path, "/api/"), "/")
 	switch {
-	case len(parts) == 2 && parts[0] == "feeds":
+	case len(parts) == 2 && (parts[0] == "feeds" || parts[0] == "users" || parts[0] == "relationships" || parts[0] == "memories") && parts[1] != "":
 		return true
 	case len(parts) == 2 && parts[0] == "posts" && parts[1] != "":
 		return true
@@ -38,6 +42,9 @@ func replicaLocalRoute(path string) bool {
 	}
 	return false
 }
+
+// exportLocalImage は複製の台で、エクスポートの画像を手元のファイル（image_local.go が置いたもの）から読む
+var exportLocalImage = func(id string) ([]byte, bool) { return nil, false }
 
 type replicaFront struct {
 	mode   string
@@ -84,6 +91,21 @@ func NewReplicaServer(config *Config) http.Handler {
 	e.GET("/api/feeds/:feed", getFeedHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
 	e.GET("/api/posts/:postId/comments", getCommentsHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
 	e.GET("/api/posts/:postId/realmojis", getRealMojisHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	e.GET("/api/posting-window/current", getCurrentPostingWindowHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	e.GET("/api/posts/me/current", getMyCurrentPostHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	e.GET("/api/users", searchUsersHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	e.GET("/api/users/:userId", getUserHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	e.GET("/api/me", getMeHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	e.GET("/api/me/export", exportPostsHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	e.GET("/api/memories", getMemoriesHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	e.GET("/api/memories/:date", getMemoriesByDateHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	e.GET("/api/relationships/:kind", getRelationshipsHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
+	exportLocalImage = func(id string) ([]byte, bool) {
+		if !localImageIDPattern.MatchString(id) || len(id) < 2 {
+			return nil, false
+		}
+		return readLocalImage(id)
+	}
 
 	f := &replicaFront{mode: os.Getenv("ISUREAL_REPLICA_MODE"), rep: rep, images: NewImageServer(config), local: e, proxy: proxy}
 	go f.statsLoop()
