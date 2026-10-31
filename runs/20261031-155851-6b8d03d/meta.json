@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-155851-6b8d03d",
+  "startedAt": "2026-10-31T15:58:51+09:00",
+  "finishedAt": "2026-10-31T16:04:35+09:00",
+  "ref": "mem-headroom",
+  "sha": "6b8d03da96892a6dd73e1d4a3901f8cf9b0494e4",
+  "score": 171210,
+  "status": "pass",
+  "note": "mem headroom + nginx buffers shrink on isu1",
+  "benchJobId": "25906",
+  "prevRunId": "20261031-155347-d7fb2c5",
+  "bestRunId": "20261031-151339-5a230a4"
+}

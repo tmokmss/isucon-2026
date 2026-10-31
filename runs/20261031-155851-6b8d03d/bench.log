@@ -1,0 +1,71 @@
+{"id":"25906","status":"done","portalStatus":"finished","passed":true,"score":171210,"raw":171210,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T07:02:46.767Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:02:49.753Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:02:52.754Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:02:55.762Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T07:02:58.753Z level=INFO msg="europe 2 日目: 21 人"
+time=2026-10-31T07:02:59.043Z level=INFO msg="user moved" user=nite.5370 from=asia to=europe
+time=2026-10-31T07:03:01.755Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T07:03:04.556Z level=INFO msg="user moved" user=tokosol.5506 from=america to=europe
+time=2026-10-31T07:03:04.765Z level=INFO msg="asia 3 日目: 149 人"
+time=2026-10-31T07:03:06.581Z level=INFO msg="user moved" user=kakuya_5853 from=asia to=europe
+time=2026-10-31T07:03:07.752Z level=INFO msg="europe 3 日目: 68 人"
+time=2026-10-31T07:03:10.267Z level=INFO msg="user moved" user=tokosol.5506 from=europe to=asia
+time=2026-10-31T07:03:10.754Z level=INFO msg="america 3 日目: 53 人"
+time=2026-10-31T07:03:12.893Z level=INFO msg="user moved" user=nite.5370 from=europe to=asia
+time=2026-10-31T07:03:13.777Z level=INFO msg="asia 4 日目: 442 人"
+time=2026-10-31T07:03:17.199Z level=INFO msg="europe 4 日目: 194 人"
+time=2026-10-31T07:03:17.317Z level=INFO msg="user moved" user=tokosol.5506 from=asia to=europe
+time=2026-10-31T07:03:18.712Z level=INFO msg="user moved" user=sonuke7614 from=asia to=america
+time=2026-10-31T07:03:18.943Z level=INFO msg="user moved" user=tabenel_8038 from=asia to=europe
+time=2026-10-31T07:03:18.952Z level=INFO msg="user moved" user=anke_7496 from=asia to=europe
+time=2026-10-31T07:03:19.208Z level=INFO msg="user moved" user=benzoe_8147 from=asia to=europe
+time=2026-10-31T07:03:19.389Z level=INFO msg="user moved" user=nite.5370 from=asia to=europe
+time=2026-10-31T07:03:19.658Z level=INFO msg="user moved" user=maro_6724 from=america to=europe
+time=2026-10-31T07:03:19.823Z level=INFO msg="user moved" user=sonuke7614 from=america to=asia
+time=2026-10-31T07:03:19.875Z level=INFO msg="america 4 日目: 153 人"
+time=2026-10-31T07:03:19.899Z level=INFO msg="user moved" user=nuben8876 from=asia to=europe
+time=2026-10-31T07:03:20.520Z level=INFO msg="user moved" user=maliaben8687 from=asia to=america
+time=2026-10-31T07:03:21.725Z level=INFO msg="user moved" user=evaben_9108 from=europe to=america
+time=2026-10-31T07:03:21.916Z level=INFO msg="user moved" user=kenoachi_7549 from=asia to=europe
+time=2026-10-31T07:03:22.795Z level=INFO msg="asia 5 日目: 1147 人"
+time=2026-10-31T07:03:22.932Z level=INFO msg="user moved" user=lialiasu.8604 from=asia to=europe
+time=2026-10-31T07:03:27.151Z level=INFO msg="europe 5 日目: 448 人"
+time=2026-10-31T07:03:27.157Z level=INFO msg="user moved" user=kakuya_5853 from=europe to=america
+time=2026-10-31T07:03:27.181Z level=INFO msg="user moved" user=anmiana9725 from=america to=asia
+time=2026-10-31T07:03:30.390Z level=INFO msg="america 5 日目: 254 人"
+time=2026-10-31T07:03:38.554Z level=INFO msg="asia 最終日（グランプリ）: 1146 人"
+time=2026-10-31T07:03:39.118Z level=INFO msg="europe 最終日（グランプリ）: 446 人"
+time=2026-10-31T07:03:39.135Z level=INFO msg="america 最終日（グランプリ）: 254 人"
+time=2026-10-31T07:03:46.870Z level=INFO msg="グランプリ: アジア 444 人, ヨーロッパ 105 人, アメリカ 98 人"
+{
+  "pass": true,
+  "score": 171210,
+  "messages": [
+    "roreni_14276: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "suke.14264: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "tehasol_14927: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "anrahe17104: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "none17643: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "miamaxro-16189: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "numar-16656: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "nomoeva.13566: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "nosol-17310: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "wachimia15971: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "naansa_16253: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "isruan_16045: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "molia_6142: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "mileo-17565: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "maben-11060: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "maxivywa.15682: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "yuleochi16754: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "robense_10615: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "hemia.11213: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "royo_14825: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
+
+--- stderr ---
+

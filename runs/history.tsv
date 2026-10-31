@@ -123,3 +123,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-152137-8c13252	2026-10-31T15:21:37+09:00	8c13252c30647a9d6e7624eff3fe75f10e8118b4	8c13252	183331	pass	RealMoji の画像も受けた台に置く（main 5fcd3e6 の上）2回目
 20261031-152604-1884ea4	2026-10-31T15:26:04+09:00	1884ea4d7c35696bbf80b8ed2c11d3bf44d33367	final-no-metrics	185078	pass	final: access log and pprof off (on main 710ad2d)
 20261031-155347-d7fb2c5	2026-10-31T15:53:47+09:00	d7fb2c5a7b0e8a3e61b6337011e1fb7e3c7bf923	mem-headroom	187910	pass	mem headroom: GOMEMLIMIT 2200MiB, image cache 100MB (on main b3440cf)
+20261031-155851-6b8d03d	2026-10-31T15:58:51+09:00	6b8d03da96892a6dd73e1d4a3901f8cf9b0494e4	mem-headroom	171210	pass	mem headroom + nginx buffers shrink on isu1
