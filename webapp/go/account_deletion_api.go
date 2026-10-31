@@ -35,13 +35,9 @@ func deleteAccountHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		u.Status = "deleted"
-		for hash, sess := range u.sessions {
-			sess.Active = false
-			delete(s.sessions, hash)
-		}
-		u.sessions = map[string]*LoginSessionRow{}
+		rw := s.commitLocked(&opUserDelete{UserID: userID})
 		s.mu.Unlock()
+		rw.wait()
 		userImagesInvalidated(userID)
 		return c.NoContent(http.StatusNoContent)
 	}

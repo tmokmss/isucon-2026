@@ -35,8 +35,9 @@ func deleteFriendshipHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		s.removeFriendshipLocked(actor, input.UserID)
+		rw := s.commitLocked(&opFriendshipRemove{A: actor, B: input.UserID})
 		s.mu.Unlock()
+		rw.wait()
 		return c.NoContent(http.StatusNoContent)
 	}
 }
@@ -73,8 +74,9 @@ func followHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		s.addFollowLocked(f)
+		rw := s.commitLocked(&opFollowAdd{F: f})
 		s.mu.Unlock()
+		rw.wait()
 		return c.NoContent(http.StatusNoContent)
 	}
 }
@@ -106,8 +108,9 @@ func unfollowHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		s.removeFollowLocked(actor, input.UserID)
+		rw := s.commitLocked(&opFollowRemove{Follower: actor, Followee: input.UserID})
 		s.mu.Unlock()
+		rw.wait()
 		return c.NoContent(http.StatusNoContent)
 	}
 }
@@ -164,18 +167,9 @@ func blockHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		s.blocks = append(s.blocks, b)
-		s.users[actor].blockOut[target] = b
-		s.users[target].blockIn[actor] = b
-		s.removeFriendshipLocked(actor, target)
-		s.removeFollowLocked(actor, target)
-		s.removeFollowLocked(target, actor)
-		for _, r := range []*FriendRequest{s.users[actor].pendingOut[target], s.users[actor].pendingIn[target]} {
-			if r != nil {
-				s.setRequestStatusLocked(r, "cancelled", at)
-			}
-		}
+		rw := s.commitLocked(&opBlockAdd{B: b})
 		s.mu.Unlock()
+		rw.wait()
 		return c.NoContent(http.StatusNoContent)
 	}
 }
@@ -208,16 +202,9 @@ func unblockHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		delete(s.users[actor].blockOut, target)
-		delete(s.users[target].blockIn, actor)
-		for i, x := range s.blocks {
-			if x == b {
-				s.blocks[i] = s.blocks[len(s.blocks)-1]
-				s.blocks = s.blocks[:len(s.blocks)-1]
-				break
-			}
-		}
+		rw := s.commitLocked(&opBlockRemove{Blocker: actor, Blocked: target})
 		s.mu.Unlock()
+		rw.wait()
 		return c.NoContent(http.StatusNoContent)
 	}
 }

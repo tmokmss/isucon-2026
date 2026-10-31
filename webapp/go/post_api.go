@@ -131,9 +131,10 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		imageCache.put(imageID, imageData, "image/jpeg")
 		s.mu.Lock()
-		s.addPostLocked(p)
+		rw := s.commitLocked(newOpPostAdd(p))
 		post := p.post()
 		s.mu.Unlock()
+		rw.wait()
 		return c.JSON(http.StatusCreated, newPostResponse(post, user))
 	}
 }
@@ -264,15 +265,11 @@ func updatePostHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		if input.Caption != nil {
-			p.Caption = *input.Caption
-		}
-		if input.Visibility != nil {
-			p.Visibility = *input.Visibility
-		}
+		rw := s.commitLocked(&opPostUpdate{ID: p.ID, Caption: opt(input.Caption), Visibility: opt(input.Visibility)})
 		post := p.post()
 		user := u.User
 		s.mu.Unlock()
+		rw.wait()
 		return c.JSON(http.StatusOK, updatePostResponse(newPostResponse(post, user)))
 	}
 }
@@ -315,8 +312,9 @@ func deletePostHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		p.DeletedAt = &deletedAt
+		rw := s.commitLocked(&opPostDelete{ID: p.ID, At: deletedAt})
 		s.mu.Unlock()
+		rw.wait()
 		imagesInvalidated(p.ImageID)
 		return c.NoContent(http.StatusNoContent)
 	}

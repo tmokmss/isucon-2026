@@ -33,14 +33,16 @@ func initializeHandler(h *HandlerContext) echo.HandlerFunc {
 		// DB と同じ初期化をメモリにも行う。大きい表は境界より後の行を捨て、小さい表は読み直す
 		s := h.Store
 		s.mu.Lock()
-		defer s.mu.Unlock()
 		if err := loadSmall(c.Request().Context(), h.DB, s); err != nil {
+			s.mu.Unlock()
 			return err
 		}
 		s.pruneAfterBoundary()
 		s.rebuildIndexes()
+		s.mu.Unlock()
 		imageCache.reset()
 		imagesReset()
+		resetReplicas()
 		log.Printf("initialize done in %s", time.Since(start))
 
 		return c.JSON(http.StatusOK, initializeResponse{Language: "go", Agent: "claude-code", Harness: "claude-code", Model: "claude-opus-5-5"})
