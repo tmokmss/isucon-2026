@@ -1,7 +1,9 @@
 package isureal
 
-// まとめて返す画像の署名（Memories・エクスポート）を、CPU の空いている台へ逃がす。
-// 逃がし先は ISUREAL_OFFLOAD_PEERS（近い順、カンマ区切りの host:port）。失敗した逃がし先は数秒外し、
+// まとめて返す画像の署名（Memories・エクスポート）と、受け取った JPEG の検証を、CPU の空いている台へ逃がす。
+// JPEG の判定は手元と同じ jpegcheck.Check で行う。
+// 逃がし先は、署名が ISUREAL_OFFLOAD_PEERS、JPEG が ISUREAL_OFFLOAD_JPEG_PEERS（頼む順、カンマ区切りの host:port）。
+// asia2 は PostgreSQL の台なので、署名は europe1・america1 を先に使い、JPEG は asia2 に頼まない。失敗した逃がし先は数秒外し、
 // どの逃がし先も同時に頼める数（offloadPeerSlots）まで埋まっている・失敗した・遅いときは手元で計算する。逃がし先は鍵を受け取るので、
 // 受け付けはプライベートネットワーク（192.168.0.0/16）からだけにし、nginx には出さない。
 
@@ -20,12 +22,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"example.com/isureal-company/isureal/jpegcheck"
 )
 
 const offloadPort = ":8090"
 
 const (
 	offloadSignTimeout = 2 * time.Second
+	offloadJPEGTimeout = 2 * time.Second
 	offloadPeerBackoff = 5 * time.Second
 	offloadPeerSlots   = 8
 )
@@ -36,15 +41,28 @@ type offloadPeer struct {
 	slots     chan struct{}
 }
 
-var offloadPeers = func() []*offloadPeer {
+var offloadPeerByAddr = map[string]*offloadPeer{}
+
+// 同じ台は署名と JPEG で同時に頼める数を分け合う
+func offloadPeersFromEnv(key string) []*offloadPeer {
 	var peers []*offloadPeer
-	for _, addr := range strings.Split(os.Getenv("ISUREAL_OFFLOAD_PEERS"), ",") {
+	for _, addr := range strings.Split(os.Getenv(key), ",") {
 		if addr = strings.TrimSpace(addr); addr != "" {
-			peers = append(peers, &offloadPeer{url: "http://" + addr, slots: make(chan struct{}, offloadPeerSlots)})
+			peer := offloadPeerByAddr[addr]
+			if peer == nil {
+				peer = &offloadPeer{url: "http://" + addr, slots: make(chan struct{}, offloadPeerSlots)}
+				offloadPeerByAddr[addr] = peer
+			}
+			peers = append(peers, peer)
 		}
 	}
 	return peers
-}()
+}
+
+var (
+	offloadPeers     = offloadPeersFromEnv("ISUREAL_OFFLOAD_PEERS")
+	offloadJPEGPeers = offloadPeersFromEnv("ISUREAL_OFFLOAD_JPEG_PEERS")
+)
 
 var offloadClient = &http.Client{Transport: &http.Transport{
 	DialContext:         (&net.Dialer{Timeout: 300 * time.Millisecond}).DialContext,
@@ -54,9 +72,9 @@ var offloadClient = &http.Client{Transport: &http.Transport{
 }}
 
 // 空きのある逃がし先へ近い順に頼む。つながらなければ次へ、時間切れなら手元で計算させる
-func offloadCall(path string, body []byte, timeout time.Duration) ([]byte, error) {
+func offloadCall(peers []*offloadPeer, path string, body []byte, timeout time.Duration) ([]byte, error) {
 	now := time.Now().UnixNano()
-	for _, peer := range offloadPeers {
+	for _, peer := range peers {
 		if peer.downUntil.Load() > now {
 			continue
 		}
@@ -100,6 +118,21 @@ func offloadPost(url string, body []byte, timeout time.Duration) ([]byte, error)
 	return data, nil
 }
 
+var errInvalidJPEG = errors.New("invalid JPEG")
+
+// jpegcheck.Check と同じ判定を返す。逃がし先が使えないときは手元で検証する
+func checkJPEG(data []byte) (width, height int, err error) {
+	if len(offloadJPEGPeers) > 0 {
+		if res, err := offloadCall(offloadJPEGPeers, "/jpeg", data, offloadJPEGTimeout); err == nil && len(res) == 9 {
+			if res[0] != 1 {
+				return 0, 0, errInvalidJPEG
+			}
+			return int(binary.BigEndian.Uint32(res[1:5])), int(binary.BigEndian.Uint32(res[5:9])), nil
+		}
+	}
+	return jpegcheck.Check(bytes.NewReader(data))
+}
+
 type signTarget struct {
 	key     []byte
 	imageID string
@@ -132,7 +165,7 @@ func prefetchImageSignatures(targets []signTarget) {
 	if len(keys) == 0 {
 		return
 	}
-	res, err := offloadCall("/sign", body, offloadSignTimeout)
+	res, err := offloadCall(offloadPeers, "/sign", body, offloadSignTimeout)
 	if err != nil || len(res) != len(keys)*32 {
 		return
 	}
@@ -185,6 +218,20 @@ var privateNetwork = &net.IPNet{IP: net.IPv4(192, 168, 0, 0), Mask: net.CIDRMask
 
 func offloadHandler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /jpeg", func(w http.ResponseWriter, r *http.Request) {
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		res := make([]byte, 9)
+		if width, height, err := jpegcheck.Check(bytes.NewReader(data)); err == nil {
+			res[0] = 1
+			binary.BigEndian.PutUint32(res[1:5], uint32(width))
+			binary.BigEndian.PutUint32(res[5:9], uint32(height))
+		}
+		w.Write(res)
+	})
 	mux.HandleFunc("POST /sign", func(w http.ResponseWriter, r *http.Request) {
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
