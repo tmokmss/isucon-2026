@@ -9,3 +9,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-105734-4350e7f	2026-10-31T10:57:34+09:00	4350e7f0be163b67b5b1f95dab923e1d785bc107	origin/main	14209	pass	main 基準（インメモリ化、書き出しはロック中停止）
 20261031-105911-5aad88a	2026-10-31T10:59:11+09:00	5aad88a3aaabbd30baeffaaa2095916121e25fc7	origin/inmemory-2	10532	pass	PR #63: TLS 無効化・エクスポートを主キーで・メモリ削減
 20261031-110242-f264c69	2026-10-31T11:02:42+09:00	f264c69ca06cffacd2e99e0827d45bffcf0c8176	HEAD	0	fail	署名: exp を 10 分単位に（main + 1 コミット）
+20261031-110450-8f720c2	2026-10-31T11:04:50+09:00	8f720c2f3486aa735ba0e54c16611d8123a5b438	origin/main	15668	pass	main: インメモリ化 + 画像を手元から（#62）+ 署名 1 分単位
