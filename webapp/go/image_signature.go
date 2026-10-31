@@ -8,11 +8,20 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 )
 
 const imageURLLifetime = 24 * time.Hour
 const imageSignatureIterations = 1000
+
+// 同じ (鍵, 画像 ID, exp) の署名を使い回す。exp を 1 分単位に切り上げるので、同じ 1 分の間は同じ URL になる
+const imageSignatureCacheMax = 1_000_000
+
+var (
+	imageSignatureCacheMu sync.RWMutex
+	imageSignatureCache   = make(map[string][]byte)
+)
 
 func imageSigningKey(secretKeyHash string) ([]byte, error) {
 	key, err := hex.DecodeString(secretKeyHash)
@@ -24,16 +33,35 @@ func imageSigningKey(secretKeyHash string) ([]byte, error) {
 
 func imageSignature(key []byte, imageID string, exp int64) []byte {
 	value := []byte(strconv.FormatInt(exp, 10) + ":" + imageID)
-	for range imageSignatureIterations {
-		mac := hmac.New(sha256.New, key)
-		mac.Write(value)
-		value = mac.Sum(nil)
+	cacheKey := string(key) + string(value)
+
+	imageSignatureCacheMu.RLock()
+	cached, ok := imageSignatureCache[cacheKey]
+	imageSignatureCacheMu.RUnlock()
+	if ok {
+		return cached
 	}
+
+	mac := hmac.New(sha256.New, key)
+	sum := make([]byte, 0, sha256.Size)
+	for range imageSignatureIterations {
+		mac.Reset()
+		mac.Write(value)
+		sum = mac.Sum(sum[:0])
+		value = append(value[:0], sum...)
+	}
+
+	imageSignatureCacheMu.Lock()
+	if len(imageSignatureCache) >= imageSignatureCacheMax {
+		imageSignatureCache = make(map[string][]byte)
+	}
+	imageSignatureCache[cacheKey] = value
+	imageSignatureCacheMu.Unlock()
 	return value
 }
 
 func signedImageURL(user User, imageID string) string {
-	exp := time.Now().Add(imageURLLifetime).Unix()
+	exp := time.Now().Add(imageURLLifetime).Add(time.Minute - time.Nanosecond).Truncate(time.Minute).Unix()
 	query := url.Values{
 		"exp": {strconv.FormatInt(exp, 10)},
 		"sig": {base64.RawURLEncoding.EncodeToString(imageSignature(user.ImageKey, imageID, exp))},
