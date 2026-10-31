@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-174145-eb573db",
+  "startedAt": "2026-10-31T17:41:45+09:00",
+  "finishedAt": "2026-10-31T17:44:13+09:00",
+  "ref": "eb573db",
+  "sha": "eb573dbfa00233116d11c48d21252561dd93045c",
+  "score": 222955,
+  "status": "pass",
+  "note": "freee gacha 1",
+  "benchJobId": "35920",
+  "prevRunId": "20261031-173816-eb573db",
+  "bestRunId": "20261031-173816-eb573db"
+}

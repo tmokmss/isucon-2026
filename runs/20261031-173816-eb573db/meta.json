@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-173816-eb573db",
+  "startedAt": "2026-10-31T17:38:16+09:00",
+  "finishedAt": "2026-10-31T17:40:11+09:00",
+  "ref": "eb573db",
+  "sha": "eb573dbfa00233116d11c48d21252561dd93045c",
+  "score": 234286,
+  "status": "pass",
+  "note": "last run: code of 885b12c (233154)",
+  "benchJobId": "35565",
+  "prevRunId": "20261031-173327-f1c39e7",
+  "bestRunId": "20261031-173816-eb573db"
+}

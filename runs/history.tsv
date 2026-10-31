@@ -138,3 +138,6 @@ run_id	started_at	sha	ref	score	status	note
 20261031-171843-1662a5d	2026-10-31T17:18:43+09:00	1662a5d5b0f1f9e6ee6c2705a0e61f85f8259c13	sse-read-timeout	219963	pass	SSE proxy_read_timeout 20s rerun
 20261031-172124-4c078d8	2026-10-31T17:21:24+09:00	4c078d8c5a8c40e82c1b2ac7305f90d12c211e35	4c078d8	223434	pass	presign-wide EU/US precompute next-minute signatures, 2-gen exp cache
 20261031-172947-21d10c4	2026-10-31T17:29:47+09:00	21d10c4d020a3f2dcd46c3a676cb30a4732f2a0a	combined	205640	pass	combined: sse read timeout 20s + asia2 sign offload to EU/US (64 slots)
+20261031-173327-f1c39e7	2026-10-31T17:33:27+09:00	f1c39e71a0b9b5f5a4961b5129f48cf6128b9193	origin/main	205561	pass	final candidate: sse 20s + asia2 sign EU/US + sig cache + jpeg prefetch + metrics off
+20261031-173816-eb573db	2026-10-31T17:38:16+09:00	eb573dbfa00233116d11c48d21252561dd93045c	eb573db	234286	pass	last run: code of 885b12c (233154)
+20261031-174145-eb573db	2026-10-31T17:41:45+09:00	eb573dbfa00233116d11c48d21252561dd93045c	eb573db	222955	pass	freee gacha 1

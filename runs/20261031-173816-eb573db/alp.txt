@@ -1,0 +1,8 @@
+== isu1 ==
+Count	1xx	2xx	3xx	4xx	5xx	Method	Uri	Min	Max	Sum	Avg	P90	P95	P99	Stddev	Min(Body)	Max(Body)	Sum(Body)	Avg(Body)
+
+== isu2 ==
+Count	1xx	2xx	3xx	4xx	5xx	Method	Uri	Min	Max	Sum	Avg	P90	P95	P99	Stddev	Min(Body)	Max(Body)	Sum(Body)	Avg(Body)
+
+== isu3 ==
+Count	1xx	2xx	3xx	4xx	5xx	Method	Uri	Min	Max	Sum	Avg	P90	P95	P99	Stddev	Min(Body)	Max(Body)	Sum(Body)	Avg(Body)

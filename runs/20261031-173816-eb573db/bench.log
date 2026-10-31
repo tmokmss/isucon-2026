@@ -1,0 +1,58 @@
+{"id":"35565","status":"done","portalStatus":"finished","passed":true,"score":234286,"raw":234286,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T08:38:45.291Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T08:38:48.286Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T08:38:51.280Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T08:38:54.294Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T08:38:57.069Z level=INFO msg="user moved" user=yarudan_5236 from=asia to=europe
+time=2026-10-31T08:38:57.306Z level=INFO msg="europe 2 日目: 22 人"
+time=2026-10-31T08:39:00.280Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T08:39:03.293Z level=INFO msg="asia 3 日目: 151 人"
+time=2026-10-31T08:39:03.985Z level=INFO msg="user moved" user=koreta5480 from=america to=europe
+time=2026-10-31T08:39:05.497Z level=INFO msg="user moved" user=miahe.5681 from=asia to=europe
+time=2026-10-31T08:39:06.197Z level=INFO msg="user moved" user=miahe.5681 from=europe to=asia
+time=2026-10-31T08:39:06.281Z level=INFO msg="europe 3 日目: 66 人"
+time=2026-10-31T08:39:06.976Z level=INFO msg="user moved" user=benru-5926 from=asia to=europe
+time=2026-10-31T08:39:08.670Z level=INFO msg="user moved" user=nokima.6116 from=asia to=america
+time=2026-10-31T08:39:09.280Z level=INFO msg="america 3 日目: 40 人"
+time=2026-10-31T08:39:10.162Z level=INFO msg="user moved" user=ismo-6374 from=europe to=asia
+time=2026-10-31T08:39:10.471Z level=INFO msg="user moved" user=roorshi_6341 from=europe to=asia
+time=2026-10-31T08:39:11.150Z level=INFO msg="user moved" user=yarudan_5236 from=europe to=asia
+time=2026-10-31T08:39:12.174Z level=INFO msg="user moved" user=koreta5480 from=europe to=asia
+time=2026-10-31T08:39:12.292Z level=INFO msg="asia 4 日目: 413 人"
+time=2026-10-31T08:39:15.003Z level=INFO msg="user moved" user=miahe.5681 from=asia to=europe
+time=2026-10-31T08:39:15.281Z level=INFO msg="europe 4 日目: 195 人"
+time=2026-10-31T08:39:16.894Z level=INFO msg="user moved" user=rokani-7248 from=asia to=europe
+time=2026-10-31T08:39:17.988Z level=INFO msg="user moved" user=ismo-6374 from=asia to=europe
+time=2026-10-31T08:39:18.288Z level=INFO msg="america 4 日目: 113 人"
+time=2026-10-31T08:39:19.149Z level=INFO msg="user moved" user=yoben-8105 from=asia to=america
+time=2026-10-31T08:39:20.104Z level=INFO msg="user moved" user=benru-5926 from=europe to=america
+time=2026-10-31T08:39:20.534Z level=INFO msg="user moved" user=temiaha.9057 from=europe to=america
+time=2026-10-31T08:39:21.298Z level=INFO msg="asia 5 日目: 636 人"
+time=2026-10-31T08:39:21.484Z level=INFO msg="user moved" user=tsudanvin-9014 from=europe to=asia
+time=2026-10-31T08:39:24.307Z level=INFO msg="europe 5 日目: 564 人"
+time=2026-10-31T08:39:25.979Z level=INFO msg="user moved" user=nokima.6116 from=america to=asia
+time=2026-10-31T08:39:27.372Z level=INFO msg="america 5 日目: 317 人"
+time=2026-10-31T08:39:36.297Z level=INFO msg="america 最終日（グランプリ）: 316 人"
+time=2026-10-31T08:39:36.318Z level=INFO msg="europe 最終日（グランプリ）: 563 人"
+time=2026-10-31T08:39:36.355Z level=INFO msg="asia 最終日（グランプリ）: 637 人"
+time=2026-10-31T08:39:45.348Z level=INFO msg="グランプリ: アジア 525 人, ヨーロッパ 506 人, アメリカ 310 人"
+{
+  "pass": true,
+  "score": 234286,
+  "messages": [
+    "mimiahi_5052: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "anretsu.6336: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "leokuyo-10214: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "niis8057: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "maso_9970: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "noul.11939: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sechi.5290: 友達申請を承認できません: POST /api/friend-requests/de6375f7-6ce2-4ec1-b80b-4442c1c259d6/accept: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests/de6375f7-6ce2-4ec1-b80b-4442c1c259d6/accept\": EOF",
+    "fuki5487: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sardines_en_cocotte_de_terre_2092: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF"
+  ]
+}
+
+--- stderr ---
+

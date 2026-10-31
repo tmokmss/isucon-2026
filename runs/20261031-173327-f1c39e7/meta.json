@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-173327-f1c39e7",
+  "startedAt": "2026-10-31T17:33:27+09:00",
+  "finishedAt": "2026-10-31T17:35:44+09:00",
+  "ref": "origin/main",
+  "sha": "f1c39e71a0b9b5f5a4961b5129f48cf6128b9193",
+  "score": 205561,
+  "status": "pass",
+  "note": "final candidate: sse 20s + asia2 sign EU/US + sig cache + jpeg prefetch + metrics off",
+  "benchJobId": "35053",
+  "prevRunId": "20261031-172947-21d10c4",
+  "bestRunId": "20261031-164055-bdf05cd"
+}
