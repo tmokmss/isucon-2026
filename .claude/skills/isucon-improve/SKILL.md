@@ -25,7 +25,7 @@ ISUCON の判断は、一般のソフトウェア開発の常識と前提が違�
 2. テンプレートを取ってスタックを作る。確認は要らない。テンプレートはチーム固有のトークンを含むので、リポジトリの外に置き、中身を出力しない
    ```sh
    bin/isuh portal get /api/contestant/cloud_formation | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0,"utf8"))["1"])' > ~/.isucon/cfn.yaml
-   aws cloudformation create-stack --profile tenjikai-dev --region ap-northeast-1 --stack-name tomooka-sandbox-isucon2026 --template-body file://$HOME/.isucon/cfn.yaml --capabilities CAPABILITY_IAM
+   aws cloudformation create-stack --profile "$AWS_PROFILE" --region ap-northeast-1 --stack-name tomooka-sandbox-isucon2026 --template-body file://$HOME/.isucon/cfn.yaml --capabilities CAPABILITY_IAM
    ```
 3. 起動を待つ間に当日マニュアル（ポータルの `/docs`）を `docs/MANUAL.md` に保存し、下の「ルールブックを読む」を始める。台数とインスタンスタイプを人に報告する
    - インスタンスタイプが台ごとに違えば、出題の意図とみなす。各台の CPU の命令セット（`grep -o -w -E 'sha_ni|avx512f|aes' /proc/cpuinfo | sort -u`）を確かめ、重い計算（ハッシュ・署名・画像の検証）をどの台に置くかを台の役割の設計に入れる。台ごとの速さは `docs/isucon2026/sigbench/` のような小さなプログラムを各台で動かして比べる
