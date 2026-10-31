@@ -1,0 +1,32 @@
+{"id":"1898","status":"done","portalStatus":"finished","passed":true,"score":16943,"raw":16943,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T01:53:21.839Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T01:53:24.246Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T01:53:26.955Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T01:53:30.765Z level=INFO msg="asia 2 日目: 34 人"
+time=2026-10-31T01:53:33.343Z level=INFO msg="europe 2 日目: 7 人"
+time=2026-10-31T01:53:36.127Z level=INFO msg="america 2 日目: 7 人"
+time=2026-10-31T01:53:39.573Z level=INFO msg="asia 3 日目: 70 人"
+time=2026-10-31T01:53:42.336Z level=INFO msg="europe 3 日目: 11 人"
+time=2026-10-31T01:53:45.942Z level=INFO msg="america 3 日目: 12 人"
+time=2026-10-31T01:53:50.086Z level=INFO msg="asia 4 日目: 122 人"
+time=2026-10-31T01:53:55.070Z level=INFO msg="europe 4 日目: 13 人"
+time=2026-10-31T01:53:56.427Z level=INFO msg="america 4 日目: 12 人"
+time=2026-10-31T01:53:59.082Z level=INFO msg="asia 5 日目: 122 人"
+time=2026-10-31T01:54:04.566Z level=INFO msg="europe 5 日目: 13 人"
+time=2026-10-31T01:54:06.714Z level=INFO msg="america 5 日目: 12 人"
+time=2026-10-31T01:54:13.836Z level=INFO msg="asia 最終日（グランプリ）: 121 人"
+time=2026-10-31T01:54:14.237Z level=INFO msg="europe 最終日（グランプリ）: 13 人"
+time=2026-10-31T01:54:15.983Z level=INFO msg="america 最終日（グランプリ）: 12 人"
+time=2026-10-31T01:54:20.935Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 16943,
+  "messages": [
+    "nuivymia.5947: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

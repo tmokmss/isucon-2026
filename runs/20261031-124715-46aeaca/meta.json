@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-124715-46aeaca",
+  "startedAt": "2026-10-31T12:47:15+09:00",
+  "finishedAt": "2026-10-31T12:50:54+09:00",
+  "ref": "46aeaca",
+  "sha": "46aeacab4c1a58d112289e6177cfbdf28f5ae301",
+  "score": 100660,
+  "status": "pass",
+  "note": "PR73 head merged main 04641dc",
+  "benchJobId": "9807",
+  "prevRunId": "20261031-124309-e42d0b5",
+  "bestRunId": "20261031-124715-46aeaca"
+}

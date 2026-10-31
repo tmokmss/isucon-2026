@@ -1,0 +1,33 @@
+{"id":"3443","status":"done","portalStatus":"finished","passed":true,"score":24028,"raw":24028,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:19:27.167Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:19:28.340Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:19:31.349Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:19:35.878Z level=INFO msg="asia 2 日目: 18 人"
+time=2026-10-31T02:19:37.332Z level=INFO msg="europe 2 日目: 9 人"
+time=2026-10-31T02:19:40.331Z level=INFO msg="america 2 日目: 12 人"
+time=2026-10-31T02:19:44.108Z level=INFO msg="asia 3 日目: 21 人"
+time=2026-10-31T02:19:46.166Z level=INFO msg="user moved" user=ivymu.5183 from=america to=asia
+time=2026-10-31T02:19:46.329Z level=INFO msg="europe 3 日目: 13 人"
+time=2026-10-31T02:19:46.641Z level=INFO msg="user moved" user=ivymu.5183 from=asia to=europe
+time=2026-10-31T02:19:49.360Z level=INFO msg="america 3 日目: 26 人"
+time=2026-10-31T02:19:53.014Z level=INFO msg="asia 4 日目: 39 人"
+time=2026-10-31T02:19:55.352Z level=INFO msg="europe 4 日目: 28 人"
+time=2026-10-31T02:19:58.353Z level=INFO msg="america 4 日目: 45 人"
+time=2026-10-31T02:20:03.894Z level=INFO msg="asia 5 日目: 60 人"
+time=2026-10-31T02:20:03.940Z level=INFO msg="user moved" user=ivymu.5183 from=europe to=asia
+time=2026-10-31T02:20:04.672Z level=INFO msg="europe 5 日目: 27 人"
+time=2026-10-31T02:20:07.489Z level=INFO msg="america 5 日目: 47 人"
+time=2026-10-31T02:20:16.930Z level=INFO msg="america 最終日（グランプリ）: 47 人"
+time=2026-10-31T02:20:19.027Z level=INFO msg="asia 最終日（グランプリ）: 60 人"
+time=2026-10-31T02:20:19.621Z level=INFO msg="europe 最終日（グランプリ）: 26 人"
+time=2026-10-31T02:20:25.312Z level=INFO msg="グランプリ: アジア 6 人, ヨーロッパ 0 人, アメリカ 34 人"
+{
+  "pass": true,
+  "score": 24028,
+  "messages": []
+}
+
+--- stderr ---
+

@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-103751-ddc4d70",
+  "startedAt": "2026-10-31T10:37:51+09:00",
+  "finishedAt": "2026-10-31T10:41:57+09:00",
+  "ref": "HEAD",
+  "sha": "ddc4d701940c0ff30e7fb0d0c92d328a011b9261",
+  "score": 8141,
+  "status": "pass",
+  "note": "main: 署名の修正 + インデックスと PostgreSQL の設定（#60）",
+  "benchJobId": "1270",
+  "prevRunId": "20261031-103328-02acb51",
+  "bestRunId": "20261031-103751-ddc4d70"
+}

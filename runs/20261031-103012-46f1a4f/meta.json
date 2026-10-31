@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-103012-46f1a4f",
+  "startedAt": "2026-10-31T10:30:12+09:00",
+  "finishedAt": "2026-10-31T10:34:20+09:00",
+  "ref": "db-indexes-pgconf",
+  "sha": "46f1a4f9b14c3325bfb4850bf52492947daf13be",
+  "score": 6820,
+  "status": "pass",
+  "note": "PostgreSQLの設定（shared_buffers 1GBほか）",
+  "benchJobId": "932",
+  "prevRunId": "20261031-102650-00ef856",
+  "bestRunId": "20261031-103012-46f1a4f"
+}

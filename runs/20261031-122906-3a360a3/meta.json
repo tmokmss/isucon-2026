@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-122906-3a360a3",
+  "startedAt": "2026-10-31T12:29:06+09:00",
+  "finishedAt": "2026-10-31T12:33:42+09:00",
+  "ref": "grandprix-jpeg-slots32",
+  "sha": "3a360a37a65a3ac127119329e315f3f9e5ee370c",
+  "score": 82657,
+  "status": "pass",
+  "note": "jpeg fifo + 32 slots per peer",
+  "benchJobId": "8486",
+  "prevRunId": "20261031-121235-e0e4cb3",
+  "bestRunId": "20261031-122906-3a360a3"
+}

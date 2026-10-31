@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-102650-00ef856",
+  "startedAt": "2026-10-31T10:26:50+09:00",
+  "finishedAt": "2026-10-31T10:29:26+09:00",
+  "ref": "db-indexes-pgconf",
+  "sha": "00ef856a3021b3bae88354cc87f4da9bf81c6eb4",
+  "score": 5421,
+  "status": "pass",
+  "note": "インデックス追加とusers.username一意制約",
+  "benchJobId": "752",
+  "prevRunId": "20261031-100914-e240203",
+  "bestRunId": "20261031-102650-00ef856"
+}

@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-120044-95362e7",
+  "startedAt": "2026-10-31T12:00:44+09:00",
+  "finishedAt": "2026-10-31T12:03:28+09:00",
+  "ref": "offload-jpeg",
+  "sha": "95362e7e22140f03ca90ebdea9033c1197b70270",
+  "score": 63045,
+  "status": "pass",
+  "note": "jpeg-eu-us-sign-far-first",
+  "benchJobId": "6372",
+  "prevRunId": "20261031-115409-773f053",
+  "bestRunId": "20261031-120044-95362e7"
+}

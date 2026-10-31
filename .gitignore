@@ -1,10 +1,8 @@
 
 node_modules/
 
-# ベンチ実行結果。history.tsv だけは追跡する
-runs/*
-!runs/.gitkeep
-!runs/history.tsv
+# ベンチ実行結果は追跡する。プロセス単位の top の生データ（1 回 6MB）だけ外す
+runs/*/resource/top/
 
 # deploy のビルドキャッシュ
 .isuh/
@@ -16,4 +14,5 @@ runs/*
 test/.work/
 
 *.log
+!runs/*/bench.log
 .DS_Store

@@ -1,0 +1,31 @@
+{"id":"2526","status":"done","portalStatus":"finished","passed":true,"score":16152,"raw":16152,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:04:18.358Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:04:21.099Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:04:23.684Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:04:27.705Z level=INFO msg="asia 2 日目: 40 人"
+time=2026-10-31T02:04:29.878Z level=INFO msg="europe 2 日目: 12 人"
+time=2026-10-31T02:04:33.371Z level=INFO msg="america 2 日目: 13 人"
+time=2026-10-31T02:04:38.036Z level=INFO msg="asia 3 日目: 96 人"
+time=2026-10-31T02:04:39.351Z level=INFO msg="europe 3 日目: 20 人"
+time=2026-10-31T02:04:43.114Z level=INFO msg="america 3 日目: 23 人"
+time=2026-10-31T02:04:46.619Z level=INFO msg="asia 4 日目: 96 人"
+time=2026-10-31T02:04:48.823Z level=INFO msg="europe 4 日目: 20 人"
+time=2026-10-31T02:04:52.262Z level=INFO msg="america 4 日目: 23 人"
+time=2026-10-31T02:04:57.519Z level=INFO msg="asia 5 日目: 96 人"
+time=2026-10-31T02:05:00.976Z level=INFO msg="europe 5 日目: 20 人"
+time=2026-10-31T02:05:05.212Z level=INFO msg="america 5 日目: 23 人"
+time=2026-10-31T02:05:12.878Z level=INFO msg="america 最終日（グランプリ）: 23 人"
+time=2026-10-31T02:05:16.126Z level=INFO msg="asia 最終日（グランプリ）: 96 人"
+time=2026-10-31T02:05:17.671Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 1 人"
+{
+  "pass": true,
+  "score": 16152,
+  "messages": [
+    "ulzoe_5684: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

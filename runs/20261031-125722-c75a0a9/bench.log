@@ -1,0 +1,33 @@
+{"id":"10436","status":"done","portalStatus":"finished","passed":true,"score":95693,"raw":95693,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T03:57:53.884Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:57:56.853Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:57:59.850Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:58:02.877Z level=INFO msg="asia 2 日目: 49 人"
+time=2026-10-31T03:58:05.852Z level=INFO msg="europe 2 日目: 16 人"
+time=2026-10-31T03:58:08.851Z level=INFO msg="america 2 日目: 12 人"
+time=2026-10-31T03:58:11.874Z level=INFO msg="asia 3 日目: 141 人"
+time=2026-10-31T03:58:12.027Z level=INFO msg="user moved" user=futa-5444 from=america to=asia
+time=2026-10-31T03:58:13.066Z level=INFO msg="user moved" user=futa-5444 from=asia to=america
+time=2026-10-31T03:58:14.854Z level=INFO msg="europe 3 日目: 42 人"
+time=2026-10-31T03:58:17.882Z level=INFO msg="america 3 日目: 27 人"
+time=2026-10-31T03:58:20.891Z level=INFO msg="asia 4 日目: 406 人"
+time=2026-10-31T03:58:23.884Z level=INFO msg="europe 4 日目: 104 人"
+time=2026-10-31T03:58:26.954Z level=INFO msg="america 4 日目: 51 人"
+time=2026-10-31T03:58:28.645Z level=INFO msg="user moved" user=soldan.7033 from=asia to=europe
+time=2026-10-31T03:58:30.065Z level=INFO msg="asia 5 日目: 966 人"
+time=2026-10-31T03:58:32.949Z level=INFO msg="europe 5 日目: 105 人"
+time=2026-10-31T03:58:35.909Z level=INFO msg="america 5 日目: 51 人"
+time=2026-10-31T03:58:44.923Z level=INFO msg="america 最終日（グランプリ）: 51 人"
+time=2026-10-31T03:58:45.038Z level=INFO msg="asia 最終日（グランプリ）: 965 人"
+time=2026-10-31T03:58:45.177Z level=INFO msg="europe 最終日（グランプリ）: 105 人"
+time=2026-10-31T03:58:53.871Z level=INFO msg="グランプリ: アジア 199 人, ヨーロッパ 3 人, アメリカ 5 人"
+{
+  "pass": true,
+  "score": 95693,
+  "messages": []
+}
+
+--- stderr ---
+

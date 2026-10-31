@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-105807-4478bd9",
+  "startedAt": "2026-10-31T10:58:07+09:00",
+  "finishedAt": "2026-10-31T11:00:54+09:00",
+  "ref": "HEAD",
+  "sha": "4478bd9d6667c38226d2806d4e31ac56fb24cf5b",
+  "score": 15531,
+  "status": "pass",
+  "note": "画像: europe1・america1 で手元から返す（書き出し途中、ベンチ中は書き出し停止）",
+  "benchJobId": "2245",
+  "prevRunId": "20261031-103811-cef5fe3",
+  "bestRunId": "20261031-103811-cef5fe3"
+}

@@ -1,0 +1,46 @@
+{"id":"4793","status":"done","portalStatus":"finished","passed":true,"score":27321,"raw":27321,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:39:41.143Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:39:44.049Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:39:47.080Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:39:50.063Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T02:39:53.134Z level=INFO msg="europe 2 日目: 16 人"
+time=2026-10-31T02:39:56.187Z level=INFO msg="america 2 日目: 12 人"
+time=2026-10-31T02:39:59.113Z level=INFO msg="asia 3 日目: 142 人"
+time=2026-10-31T02:40:02.644Z level=INFO msg="europe 3 日目: 29 人"
+time=2026-10-31T02:40:05.463Z level=INFO msg="america 3 日目: 19 人"
+time=2026-10-31T02:40:08.337Z level=INFO msg="asia 4 日目: 142 人"
+time=2026-10-31T02:40:11.817Z level=INFO msg="europe 4 日目: 29 人"
+time=2026-10-31T02:40:14.303Z level=INFO msg="america 4 日目: 19 人"
+time=2026-10-31T02:40:17.260Z level=INFO msg="asia 5 日目: 145 人"
+time=2026-10-31T02:40:22.272Z level=INFO msg="europe 5 日目: 22 人"
+time=2026-10-31T02:40:23.192Z level=INFO msg="america 5 日目: 13 人"
+time=2026-10-31T02:40:32.223Z level=INFO msg="asia 最終日（グランプリ）: 144 人"
+time=2026-10-31T02:40:32.301Z level=INFO msg="america 最終日（グランプリ）: 12 人"
+time=2026-10-31T02:40:32.387Z level=INFO msg="europe 最終日（グランプリ）: 21 人"
+time=2026-10-31T02:40:41.038Z level=INFO msg="グランプリ: アジア 3 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 27321,
+  "messages": [
+    "rutean-6175: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "anyo6178: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "rohanoa-6183: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "nutsunoa_6190: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "vinka6200: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "moritor6206: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "namiku_6214: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "samax.6219: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "evaan.6228: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "solha_6237: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "shishini_6240: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "danneleo6248: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "benivynu.6258: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "liahi_6260: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "benna5122: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）"
+  ]
+}
+
+--- stderr ---
+

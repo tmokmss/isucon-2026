@@ -1,0 +1,17 @@
+{"id":"2454","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"初期データの検証に失敗しました"}
+
+--- stdout ---
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "初期データの検証に失敗しました: 初期データのユーザー panya_shugyo_386: Memories（2025-11）: 画像 URL \"/api/images/64237636-7c5c-4cbf-a9f0-03429cdd82b6?exp=1793499000\u0026sig=SuI7dH7ybPnjzrEmmtOPEpVhLiUlCEEPO-s1kg5_BXs\" の有効期限 2026-11-01T02:10:00Z が範囲外です",
+    "初期データのユーザー fan_yang_1180: Memories（2026-05）: 画像 URL \"/api/images/ff080c95-7009-4712-a867-0abc5ec0a9f0?exp=1793499000\u0026sig=dxIf88useKlxdsdqT84fNYlAdAM5jt3OQLNwtZzZvEY\" の有効期限 2026-11-01T02:10:00Z が範囲外です",
+    "初期データのユーザー charcoal_mini_turkey_2371: Memories（2026-04）: 画像 URL \"/api/images/213d28c7-b216-44b6-882c-a5bec6a69201?exp=1793499000\u0026sig=PUPto52V2f32hvtuFNfRtKiNB5fZS6k8PX5JcEu4Zrg\" の有効期限 2026-11-01T02:10:00Z が範囲外です",
+    "初期データのユーザー sardinhas_na_panela_de_barro_4757: Memories（2026-08）: 画像 URL \"/api/images/3ad6df78-04e5-4d25-bb3a-2a5fc3ca36da?exp=1793499000\u0026sig=6TmXc6yYe4ymI4Sx4AEfJhKa6G_vfYtldULE-FK9YqI\" の有効期限 2026-11-01T02:10:00Z が範囲外です",
+    "初期データのユーザー jihun_park_2: Memories（2025-11）: 画像 URL \"/api/images/777d5e88-9eb9-4084-ac7d-b4c3743ff421?exp=1793499000\u0026sig=gLtrElf772e77jwzbh3xXBBH0fxc_iWHepyEKfgXgoc\" の有効期限 2026-11-01T02:10:00Z が範囲外です"
+  ]
+}
+
+--- stderr ---
+

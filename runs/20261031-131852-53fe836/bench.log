@@ -1,0 +1,37 @@
+{"id":"13052","status":"done","portalStatus":"finished","passed":true,"score":105712,"raw":105712,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:32:56.206Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:32:59.173Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:33:02.173Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:33:05.195Z level=INFO msg="asia 2 日目: 47 人"
+time=2026-10-31T04:33:08.172Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T04:33:11.173Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T04:33:14.208Z level=INFO msg="asia 3 日目: 133 人"
+time=2026-10-31T04:33:17.207Z level=INFO msg="europe 3 日目: 55 人"
+time=2026-10-31T04:33:18.408Z level=INFO msg="user moved" user=noleozoe6122 from=asia to=europe
+time=2026-10-31T04:33:20.174Z level=INFO msg="america 3 日目: 45 人"
+time=2026-10-31T04:33:22.157Z level=INFO msg="user moved" user=sebenyo6350 from=europe to=america
+time=2026-10-31T04:33:23.197Z level=INFO msg="asia 4 日目: 369 人"
+time=2026-10-31T04:33:26.366Z level=INFO msg="europe 4 日目: 148 人"
+time=2026-10-31T04:33:27.708Z level=INFO msg="user moved" user=releodan.6392 from=america to=asia
+time=2026-10-31T04:33:27.887Z level=INFO msg="user moved" user=orsol_7344 from=asia to=america
+time=2026-10-31T04:33:29.287Z level=INFO msg="america 4 日目: 104 人"
+time=2026-10-31T04:33:30.081Z level=INFO msg="user moved" user=releodan.6392 from=asia to=america
+time=2026-10-31T04:33:31.807Z level=INFO msg="user moved" user=evator-8045 from=asia to=america
+time=2026-10-31T04:33:32.363Z level=INFO msg="asia 5 日目: 837 人"
+time=2026-10-31T04:33:35.583Z level=INFO msg="europe 5 日目: 156 人"
+time=2026-10-31T04:33:38.310Z level=INFO msg="america 5 日目: 106 人"
+time=2026-10-31T04:33:39.611Z level=INFO msg="user moved" user=sebenyo6350 from=america to=asia
+time=2026-10-31T04:33:47.435Z level=INFO msg="asia 最終日（グランプリ）: 838 人"
+time=2026-10-31T04:33:47.502Z level=INFO msg="america 最終日（グランプリ）: 105 人"
+time=2026-10-31T04:33:47.548Z level=INFO msg="europe 最終日（グランプリ）: 156 人"
+time=2026-10-31T04:33:56.218Z level=INFO msg="グランプリ: アジア 426 人, ヨーロッパ 73 人, アメリカ 52 人"
+{
+  "pass": true,
+  "score": 105712,
+  "messages": []
+}
+
+--- stderr ---
+

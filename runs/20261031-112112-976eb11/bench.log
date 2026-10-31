@@ -1,0 +1,40 @@
+{"id":"3782","status":"done","portalStatus":"finished","passed":true,"score":18863,"raw":18863,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:24:49.076Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:24:52.105Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:24:55.024Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:24:58.143Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T02:25:01.221Z level=INFO msg="europe 2 日目: 14 人"
+time=2026-10-31T02:25:04.421Z level=INFO msg="america 2 日目: 12 人"
+time=2026-10-31T02:25:07.357Z level=INFO msg="asia 3 日目: 127 人"
+time=2026-10-31T02:25:11.600Z level=INFO msg="europe 3 日目: 16 人"
+time=2026-10-31T02:25:13.174Z level=INFO msg="america 3 日目: 12 人"
+time=2026-10-31T02:25:16.631Z level=INFO msg="asia 4 日目: 127 人"
+time=2026-10-31T02:25:20.313Z level=INFO msg="europe 4 日目: 16 人"
+time=2026-10-31T02:25:22.247Z level=INFO msg="america 4 日目: 12 人"
+time=2026-10-31T02:25:25.523Z level=INFO msg="asia 5 日目: 126 人"
+time=2026-10-31T02:25:30.763Z level=INFO msg="europe 5 日目: 15 人"
+time=2026-10-31T02:25:32.166Z level=INFO msg="america 5 日目: 12 人"
+time=2026-10-31T02:25:40.157Z level=INFO msg="europe 最終日（グランプリ）: 14 人"
+time=2026-10-31T02:25:40.221Z level=INFO msg="america 最終日（グランプリ）: 12 人"
+time=2026-10-31T02:25:40.377Z level=INFO msg="asia 最終日（グランプリ）: 118 人"
+time=2026-10-31T02:25:49.022Z level=INFO msg="グランプリ: アジア 5 人, ヨーロッパ 1 人, アメリカ 1 人"
+{
+  "pass": true,
+  "score": 18863,
+  "messages": [
+    "nean5929: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "wamiake5961: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "nevinchi-5972: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "isorvin.5975: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "torohi.5980: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "wael.5989: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "ulyu5998: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "furu6004: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "kekino-6014: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

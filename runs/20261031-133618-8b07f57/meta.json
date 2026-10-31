@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-133618-8b07f57",
+  "startedAt": "2026-10-31T13:36:18+09:00",
+  "finishedAt": "2026-10-31T13:41:53+09:00",
+  "ref": "gp-post-path-2",
+  "sha": "8b07f57bfd0617fc38eee5b7917713a9ec3637a7",
+  "score": 104121,
+  "status": "pass",
+  "note": "計測用: 投稿の段階別の時間（main 7e687d9）",
+  "benchJobId": "13626",
+  "prevRunId": "20261031-121235-e0e4cb3",
+  "bestRunId": "20261031-133618-8b07f57"
+}

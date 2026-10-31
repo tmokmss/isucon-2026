@@ -1,0 +1,30 @@
+{"id":"8298","status":"done","portalStatus":"finished","passed":true,"score":5222,"raw":5222,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T03:29:53.071Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:29:56.043Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:29:59.038Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:30:02.067Z level=INFO msg="asia 2 日目: 18 人"
+time=2026-10-31T03:30:05.036Z level=INFO msg="europe 2 日目: 7 人"
+time=2026-10-31T03:30:08.039Z level=INFO msg="america 2 日目: 6 人"
+time=2026-10-31T03:30:11.073Z level=INFO msg="asia 3 日目: 19 人"
+time=2026-10-31T03:30:14.036Z level=INFO msg="europe 3 日目: 7 人"
+time=2026-10-31T03:30:17.044Z level=INFO msg="america 3 日目: 6 人"
+time=2026-10-31T03:30:20.057Z level=INFO msg="asia 4 日目: 19 人"
+time=2026-10-31T03:30:23.036Z level=INFO msg="europe 4 日目: 7 人"
+time=2026-10-31T03:30:26.037Z level=INFO msg="america 4 日目: 6 人"
+time=2026-10-31T03:30:29.056Z level=INFO msg="asia 5 日目: 19 人"
+time=2026-10-31T03:30:32.044Z level=INFO msg="europe 5 日目: 7 人"
+time=2026-10-31T03:30:35.034Z level=INFO msg="america 5 日目: 6 人"
+time=2026-10-31T03:30:44.057Z level=INFO msg="asia 最終日（グランプリ）: 18 人"
+time=2026-10-31T03:30:44.058Z level=INFO msg="america 最終日（グランプリ）: 6 人"
+time=2026-10-31T03:30:44.061Z level=INFO msg="europe 最終日（グランプリ）: 6 人"
+time=2026-10-31T03:30:52.430Z level=INFO msg="グランプリ: アジア 18 人, ヨーロッパ 6 人, アメリカ 5 人"
+{
+  "pass": true,
+  "score": 5222,
+  "messages": []
+}
+
+--- stderr ---
+

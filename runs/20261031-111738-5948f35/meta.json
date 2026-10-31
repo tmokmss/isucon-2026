@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-111738-5948f35",
+  "startedAt": "2026-10-31T11:17:38+09:00",
+  "finishedAt": "2026-10-31T11:22:27+09:00",
+  "ref": "origin/main",
+  "sha": "5948f352b680a20d501285eb5caab70d89c46ffe",
+  "score": 19275,
+  "status": "pass",
+  "note": "main 測り直し（書き出し完了後）",
+  "benchJobId": "3535",
+  "prevRunId": "20261031-110450-8f720c2",
+  "bestRunId": "20261031-103811-cef5fe3"
+}
