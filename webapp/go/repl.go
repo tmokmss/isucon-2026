@@ -32,7 +32,7 @@ const (
 	replHeartbeat    = 200 * time.Millisecond
 	replLease        = time.Second
 	replLeaseMargin  = 500 * time.Millisecond
-	replAckTimeout   = time.Second
+	replAckTimeout   = 3 * time.Second // リージョン間の帯域が画像の転送で埋まると返事が 1 秒を超える
 	replResetTimeout = 40 * time.Second
 	replMaxPending   = 256 << 20
 )
@@ -826,6 +826,8 @@ func (r *replica) applyBatch(batch []replIn, lastSeq *uint64) error {
 			r.live.Store(true)
 			log.Printf("repl: live at seq %d", b.m.Seq)
 		case *opHeartbeat:
+		case *opDigest:
+			r.checkDigestLocked(b.m.Seq, op.Sums)
 		default:
 			op.apply(r.s)
 		}
