@@ -458,43 +458,6 @@ func loadSmall(ctx context.Context, db *sqlx.DB, s *Store) error {
 	}
 	s.boundary = s.boundary.UTC()
 
-	s.users = map[string]*UserRow{}
-	rows, err := db.QueryContext(ctx, `SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status, created_at FROM users`)
-	if err != nil {
-		return err
-	}
-	for rows.Next() {
-		u := &UserRow{}
-		if err := rows.Scan(&u.ID, &u.Username, &u.SecretKeyHash, &u.DisplayName, &u.Bio, &u.ProfileImageID, &u.Region, &u.AccountType, &u.Status, &u.CreatedAt); err != nil {
-			rows.Close()
-			return err
-		}
-		if err := u.setImageKey(); err != nil {
-			rows.Close()
-			return err
-		}
-		u.setNormalized()
-		s.users[u.ID] = u
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return err
-	}
-
-	var profileImages []struct {
-		ID        string    `db:"id"`
-		CreatedAt time.Time `db:"created_at"`
-	}
-	if err := db.SelectContext(ctx, &profileImages, `SELECT u.id, i.created_at FROM users u JOIN image_objects i ON i.id = u.profile_image_id`); err != nil {
-		return err
-	}
-	for _, pi := range profileImages {
-		if u := s.users[pi.ID]; u != nil {
-			t := pi.CreatedAt
-			u.ProfileImageCreatedAt = &t
-		}
-	}
-
 	s.friendships = nil
 	if err := selectRows(ctx, db, `SELECT id, user_low_id, user_high_id, source_request_id, created_at, updated_at FROM friendships`, func(sc scanner) error {
 		f := &FriendshipRow{}
@@ -618,6 +581,43 @@ func loadSmall(ctx context.Context, db *sqlx.DB, s *Store) error {
 		return nil
 	}); err != nil {
 		return err
+	}
+	// 利用者は最後に読む。複製の台では書き込みと並行して読むので、先に読んだ関係・申請・セッションが指す利用者が必ずそろう
+	s.users = map[string]*UserRow{}
+	rows, err := db.QueryContext(ctx, `SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status, created_at FROM users`)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		u := &UserRow{}
+		if err := rows.Scan(&u.ID, &u.Username, &u.SecretKeyHash, &u.DisplayName, &u.Bio, &u.ProfileImageID, &u.Region, &u.AccountType, &u.Status, &u.CreatedAt); err != nil {
+			rows.Close()
+			return err
+		}
+		if err := u.setImageKey(); err != nil {
+			rows.Close()
+			return err
+		}
+		u.setNormalized()
+		s.users[u.ID] = u
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	var profileImages []struct {
+		ID        string    `db:"id"`
+		CreatedAt time.Time `db:"created_at"`
+	}
+	if err := db.SelectContext(ctx, &profileImages, `SELECT u.id, i.created_at FROM users u JOIN image_objects i ON i.id = u.profile_image_id`); err != nil {
+		return err
+	}
+	for _, pi := range profileImages {
+		if u := s.users[pi.ID]; u != nil {
+			t := pi.CreatedAt
+			u.ProfileImageCreatedAt = &t
+		}
 	}
 	return nil
 }
