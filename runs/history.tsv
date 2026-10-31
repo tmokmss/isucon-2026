@@ -12,3 +12,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-110242-f264c69	2026-10-31T11:02:42+09:00	f264c69ca06cffacd2e99e0827d45bffcf0c8176	HEAD	0	fail	署名: exp を 10 分単位に（main + 1 コミット）
 20261031-110341-7679a66	2026-10-31T11:03:41+09:00	7679a66b952dd7e13d3aa5934dcfe9f8fb5d315f	HEAD	16152	pass	画像: PostgreSQL から取った初期データの画像を init/ に貯める
 20261031-110450-8f720c2	2026-10-31T11:04:50+09:00	8f720c2f3486aa735ba0e54c16611d8123a5b438	origin/main	15668	pass	main: インメモリ化 + 画像を手元から（#62）+ 署名 1 分単位
+20261031-111738-5948f35	2026-10-31T11:17:38+09:00	5948f352b680a20d501285eb5caab70d89c46ffe	origin/main	19275	pass	main 測り直し（書き出し完了後）
