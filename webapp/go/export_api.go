@@ -48,7 +48,9 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 			}
 		}
 		if len(missingIDs) > 0 {
-			rows, err := h.DB.QueryContext(ctx, `SELECT id, data FROM image_objects WHERE id = ANY($1) AND created_at = ANY($2)`, missingIDs, missingAt)
+			rows, err := h.DB.QueryContext(ctx, `
+SELECT i.id, i.data FROM unnest($1::text[], $2::timestamptz[]) AS k(id, created_at)
+CROSS JOIN LATERAL (SELECT id, data FROM image_objects WHERE id = k.id AND created_at = k.created_at) i`, missingIDs, missingAt)
 			if err != nil {
 				return err
 			}

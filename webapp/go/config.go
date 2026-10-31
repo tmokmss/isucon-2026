@@ -34,6 +34,8 @@ func (c *Config) DatabaseDSN() string {
 		User:   url.UserPassword(c.DBUser, c.DBPassword),
 		Host:   net.JoinHostPort(c.DBHost, c.DBPort),
 		Path:   "/" + c.DBName,
+		// 画像の本体を運ぶので、TLS の暗号化を省いて両側の CPU を減らす
+		RawQuery: "sslmode=disable",
 	}
 	return u.String()
 }
