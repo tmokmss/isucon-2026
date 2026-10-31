@@ -1,0 +1,66 @@
+{"id":"15942","status":"done","portalStatus":"finished","passed":true,"score":126129,"raw":126129,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T05:08:57.980Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T05:09:00.947Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T05:09:03.944Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T05:09:06.978Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T05:09:08.615Z level=INFO msg="user moved" user=maivy_5193 from=asia to=europe
+time=2026-10-31T05:09:09.943Z level=INFO msg="europe 2 日目: 22 人"
+time=2026-10-31T05:09:10.298Z level=INFO msg="user moved" user=toryulia5348 from=asia to=europe
+time=2026-10-31T05:09:11.028Z level=INFO msg="user moved" user=keevato5369 from=asia to=europe
+time=2026-10-31T05:09:12.943Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T05:09:14.886Z level=INFO msg="user moved" user=liakaben5489 from=europe to=america
+time=2026-10-31T05:09:15.975Z level=INFO msg="asia 3 日目: 152 人"
+time=2026-10-31T05:09:16.624Z level=INFO msg="user moved" user=miano_5591 from=asia to=europe
+time=2026-10-31T05:09:17.660Z level=INFO msg="user moved" user=miano_5591 from=europe to=asia
+time=2026-10-31T05:09:18.279Z level=INFO msg="user moved" user=nehamia.5905 from=asia to=europe
+time=2026-10-31T05:09:18.950Z level=INFO msg="europe 3 日目: 67 人"
+time=2026-10-31T05:09:19.280Z level=INFO msg="user moved" user=hemuta6145 from=asia to=europe
+time=2026-10-31T05:09:19.409Z level=INFO msg="user moved" user=motaso-6195 from=asia to=america
+time=2026-10-31T05:09:19.657Z level=INFO msg="user moved" user=marmaxne_6290 from=asia to=america
+time=2026-10-31T05:09:20.318Z level=INFO msg="user moved" user=motaso-6195 from=america to=asia
+time=2026-10-31T05:09:20.571Z level=INFO msg="user moved" user=marmaxne_6290 from=america to=europe
+time=2026-10-31T05:09:21.944Z level=INFO msg="america 3 日目: 52 人"
+time=2026-10-31T05:09:22.166Z level=INFO msg="user moved" user=toryulia5348 from=europe to=america
+time=2026-10-31T05:09:24.448Z level=INFO msg="user moved" user=liakaben5489 from=america to=europe
+time=2026-10-31T05:09:24.989Z level=INFO msg="asia 4 日目: 439 人"
+time=2026-10-31T05:09:25.682Z level=INFO msg="user moved" user=tsunara6664 from=america to=asia
+time=2026-10-31T05:09:26.769Z level=INFO msg="user moved" user=motaso-6195 from=asia to=america
+time=2026-10-31T05:09:27.355Z level=INFO msg="user moved" user=miano_5591 from=asia to=europe
+time=2026-10-31T05:09:27.711Z level=INFO msg="user moved" user=maivy_5193 from=europe to=america
+time=2026-10-31T05:09:27.958Z level=INFO msg="europe 4 日目: 187 人"
+time=2026-10-31T05:09:28.010Z level=INFO msg="user moved" user=rase_6984 from=asia to=america
+time=2026-10-31T05:09:28.058Z level=INFO msg="user moved" user=tsunara6664 from=asia to=europe
+time=2026-10-31T05:09:28.125Z level=INFO msg="user moved" user=nedanshi5531 from=america to=asia
+time=2026-10-31T05:09:30.729Z level=INFO msg="user moved" user=neul_8391 from=asia to=europe
+time=2026-10-31T05:09:30.777Z level=INFO msg="user moved" user=nedanshi5531 from=asia to=america
+time=2026-10-31T05:09:30.823Z level=INFO msg="user moved" user=fufute.7571 from=asia to=america
+time=2026-10-31T05:09:30.849Z level=INFO msg="user moved" user=rase_6984 from=america to=asia
+time=2026-10-31T05:09:30.946Z level=INFO msg="america 4 日目: 135 人"
+time=2026-10-31T05:09:31.094Z level=INFO msg="user moved" user=maxsu-8588 from=asia to=europe
+time=2026-10-31T05:09:31.209Z level=INFO msg="user moved" user=hemuta6145 from=europe to=america
+time=2026-10-31T05:09:31.293Z level=INFO msg="user moved" user=torka_7558 from=asia to=europe
+time=2026-10-31T05:09:31.889Z level=INFO msg="user moved" user=rufu-7334 from=asia to=america
+time=2026-10-31T05:09:32.531Z level=INFO msg="user moved" user=nehamia.5905 from=europe to=asia
+time=2026-10-31T05:09:33.207Z level=INFO msg="user moved" user=kata-8776 from=europe to=america
+time=2026-10-31T05:09:34.133Z level=INFO msg="user moved" user=liakaben5489 from=europe to=america
+time=2026-10-31T05:09:34.229Z level=INFO msg="asia 5 日目: 1012 人"
+time=2026-10-31T05:09:37.028Z level=INFO msg="europe 5 日目: 194 人"
+time=2026-10-31T05:09:40.302Z level=INFO msg="america 5 日目: 139 人"
+time=2026-10-31T05:09:48.973Z level=INFO msg="america 最終日（グランプリ）: 138 人"
+time=2026-10-31T05:09:49.089Z level=INFO msg="asia 最終日（グランプリ）: 1012 人"
+time=2026-10-31T05:09:49.180Z level=INFO msg="europe 最終日（グランプリ）: 194 人"
+time=2026-10-31T05:09:57.984Z level=INFO msg="グランプリ: アジア 344 人, ヨーロッパ 109 人, アメリカ 68 人"
+{
+  "pass": true,
+  "score": 126129,
+  "messages": [
+    "yumar6256: 友達申請を承認できません: POST /api/friend-requests/e7a4b4e6-f26f-4f9a-a3c3-4661e56a65ae/accept: 応答がタイムアウトしました",
+    "tona5085: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "maxtako-8768: 投稿 fc2e8fe0-0f3b-4f0e-90a0-4e986fbb281d に RealMoji を送れません: POST /api/posts/fc2e8fe0-0f3b-4f0e-90a0-4e986fbb281d/realmojis: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

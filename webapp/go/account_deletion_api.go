@@ -19,14 +19,9 @@ func deleteAccountHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusNotFound, "account_not_found")
 		}
 		s.mu.Lock()
-		u.Status = "deleted"
-		s.refreshUserSearchLocked(u)
-		for hash, sess := range u.sessions {
-			sess.Active = false
-			delete(s.sessions, hash)
-		}
-		u.sessions = map[string]*LoginSessionRow{}
+		rw := s.commitLocked(&opUserDelete{UserID: userID})
 		s.mu.Unlock()
+		rw.wait()
 		userImagesInvalidated(userID)
 		return c.NoContent(http.StatusNoContent)
 	}

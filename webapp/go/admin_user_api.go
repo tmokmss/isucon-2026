@@ -27,8 +27,9 @@ func certifyUserHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusConflict, "certification_conflict")
 		}
 		s.mu.Lock()
-		u.AccountType = "certified_public"
+		rw := s.commitLocked(&opCertify{UserID: u.ID})
 		s.mu.Unlock()
+		rw.wait()
 		return c.NoContent(http.StatusNoContent)
 	}
 }

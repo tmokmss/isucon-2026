@@ -404,7 +404,12 @@ func loadBig(ctx context.Context, db *sqlx.DB, s *Store) error {
 		}
 		r.ID = in.id(r.ID)
 		r.ImageID = in.id(r.ImageID)
-		r.PostID = s.posts[r.PostID].ID
+		// 複製の台では書き込みと並行して読むので、投稿より後に入った RealMoji・コメントは捨てる（読み込み中に貯めた変更で入る）
+		p := s.posts[r.PostID]
+		if p == nil {
+			continue
+		}
+		r.PostID = p.ID
 		r.ReactorID = in.str(r.ReactorID)
 		r.ReactionType = in.str(r.ReactionType)
 		r.CreatedAt = r.CreatedAt.UTC()
@@ -429,7 +434,11 @@ func loadBig(ctx context.Context, db *sqlx.DB, s *Store) error {
 			return err
 		}
 		c.ID = in.id(c.ID)
-		c.PostID = s.posts[c.PostID].ID
+		p := s.posts[c.PostID]
+		if p == nil {
+			continue
+		}
+		c.PostID = p.ID
 		c.AuthorID = in.str(c.AuthorID)
 		c.Body = in.str(c.Body)
 		c.CreatedAt = c.CreatedAt.UTC()
@@ -448,43 +457,6 @@ func loadSmall(ctx context.Context, db *sqlx.DB, s *Store) error {
 		return err
 	}
 	s.boundary = s.boundary.UTC()
-
-	s.users = map[string]*UserRow{}
-	rows, err := db.QueryContext(ctx, `SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status, created_at FROM users`)
-	if err != nil {
-		return err
-	}
-	for rows.Next() {
-		u := &UserRow{}
-		if err := rows.Scan(&u.ID, &u.Username, &u.SecretKeyHash, &u.DisplayName, &u.Bio, &u.ProfileImageID, &u.Region, &u.AccountType, &u.Status, &u.CreatedAt); err != nil {
-			rows.Close()
-			return err
-		}
-		if err := u.setImageKey(); err != nil {
-			rows.Close()
-			return err
-		}
-		u.setNormalized()
-		s.users[u.ID] = u
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return err
-	}
-
-	var profileImages []struct {
-		ID        string    `db:"id"`
-		CreatedAt time.Time `db:"created_at"`
-	}
-	if err := db.SelectContext(ctx, &profileImages, `SELECT u.id, i.created_at FROM users u JOIN image_objects i ON i.id = u.profile_image_id`); err != nil {
-		return err
-	}
-	for _, pi := range profileImages {
-		if u := s.users[pi.ID]; u != nil {
-			t := pi.CreatedAt
-			u.ProfileImageCreatedAt = &t
-		}
-	}
 
 	s.friendships = nil
 	if err := selectRows(ctx, db, `SELECT id, user_low_id, user_high_id, source_request_id, created_at, updated_at FROM friendships`, func(sc scanner) error {
@@ -610,6 +582,43 @@ func loadSmall(ctx context.Context, db *sqlx.DB, s *Store) error {
 	}); err != nil {
 		return err
 	}
+	// 利用者は最後に読む。複製の台では書き込みと並行して読むので、先に読んだ関係・申請・セッションが指す利用者が必ずそろう
+	s.users = map[string]*UserRow{}
+	rows, err := db.QueryContext(ctx, `SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status, created_at FROM users`)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		u := &UserRow{}
+		if err := rows.Scan(&u.ID, &u.Username, &u.SecretKeyHash, &u.DisplayName, &u.Bio, &u.ProfileImageID, &u.Region, &u.AccountType, &u.Status, &u.CreatedAt); err != nil {
+			rows.Close()
+			return err
+		}
+		if err := u.setImageKey(); err != nil {
+			rows.Close()
+			return err
+		}
+		u.setNormalized()
+		s.users[u.ID] = u
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	var profileImages []struct {
+		ID        string    `db:"id"`
+		CreatedAt time.Time `db:"created_at"`
+	}
+	if err := db.SelectContext(ctx, &profileImages, `SELECT u.id, i.created_at FROM users u JOIN image_objects i ON i.id = u.profile_image_id`); err != nil {
+		return err
+	}
+	for _, pi := range profileImages {
+		if u := s.users[pi.ID]; u != nil {
+			t := pi.CreatedAt
+			u.ProfileImageCreatedAt = &t
+		}
+	}
 	return nil
 }
 
@@ -714,10 +723,15 @@ func (s *Store) rebuildIndexes() {
 		}
 	}
 	s.postByImage = make(map[string]*PostRow, len(s.posts))
-	for _, p := range s.posts {
+	for id, p := range s.posts {
 		p.realmojis = nil
 		p.comments = nil
 		p.window = s.windows[p.WindowID]
+		// 複製の台で投稿を読んだ後に initialize が投稿期間を消したとき
+		if p.window == nil {
+			delete(s.posts, id)
+			continue
+		}
 		if u := s.users[p.AuthorID]; u != nil {
 			u.posts = append(u.posts, p)
 		}
@@ -739,13 +753,21 @@ func (s *Store) rebuildIndexes() {
 		}
 	}
 	s.rmByImage = make(map[string]*RealMojiRow, len(s.realmojis))
-	for _, r := range s.realmojis {
+	for id, r := range s.realmojis {
 		r.post = s.posts[r.PostID]
+		if r.post == nil {
+			delete(s.realmojis, id)
+			continue
+		}
 		r.post.realmojis = append(r.post.realmojis, r)
 		s.rmByImage[r.ImageID] = r
 	}
-	for _, c := range s.comments {
+	for id, c := range s.comments {
 		c.post = s.posts[c.PostID]
+		if c.post == nil {
+			delete(s.comments, id)
+			continue
+		}
 		c.post.comments = append(c.post.comments, c)
 	}
 	for _, p := range s.posts {

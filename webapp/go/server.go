@@ -71,6 +71,7 @@ func NewServer(config *Config) *echo.Echo {
 			time.Sleep(time.Second)
 		}
 		handlerContext.DB = db
+		StartReplDigest(handlerContext.Store)
 		originImageDB.Store(db)
 		close(ready)
 	}()
