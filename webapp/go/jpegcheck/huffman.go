@@ -104,6 +104,15 @@ func (d *decoder) ensureNBits(n int32) error {
 func (d *decoder) prefetch() {
 	buf := d.bytes.buf[:d.bytes.j]
 	i := d.bytes.i
+	// 0xff を含まない 2 バイトは下のループを 2 回回したのと同じ状態にまとめて進める
+	for d.bits.n <= 16 && i+3 <= len(buf) && buf[i] != 0xff && buf[i+1] != 0xff {
+		d.bits.a = d.bits.a<<16 | uint32(buf[i])<<8 | uint32(buf[i+1])
+		d.bits.n += 16
+		d.bits.s <<= 2
+		d.bits.m = 1 << uint32(d.bits.n-1)
+		d.bytes.nUnreadable = 1
+		i += 2
+	}
 	for d.bits.n <= 24 && i+2 <= len(buf) {
 		x := buf[i]
 		stuffed := uint32(0)
