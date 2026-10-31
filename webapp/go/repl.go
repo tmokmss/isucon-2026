@@ -156,6 +156,7 @@ type opProfileImage struct {
 	UserID    string
 	ImageID   *string
 	CreatedAt *time.Time
+	Holder    string
 }
 
 func (o *opProfileImage) apply(s *Store) {
@@ -168,6 +169,7 @@ func (o *opProfileImage) apply(s *Store) {
 	}
 	u.ProfileImageID = o.ImageID
 	u.ProfileImageCreatedAt = o.CreatedAt
+	u.ProfileImageHolder = o.Holder
 	if o.ImageID != nil {
 		s.profileByImage[*o.ImageID] = u
 	}

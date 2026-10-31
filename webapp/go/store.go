@@ -23,6 +23,7 @@ type UserRow struct {
 	User
 	CreatedAt             time.Time
 	ProfileImageCreatedAt *time.Time
+	ProfileImageHolder    string // プロフィール画像の本体を持つ台の :8081。空なら asia1（image_held.go）
 	normUsername          string
 	normDisplayName       string
 	posts                 []*PostRow

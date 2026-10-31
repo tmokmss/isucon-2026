@@ -14,22 +14,27 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		if c.Request().Header.Get("Content-Type") != "image/jpeg" {
 			return NewAPIError(http.StatusUnsupportedMediaType, "unsupported_media_type")
 		}
-		var body bytes.Buffer
-		body.Grow(max(int(c.Request().ContentLength), 0) + bytes.MinRead)
-		if _, err := body.ReadFrom(c.Request().Body); err != nil {
-			return err
-		}
-		data := body.Bytes()
-		cfg, err := jpeg.DecodeConfig(bytes.NewReader(data))
-		if err == nil {
-			_, _, err = checkJPEG(data)
-		}
-		if err != nil {
-			c.Set("abuse", "invalid_image")
-			return NewAPIError(http.StatusBadRequest, "invalid_profile_image")
-		}
-		if cfg.Width > 512 || cfg.Height > 512 {
-			return NewAPIError(http.StatusBadRequest, "invalid_profile_image")
+		// europe1・america1 が画像を手元に置いたときは、画像の ID と持ち主の台だけが来る（image_held.go）
+		heldID, holder, _, _, held := parseHeldImageHeader(c.Request())
+		var data []byte
+		if !held {
+			var body bytes.Buffer
+			body.Grow(max(int(c.Request().ContentLength), 0) + bytes.MinRead)
+			if _, err := body.ReadFrom(c.Request().Body); err != nil {
+				return err
+			}
+			data = body.Bytes()
+			cfg, err := jpeg.DecodeConfig(bytes.NewReader(data))
+			if err == nil {
+				_, _, err = checkJPEG(data)
+			}
+			if err != nil {
+				c.Set("abuse", "invalid_image")
+				return NewAPIError(http.StatusBadRequest, "invalid_profile_image")
+			}
+			if cfg.Width > 512 || cfg.Height > 512 {
+				return NewAPIError(http.StatusBadRequest, "invalid_profile_image")
+			}
 		}
 
 		userID := GetSession(c).UserID
@@ -46,19 +51,25 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		if u == nil {
 			return NewAPIError(http.StatusNotFound, "account_not_found")
 		}
-		imageID := uuid.NewString()
+		imageID := heldID
 		createdAt := now()
-		if err := storeNewImage(imageID, data); err != nil {
-			return err
+		if !held {
+			imageID = uuid.NewString()
+			holder = ""
+			if err := storeNewImage(imageID, data); err != nil {
+				return err
+			}
 		}
 		s.mu.Lock()
-		rw := s.commitLocked(&opProfileImage{UserID: u.ID, ImageID: &imageID, CreatedAt: &createdAt})
+		rw := s.commitLocked(&opProfileImage{UserID: u.ID, ImageID: &imageID, CreatedAt: &createdAt, Holder: holder})
 		s.mu.Unlock()
 		rw.wait()
 		if oldID != nil {
 			imagesInvalidated(*oldID)
 		}
-		imageCache.put(imageID, data, "image/jpeg")
+		if !held {
+			imageCache.put(imageID, data, "image/jpeg")
+		}
 		return c.NoContent(http.StatusNoContent)
 	}
 }

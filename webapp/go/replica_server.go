@@ -138,6 +138,12 @@ func (f *replicaFront) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		f.images.ServeHTTP(w, r)
 		return
 	}
+	if r.Method == http.MethodPut && r.URL.Path == "/api/me/profile-image" {
+		if err := holdProfileImage(r); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+	}
 	if r.Method == http.MethodGet && replicaLocalRoute(r.URL.Path) && f.rep.live.Load() {
 		start := time.Now()
 		if f.rep.waitCaughtUp(start.Add(replClockMargin).UnixNano()) {

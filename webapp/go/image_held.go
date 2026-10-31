@@ -4,6 +4,7 @@ package isureal
 // - post_forward.go: 画像を検証して new/ に書いてから、画像のパートを空にした本文と X-Isureal-Image（ID・持ち主・幅・高さ・HMAC）を asia1 へ送る
 // - asia1 の createPostHandler: 印が合えば、その ID と持ち主で投稿を作る（PostRow.Holder）。画像の本体は受けない
 // - 本体を読むときは、手元に無ければ PostRow.Holder の台の /_internal/image から取り、手元の new/ に置く。Holder が空なら asia1 が持つ
+// - プロフィール画像も同じ。europe1・america1 は検証に通った画像を new/ に置き、asia1 は印が合えば UserRow.ProfileImageHolder に持ち主を残す
 // - 取得してよいかの判定はどの台もストア（asia1 は本体、europe1・america1 は複製）で行う。initialize では各台が new/ を消す
 
 import (
@@ -14,6 +15,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"image/jpeg"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -23,6 +25,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"example.com/isureal-company/isureal/jpegcheck"
 )
 
 const heldImageHeader = "X-Isureal-Image"
@@ -167,6 +171,35 @@ func storeImageHolderLookup(s *Store) {
 		if p := s.postByImage[id]; p != nil {
 			return p.Holder
 		}
+		if u := s.profileByImage[id]; u != nil {
+			return u.ProfileImageHolder
+		}
 		return ""
 	}
+}
+
+// holdProfileImage は europe1・america1 で、検証に通るプロフィール画像を new/ に置き、本文を空にして X-Isureal-Image を付ける。
+// 検証に通らない・置けないときは本文をそのまま asia1 へ送る（不正な画像の判定とアクションログは asia1 に残す）
+func holdProfileImage(req *http.Request) error {
+	req.Header.Del(heldImageHeader)
+	var body bytes.Buffer
+	body.Grow(max(int(req.ContentLength), 0) + bytes.MinRead)
+	if _, err := body.ReadFrom(req.Body); err != nil {
+		return err
+	}
+	out := body.Bytes()
+	if selfInternal != "" && len(jpegVerifyKey) > 0 && req.Header.Get("Content-Type") == "image/jpeg" {
+		if cfg, err := jpeg.DecodeConfig(bytes.NewReader(out)); err == nil && cfg.Width <= 512 && cfg.Height <= 512 {
+			if w, h, err := jpegcheck.Check(bytes.NewReader(out)); err == nil {
+				id := uuid.NewString()
+				if storeNewImage(id, out) == nil {
+					req.Header.Set(heldImageHeader, heldImageHeaderValue(id, selfInternal, w, h))
+					out = nil
+				}
+			}
+		}
+	}
+	req.Body = io.NopCloser(bytes.NewReader(out))
+	req.ContentLength = int64(len(out))
+	return nil
 }

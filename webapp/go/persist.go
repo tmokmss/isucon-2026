@@ -84,7 +84,7 @@ func (s *Store) snapshotLocked() *snapshotData {
 		Comments:       make([]CommentRow, 0, len(s.changedComments)),
 	}
 	for _, u := range s.users {
-		d.Users = append(d.Users, UserRow{User: u.User, CreatedAt: u.CreatedAt, ProfileImageCreatedAt: u.ProfileImageCreatedAt})
+		d.Users = append(d.Users, UserRow{User: u.User, CreatedAt: u.CreatedAt, ProfileImageCreatedAt: u.ProfileImageCreatedAt, ProfileImageHolder: u.ProfileImageHolder})
 	}
 	for _, a := range s.admins {
 		d.Admins = append(d.Admins, *a)
