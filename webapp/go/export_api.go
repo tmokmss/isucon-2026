@@ -3,9 +3,11 @@ package isureal
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo/v5"
@@ -60,24 +62,33 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 			}
 		}
 		if len(missingIDs) > 0 {
-			rows, err := h.DB.QueryContext(ctx, `
-SELECT i.id, i.data FROM unnest($1::text[], $2::timestamptz[]) AS k(id, created_at)
-CROSS JOIN LATERAL (SELECT id, data FROM image_objects WHERE id = k.id AND created_at = k.created_at) i`, missingIDs, missingAt)
-			if err != nil {
-				return err
+			// 初期データの画像は asia2 のディスクから 1 行ずつ読まれ、1 本の問い合わせでは読み出しが直列になる（キューの深さが 1）。分けて並列に投げる
+			const chunk = 16
+			var wg sync.WaitGroup
+			var mu sync.Mutex
+			var firstErr error
+			for lo := 0; lo < len(missingIDs); lo += chunk {
+				hi := min(lo+chunk, len(missingIDs))
+				wg.Add(1)
+				go func(ids []string, at []time.Time) {
+					defer wg.Done()
+					got, err := queryInitialImages(ctx, h, ids, at)
+					mu.Lock()
+					defer mu.Unlock()
+					if err != nil {
+						if firstErr == nil {
+							firstErr = err
+						}
+						return
+					}
+					for id, data := range got {
+						images[id] = data
+					}
+				}(missingIDs[lo:hi], missingAt[lo:hi])
 			}
-			for rows.Next() {
-				var id string
-				var data []byte
-				if err := rows.Scan(&id, &data); err != nil {
-					rows.Close()
-					return err
-				}
-				images[id] = data
-			}
-			rows.Close()
-			if err := rows.Err(); err != nil {
-				return err
+			wg.Wait()
+			if firstErr != nil {
+				return firstErr
 			}
 			var stillMissing []string
 			for _, id := range missingIDs {
@@ -148,4 +159,24 @@ CROSS JOIN LATERAL (SELECT id, data FROM image_objects WHERE id = k.id AND creat
 		c.Response().Header().Set(echo.HeaderCacheControl, "no-store")
 		return c.Blob(http.StatusOK, "application/zip", body.Bytes())
 	}
+}
+
+func queryInitialImages(ctx context.Context, h *HandlerContext, ids []string, at []time.Time) (map[string][]byte, error) {
+	rows, err := h.DB.QueryContext(ctx, `
+SELECT i.id, i.data FROM unnest($1::text[], $2::timestamptz[]) AS k(id, created_at)
+CROSS JOIN LATERAL (SELECT id, data FROM image_objects WHERE id = k.id AND created_at = k.created_at) i`, ids, at)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	got := make(map[string][]byte, len(ids))
+	for rows.Next() {
+		var id string
+		var data []byte
+		if err := rows.Scan(&id, &data); err != nil {
+			return nil, err
+		}
+		got[id] = data
+	}
+	return got, rows.Err()
 }
