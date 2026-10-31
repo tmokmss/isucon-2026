@@ -1,0 +1,46 @@
+{"id":"28079","status":"done","portalStatus":"finished","passed":true,"score":205275,"raw":205275,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T07:25:21.151Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:25:24.141Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:25:27.139Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:25:30.154Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T07:25:30.582Z level=INFO msg="user moved" user=leomi5162 from=asia to=america
+time=2026-10-31T07:25:31.213Z level=INFO msg="user moved" user=leomi5162 from=america to=asia
+time=2026-10-31T07:25:33.139Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T07:25:36.139Z level=INFO msg="america 2 日目: 20 人"
+time=2026-10-31T07:25:39.157Z level=INFO msg="asia 3 日目: 144 人"
+time=2026-10-31T07:25:41.869Z level=INFO msg="user moved" user=leomi5162 from=asia to=america
+time=2026-10-31T07:25:42.141Z level=INFO msg="europe 3 日目: 55 人"
+time=2026-10-31T07:25:45.140Z level=INFO msg="america 3 日目: 61 人"
+time=2026-10-31T07:25:45.631Z level=INFO msg="user moved" user=suma.6332 from=europe to=america
+time=2026-10-31T07:25:48.155Z level=INFO msg="asia 4 日目: 387 人"
+time=2026-10-31T07:25:51.140Z level=INFO msg="europe 4 日目: 160 人"
+time=2026-10-31T07:25:53.742Z level=INFO msg="user moved" user=yukose7241 from=asia to=europe
+time=2026-10-31T07:25:54.154Z level=INFO msg="america 4 日目: 180 人"
+time=2026-10-31T07:25:55.359Z level=INFO msg="user moved" user=muka-8432 from=asia to=europe
+time=2026-10-31T07:25:55.667Z level=INFO msg="user moved" user=suma.6332 from=america to=asia
+time=2026-10-31T07:25:55.958Z level=INFO msg="user moved" user=nime8014 from=asia to=europe
+time=2026-10-31T07:25:57.044Z level=INFO msg="user moved" user=leomi5162 from=america to=asia
+time=2026-10-31T07:25:57.161Z level=INFO msg="asia 5 日目: 757 人"
+time=2026-10-31T07:25:59.012Z level=INFO msg="user moved" user=motorma9123 from=america to=europe
+time=2026-10-31T07:26:00.174Z level=INFO msg="europe 5 日目: 452 人"
+time=2026-10-31T07:26:00.657Z level=INFO msg="user moved" user=sashi.9336 from=america to=asia
+time=2026-10-31T07:26:02.285Z level=INFO msg="user moved" user=muhiku9443 from=america to=asia
+time=2026-10-31T07:26:02.803Z level=INFO msg="user moved" user=ulnoaleo-10059 from=america to=asia
+time=2026-10-31T07:26:03.465Z level=INFO msg="america 5 日目: 494 人"
+time=2026-10-31T07:26:12.174Z level=INFO msg="america 最終日（グランプリ）: 493 人"
+time=2026-10-31T07:26:12.185Z level=INFO msg="europe 最終日（グランプリ）: 451 人"
+time=2026-10-31T07:26:12.209Z level=INFO msg="asia 最終日（グランプリ）: 759 人"
+time=2026-10-31T07:26:21.231Z level=INFO msg="グランプリ: アジア 451 人, ヨーロッパ 260 人, アメリカ 277 人"
+{
+  "pass": true,
+  "score": 205275,
+  "messages": [
+    "hoorme_5051: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "yuivy.13220: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": readfrom tcp 10.27.42.38:33282-\u003e52.69.202.109:8080: write tcp 10.27.42.38:33282-\u003e52.69.202.109:8080: use of closed network connection"
+  ]
+}
+
+--- stderr ---
+

@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-161926-3f85847",
+  "startedAt": "2026-10-31T16:19:26+09:00",
+  "finishedAt": "2026-10-31T16:22:45+09:00",
+  "ref": "asia2-offload-to-asia1",
+  "sha": "3f85847efd18f8ef542ba67f704e2874f318fbaf",
+  "score": 202575,
+  "status": "pass",
+  "note": "asia2 signing offload to europe1/america1 (2nd)",
+  "benchJobId": "27631",
+  "prevRunId": "20261031-161619-3f85847",
+  "bestRunId": "20261031-161926-3f85847"
+}
