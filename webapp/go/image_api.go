@@ -109,23 +109,12 @@ func (h *HandlerContext) fetchImage(c *echo.Context, imageID string, createdAt *
 	if data, mediaType, ok := imageCache.get(imageID); ok {
 		return data, mediaType, nil
 	}
-	ctx := c.Request().Context()
-	var object struct {
-		Data      []byte `db:"data"`
-		MediaType string `db:"media_type"`
-	}
-	err := sql.ErrNoRows
-	if createdAt != nil {
-		err = h.DB.GetContext(ctx, &object, `SELECT data, media_type FROM image_objects WHERE id = $1 AND created_at = $2`, imageID, *createdAt)
-	}
-	if errors.Is(err, sql.ErrNoRows) {
-		err = h.DB.GetContext(ctx, &object, `SELECT data, media_type FROM image_objects WHERE id = $1`, imageID)
-	}
+	data, _, err := loadImage(c.Request().Context(), h.DB, imageID, createdAt)
 	if err != nil {
 		return nil, "", err
 	}
-	imageCache.put(imageID, object.Data, object.MediaType)
-	return object.Data, object.MediaType, nil
+	imageCache.put(imageID, data, "image/jpeg")
+	return data, "image/jpeg", nil
 }
 
 // 画像が取得できなくなったときに呼ぶ。他の台へ無効化を知らせる処理はここに差し込む

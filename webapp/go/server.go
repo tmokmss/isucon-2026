@@ -71,6 +71,7 @@ func NewServer(config *Config) *echo.Echo {
 			time.Sleep(time.Second)
 		}
 		handlerContext.DB = db
+		originImageDB.Store(db)
 		close(ready)
 	}()
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {

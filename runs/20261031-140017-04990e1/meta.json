@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-140017-04990e1",
+  "startedAt": "2026-10-31T14:00:17+09:00",
+  "finishedAt": "2026-10-31T14:08:29+09:00",
+  "ref": "image-files",
+  "sha": "04990e175c3ebdd5cc52753fc47b97bcab325270",
+  "score": 134480,
+  "status": "pass",
+  "note": "hybrid: new images in asia1 files, initial from DB + main c6abd65",
+  "benchJobId": "15747",
+  "prevRunId": "20261031-135423-25c2db4",
+  "bestRunId": "20261031-140017-04990e1"
+}
