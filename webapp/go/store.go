@@ -11,6 +11,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jmoiron/sqlx"
@@ -217,19 +218,77 @@ func (s *Store) isBlocked(a, b string) bool {
 
 func pairKey(a, b string) (string, string) { return min(a, b), max(a, b) }
 
+// 大きい表の行はまとめて確保し、繰り返し現れる文字列（利用者 ID・本文など）は 1 つを共有する。GC が辿るオブジェクトを減らすため
+func nextSlot[T any](slab *[]T) *T {
+	if len(*slab) == 0 {
+		*slab = make([]T, 4096)
+	}
+	v := &(*slab)[0]
+	*slab = (*slab)[1:]
+	return v
+}
+
+type interner struct {
+	strs map[string]string
+	ptrs map[string]*string
+	buf  []byte
+}
+
+// id は一意な文字列を大きな領域へ詰めて写す。書き込んだ後の領域は変更しない
+func (in *interner) id(v string) string {
+	if len(v) == 0 {
+		return ""
+	}
+	if cap(in.buf)-len(in.buf) < len(v) {
+		in.buf = make([]byte, 0, 1<<20)
+	}
+	start := len(in.buf)
+	in.buf = append(in.buf, v...)
+	return unsafe.String(&in.buf[start], len(v))
+}
+
+func (in *interner) str(v string) string {
+	if u, ok := in.strs[v]; ok {
+		return u
+	}
+	in.strs[v] = v
+	return v
+}
+
+func (in *interner) ptr(v *string) *string {
+	if v == nil {
+		return nil
+	}
+	if u, ok := in.ptrs[*v]; ok {
+		return u
+	}
+	in.ptrs[*v] = v
+	return v
+}
+
 func loadBig(ctx context.Context, db *sqlx.DB, s *Store) error {
 	start := time.Now()
+	in := &interner{strs: map[string]string{}, ptrs: map[string]*string{}}
 	s.posts = make(map[string]*PostRow, 700000)
 	rows, err := db.QueryContext(ctx, `SELECT id, author_id, posting_window_id, image_id, caption, visibility, location_kind, latitude, longitude, locality, posted_at, created_at, deleted_at FROM posts`)
 	if err != nil {
 		return err
 	}
+	var postSlab []PostRow
 	for rows.Next() {
-		p := &PostRow{}
+		p := nextSlot(&postSlab)
 		if err := rows.Scan(&p.ID, &p.AuthorID, &p.WindowID, &p.ImageID, &p.Caption, &p.Visibility, &p.Location.Kind, &p.Location.Latitude, &p.Location.Longitude, &p.Location.Locality, &p.PostedAt, &p.CreatedAt, &p.DeletedAt); err != nil {
 			rows.Close()
 			return err
 		}
+		p.ID = in.id(p.ID)
+		p.ImageID = in.id(p.ImageID)
+		p.AuthorID = in.str(p.AuthorID)
+		p.WindowID = in.str(p.WindowID)
+		p.Caption = in.str(p.Caption)
+		p.Visibility = in.str(p.Visibility)
+		p.Location.Kind = in.str(p.Location.Kind)
+		p.Location.Locality = in.ptr(p.Location.Locality)
 		p.PostedAt = p.PostedAt.UTC()
 		p.CreatedAt = p.CreatedAt.UTC()
 		s.posts[p.ID] = p
@@ -245,12 +304,18 @@ func loadBig(ctx context.Context, db *sqlx.DB, s *Store) error {
 	if err != nil {
 		return err
 	}
+	var rmSlab []RealMojiRow
 	for rows.Next() {
-		r := &RealMojiRow{}
+		r := nextSlot(&rmSlab)
 		if err := rows.Scan(&r.ID, &r.PostID, &r.ReactorID, &r.ImageID, &r.ReactionType, &r.CreatedAt, &r.ReplacedAt, &r.DeletedAt); err != nil {
 			rows.Close()
 			return err
 		}
+		r.ID = in.id(r.ID)
+		r.ImageID = in.id(r.ImageID)
+		r.PostID = s.posts[r.PostID].ID
+		r.ReactorID = in.str(r.ReactorID)
+		r.ReactionType = in.str(r.ReactionType)
 		r.CreatedAt = r.CreatedAt.UTC()
 		s.realmojis[r.ID] = r
 	}
@@ -265,12 +330,17 @@ func loadBig(ctx context.Context, db *sqlx.DB, s *Store) error {
 	if err != nil {
 		return err
 	}
+	var commentSlab []CommentRow
 	for rows.Next() {
-		c := &CommentRow{}
+		c := nextSlot(&commentSlab)
 		if err := rows.Scan(&c.ID, &c.PostID, &c.AuthorID, &c.Body, &c.CreatedAt); err != nil {
 			rows.Close()
 			return err
 		}
+		c.ID = in.id(c.ID)
+		c.PostID = s.posts[c.PostID].ID
+		c.AuthorID = in.str(c.AuthorID)
+		c.Body = in.str(c.Body)
 		c.CreatedAt = c.CreatedAt.UTC()
 		s.comments[c.ID] = c
 	}
