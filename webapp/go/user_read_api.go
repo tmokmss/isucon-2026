@@ -40,32 +40,8 @@ func searchUsersHandler(h *HandlerContext) echo.HandlerFunc {
 		viewer := GetSession(c).UserID
 		query := normalizeSearchText(input.Q)
 		s := h.Store
-		users := make([]User, 0, 51)
 		s.mu.RLock()
-		list := s.usersSorted
-		start := 0
-		if input.BeforeUsername != "" {
-			start = sort.Search(len(list), func(i int) bool {
-				u := list[i]
-				return u.Username > input.BeforeUsername || (u.Username == input.BeforeUsername && u.ID > input.BeforeID)
-			})
-		}
-		v := s.users[viewer]
-		for _, u := range list[start:] {
-			if !u.active() || u.ID == viewer {
-				continue
-			}
-			if !strings.Contains(u.normUsername, query) && !strings.Contains(u.normDisplayName, query) {
-				continue
-			}
-			if v != nil && (v.blockOut[u.ID] != nil || v.blockIn[u.ID] != nil) {
-				continue
-			}
-			users = append(users, u.User)
-			if len(users) == 51 {
-				break
-			}
-		}
+		users := s.searchUsersLocked(viewer, query, input.BeforeUsername, input.BeforeID)
 		s.mu.RUnlock()
 		items := make([]relationshipUserResponse, 0, len(users))
 		for _, user := range users {
@@ -80,6 +56,38 @@ func searchUsersHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		return c.JSON(http.StatusOK, searchUsersResponse{Items: items, HasMore: hasMore})
 	}
+}
+
+// 利用者名の順に、条件に合う利用者を 51 人まで返す。読みロックを持って呼ぶ
+func (s *Store) searchUsersLocked(viewer, query, beforeUsername, beforeID string) []User {
+	users := make([]User, 0, 51)
+	list := s.usersSorted
+	start := 0
+	if beforeUsername != "" {
+		start = sort.Search(len(list), func(i int) bool {
+			u := list[i].u
+			return u.Username > beforeUsername || (u.Username == beforeUsername && u.ID > beforeID)
+		})
+	}
+	v := s.users[viewer]
+	for i := start; i < len(list); i++ {
+		e := &list[i]
+		if !e.active || e.u == v {
+			continue
+		}
+		if !strings.Contains(e.text[:e.nameLen], query) && !strings.Contains(e.text[e.nameLen:], query) {
+			continue
+		}
+		u := e.u
+		if v != nil && (v.blockOut[u.ID] != nil || v.blockIn[u.ID] != nil) {
+			continue
+		}
+		users = append(users, u.User)
+		if len(users) == 51 {
+			break
+		}
+	}
+	return users
 }
 
 type getUserRequest struct {
