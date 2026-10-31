@@ -42,7 +42,7 @@ func createCommentHandler(h *HandlerContext) echo.HandlerFunc {
 		if p == nil {
 			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
-		unlock := lockUsers(actor, p.AuthorID)
+		unlock := lockInteraction(actor, p.AuthorID)
 		defer unlock()
 		s.mu.RLock()
 		allowed := s.canCommentLocked(actor, p.ID)

@@ -11,7 +11,7 @@ func deleteAccountHandler(h *HandlerContext) echo.HandlerFunc {
 		ctx := c.Request().Context()
 		userID := GetSession(c).UserID
 		s := h.Store
-		unlock := lockUsers(userID)
+		unlock := lockStatus(userID)
 		defer unlock()
 		s.mu.RLock()
 		u := s.activeUser(userID)
