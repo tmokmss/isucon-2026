@@ -94,6 +94,9 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 		if !available {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}
+		if imageNotModified(c, input.ImageID) {
+			return c.NoContent(http.StatusNotModified)
+		}
 		data, mediaType, err := h.fetchImage(c, input.ImageID, createdAt, holder, initial)
 		if errors.Is(err, sql.ErrNoRows) {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
@@ -106,6 +109,16 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		return c.Blob(http.StatusOK, mediaType, data)
 	}
+}
+
+// imageNotModified は Cache-Control と ETag を付け、条件付きの取得で手元の写しが使えるかを返す。
+// 画像の ID ごとに中身は変わらない。no-cache なので取得のたびに署名・期限・削除の判定を通してから 304 を返す
+func imageNotModified(c *echo.Context, imageID string) bool {
+	etag := `"` + imageID + `"`
+	h := c.Response().Header()
+	h.Set("Cache-Control", "private, no-cache")
+	h.Set("ETag", etag)
+	return c.Request().Header.Get("If-None-Match") == etag
 }
 
 func (h *HandlerContext) fetchImage(c *echo.Context, imageID string, createdAt *time.Time, holder string, initial bool) ([]byte, string, error) {
