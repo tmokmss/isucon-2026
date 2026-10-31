@@ -1,0 +1,59 @@
+{"id":"20326","status":"done","portalStatus":"finished","passed":true,"score":137455,"raw":137455,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T06:01:08.217Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:01:11.208Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:01:14.206Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:01:17.218Z level=INFO msg="asia 2 日目: 47 人"
+time=2026-10-31T06:01:17.777Z level=INFO msg="user moved" user=suwa_5175 from=asia to=america
+time=2026-10-31T06:01:19.009Z level=INFO msg="user moved" user=suwa_5175 from=america to=asia
+time=2026-10-31T06:01:20.206Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T06:01:23.208Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T06:01:26.217Z level=INFO msg="asia 3 日目: 135 人"
+time=2026-10-31T06:01:28.986Z level=INFO msg="user moved" user=suwa_5175 from=asia to=america
+time=2026-10-31T06:01:29.206Z level=INFO msg="europe 3 日目: 46 人"
+time=2026-10-31T06:01:32.206Z level=INFO msg="america 3 日目: 41 人"
+time=2026-10-31T06:01:35.218Z level=INFO msg="asia 4 日目: 385 人"
+time=2026-10-31T06:01:36.508Z level=INFO msg="user moved" user=leoso6475 from=asia to=america
+time=2026-10-31T06:01:38.100Z level=INFO msg="user moved" user=suma.6978 from=asia to=europe
+time=2026-10-31T06:01:38.328Z level=INFO msg="europe 4 日目: 127 人"
+time=2026-10-31T06:01:39.564Z level=INFO msg="user moved" user=kehi.6750 from=asia to=america
+time=2026-10-31T06:01:41.308Z level=INFO msg="america 4 日目: 105 人"
+time=2026-10-31T06:01:41.418Z level=INFO msg="user moved" user=leoso6475 from=america to=europe
+time=2026-10-31T06:01:44.311Z level=INFO msg="asia 5 日目: 986 人"
+time=2026-10-31T06:01:46.454Z level=INFO msg="user moved" user=zoeivyul.8594 from=europe to=asia
+time=2026-10-31T06:01:47.394Z level=INFO msg="europe 5 日目: 234 人"
+time=2026-10-31T06:01:51.654Z level=INFO msg="america 5 日目: 152 人"
+time=2026-10-31T06:01:59.456Z level=INFO msg="europe 最終日（グランプリ）: 234 人"
+time=2026-10-31T06:01:59.497Z level=INFO msg="america 最終日（グランプリ）: 152 人"
+time=2026-10-31T06:01:59.724Z level=INFO msg="asia 最終日（グランプリ）: 986 人"
+time=2026-10-31T06:02:08.257Z level=INFO msg="グランプリ: アジア 466 人, ヨーロッパ 55 人, アメリカ 48 人"
+{
+  "pass": true,
+  "score": 137455,
+  "messages": [
+    "hetorivy-5021: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "karese8039: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": EOF",
+    "benshilia_6955: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": EOF",
+    "eltoya12060: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": readfrom tcp 10.27.35.24:33878-\u003e52.69.202.109:8080: write tcp 10.27.35.24:33878-\u003e52.69.202.109:8080: write: broken pipe",
+    "nurike11986: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "ivyketsu-9494: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "kunimar-10591: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "nemu_support_2279: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "yang_liu_3304: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "ren_watanabe_3399: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "xiangrikui_shousi_4628: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "hupo_shuizuguan_4951: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "yuzu_wakame_4204: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "tao_zhou_1952: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "raolu_huojian_4584: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "oyatsu_yosan_2671: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "yejun_jang_3468: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "yuxin_wu_1099: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "yotani-5076: 友達申請を承認できません: POST /api/friend-requests/2e67414f-ff1c-4a00-ab94-0d330f88baf2/accept: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests/2e67414f-ff1c-4a00-ab94-0d330f88baf2/accept\": EOF",
+    "croquette_sodachi_326: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF"
+  ]
+}
+
+--- stderr ---
+
