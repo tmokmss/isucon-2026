@@ -1,0 +1,60 @@
+{"id":"29192","status":"done","portalStatus":"finished","passed":true,"score":220540,"raw":220540,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T07:36:40.222Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:36:43.210Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:36:46.205Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:36:49.219Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T07:36:51.826Z level=INFO msg="user moved" user=roroto_5185 from=asia to=america
+time=2026-10-31T07:36:52.205Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T07:36:55.205Z level=INFO msg="america 2 日目: 21 人"
+time=2026-10-31T07:36:55.790Z level=INFO msg="user moved" user=hasani_5405 from=europe to=asia
+time=2026-10-31T07:36:58.216Z level=INFO msg="asia 3 日目: 151 人"
+time=2026-10-31T07:37:01.207Z level=INFO msg="europe 3 日目: 54 人"
+time=2026-10-31T07:37:02.721Z level=INFO msg="user moved" user=yunadan-5943 from=asia to=america
+time=2026-10-31T07:37:03.293Z level=INFO msg="user moved" user=yunadan-5943 from=america to=europe
+time=2026-10-31T07:37:03.807Z level=INFO msg="user moved" user=merusa-6337 from=europe to=america
+time=2026-10-31T07:37:04.205Z level=INFO msg="america 3 日目: 65 人"
+time=2026-10-31T07:37:05.108Z level=INFO msg="user moved" user=hasani_5405 from=asia to=america
+time=2026-10-31T07:37:05.468Z level=INFO msg="user moved" user=elel5932 from=asia to=america
+time=2026-10-31T07:37:06.061Z level=INFO msg="user moved" user=tsudansa5991 from=asia to=america
+time=2026-10-31T07:37:07.219Z level=INFO msg="asia 4 日目: 395 人"
+time=2026-10-31T07:37:08.250Z level=INFO msg="user moved" user=neyone.6319 from=europe to=asia
+time=2026-10-31T07:37:08.883Z level=INFO msg="user moved" user=sene6704 from=america to=asia
+time=2026-10-31T07:37:09.806Z level=INFO msg="user moved" user=roroto_5185 from=america to=europe
+time=2026-10-31T07:37:10.206Z level=INFO msg="europe 4 日目: 158 人"
+time=2026-10-31T07:37:11.822Z level=INFO msg="user moved" user=noroben7626 from=asia to=america
+time=2026-10-31T07:37:12.637Z level=INFO msg="user moved" user=sene6704 from=asia to=europe
+time=2026-10-31T07:37:12.639Z level=INFO msg="user moved" user=kean.8465 from=asia to=america
+time=2026-10-31T07:37:12.751Z level=INFO msg="user moved" user=noroben7626 from=america to=europe
+time=2026-10-31T07:37:13.218Z level=INFO msg="america 4 日目: 194 人"
+time=2026-10-31T07:37:13.369Z level=INFO msg="user moved" user=zoemu7907 from=asia to=europe
+time=2026-10-31T07:37:14.484Z level=INFO msg="user moved" user=yunadan-5943 from=europe to=america
+time=2026-10-31T07:37:15.049Z level=INFO msg="user moved" user=martasu.8999 from=europe to=asia
+time=2026-10-31T07:37:15.330Z level=INFO msg="user moved" user=shiheis_7190 from=asia to=europe
+time=2026-10-31T07:37:15.520Z level=INFO msg="user moved" user=seyo_8089 from=asia to=europe
+time=2026-10-31T07:37:15.771Z level=INFO msg="user moved" user=kaelivy_9077 from=europe to=asia
+time=2026-10-31T07:37:15.965Z level=INFO msg="user moved" user=wator-7024 from=asia to=america
+time=2026-10-31T07:37:16.222Z level=INFO msg="asia 5 日目: 840 人"
+time=2026-10-31T07:37:16.548Z level=INFO msg="user moved" user=niha9059 from=europe to=america
+time=2026-10-31T07:37:19.216Z level=INFO msg="europe 5 日目: 439 人"
+time=2026-10-31T07:37:20.417Z level=INFO msg="user moved" user=tsudansa5991 from=america to=asia
+time=2026-10-31T07:37:20.512Z level=INFO msg="user moved" user=elel5932 from=america to=asia
+time=2026-10-31T07:37:22.488Z level=INFO msg="america 5 日目: 533 人"
+time=2026-10-31T07:37:31.252Z level=INFO msg="europe 最終日（グランプリ）: 438 人"
+time=2026-10-31T07:37:31.285Z level=INFO msg="america 最終日（グランプリ）: 532 人"
+time=2026-10-31T07:37:31.462Z level=INFO msg="asia 最終日（グランプリ）: 841 人"
+time=2026-10-31T07:37:40.345Z level=INFO msg="グランプリ: アジア 454 人, ヨーロッパ 356 人, アメリカ 256 人"
+{
+  "pass": true,
+  "score": 220540,
+  "messages": [
+    "isyois_5774: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "maxnina6381: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "yuxin_wu_160: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "hobakbit_sujokgwan_6: 履歴を読めません: GET /api/memories?month=2026-02: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

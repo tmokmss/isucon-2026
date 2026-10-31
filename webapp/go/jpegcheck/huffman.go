@@ -36,6 +36,35 @@ type huffman struct {
 	maxCodes [maxCodeLength]int32
 	// valsIndices[i] is the index into vals of minCodes[i].
 	valsIndices [maxCodeLength]int32
+	// fast は先頭 fastBits ビットから、元の decodeHuffman が d.bits.n >= fastBits のときに返す値と消費するビット数を
+	// lut と同じ形で持つ。fastBits ビット以内で決まらないものと元の実装が panic するものは 0
+	fast [1 << fastBits]uint16
+}
+
+const fastBits = 10
+
+// buildFast は、元の decodeHuffman を fastBits ビットの各並びについて手でたどって fast を作る
+func (h *huffman) buildFast() {
+	for p := range uint32(1 << fastBits) {
+		h.fast[p] = 0
+		if v := h.lut[p>>(fastBits-lutSize)]; v != 0 {
+			h.fast[p] = v
+			continue
+		}
+		code := int32(0)
+		for i := range int32(fastBits) {
+			if p>>(fastBits-1-i)&1 != 0 {
+				code |= 1
+			}
+			if code <= h.maxCodes[i] {
+				if idx := h.valsIndices[i] + code - h.minCodes[i]; idx >= 0 && idx < maxNCodes {
+					h.fast[p] = uint16(h.vals[idx])<<8 | uint16(i+2)
+				}
+				break
+			}
+			code <<= 1
+		}
+	}
 }
 
 // errShortHuffmanData means that an unexpected EOF occurred while decoding
@@ -66,8 +95,13 @@ func (d *decoder) ensureNBits(n int32) error {
 			break
 		}
 	}
-	// 呼び出しを減らすため、バッファに残っている分を 24 ビットを超えるまで先読みする。マーカー（0xff の後が 0x00 でない）と
-	// バッファの終わりの手前で止めるので、先読みが無い場合と同じバイトを同じ順に読み、エラーになる位置も変わらない
+	d.prefetch()
+	return nil
+}
+
+// prefetch は、呼び出しを減らすため、バッファに残っている分を 24 ビットを超えるまで先読みする。マーカー（0xff の後が 0x00 でない）と
+// バッファの終わりの手前で止めるので、先読みが無い場合と同じバイトを同じ順に読み、エラーになる位置も変わらない
+func (d *decoder) prefetch() {
 	buf := d.bytes.buf[:d.bytes.j]
 	i := d.bytes.i
 	for d.bits.n <= 24 && i+2 <= len(buf) {
@@ -87,7 +121,6 @@ func (d *decoder) ensureNBits(n int32) error {
 		d.bits.m = 1 << uint32(d.bits.n-1)
 	}
 	d.bytes.i = i
-	return nil
 }
 
 // receiveExtend is the composition of RECEIVE and EXTEND, specified in section
@@ -188,6 +221,7 @@ func (d *decoder) processDHT(n int) error {
 			}
 			c <<= 1
 		}
+		h.buildFast()
 	}
 	return nil
 }
@@ -238,6 +272,22 @@ slowPath:
 		code <<= 1
 	}
 	return 0, FormatError("bad Huffman code")
+}
+
+// decodeHuffmanFast は decodeHuffman と同じ値・同じビット数・同じエラーを返す。読み足さずに fast で決まるときは表を引くだけにする
+func (d *decoder) decodeHuffmanFast(h *huffman) (uint8, error) {
+	if d.bits.n < fastBits {
+		d.prefetch()
+	}
+	if d.bits.n >= fastBits {
+		if v := h.fast[(d.bits.a>>uint32(d.bits.n-fastBits))&(1<<fastBits-1)]; v != 0 {
+			n := int32(v&0xff) - 1
+			d.bits.n -= n
+			d.bits.m >>= uint32(n)
+			return uint8(v >> 8), nil
+		}
+	}
+	return d.decodeHuffman(h)
 }
 
 func (d *decoder) decodeBit() (bool, error) {
