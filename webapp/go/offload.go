@@ -1,7 +1,8 @@
 package isureal
 
 // まとめて返す画像の署名（Memories・エクスポート）と、受け取った JPEG の検証を、CPU の空いている台へ逃がす。
-// JPEG は往復の短い先頭の逃がし先（asia2）にだけ頼み、判定は手元と同じ jpegcheck.Check で行う。
+// asia2 は署名と PostgreSQL で CPU が埋まるので、JPEG は先頭（asia2）を除いた逃がし先（europe1・america1）に頼む。
+// 判定は手元と同じ jpegcheck.Check で行う。
 // 逃がし先は ISUREAL_OFFLOAD_PEERS（近い順、カンマ区切りの host:port）。失敗した逃がし先は数秒外し、
 // どの逃がし先も同時に頼める数（offloadPeerSlots）まで埋まっている・失敗した・遅いときは手元で計算する。逃がし先は鍵を受け取るので、
 // 受け付けはプライベートネットワーク（192.168.0.0/16）からだけにし、nginx には出さない。
@@ -29,7 +30,7 @@ const offloadPort = ":8090"
 
 const (
 	offloadSignTimeout = 2 * time.Second
-	offloadJPEGTimeout = time.Second
+	offloadJPEGTimeout = 2 * time.Second
 	offloadPeerBackoff = 5 * time.Second
 	offloadPeerSlots   = 8
 )
@@ -108,8 +109,8 @@ var errInvalidJPEG = errors.New("invalid JPEG")
 
 // jpegcheck.Check と同じ判定を返す。逃がし先が使えないときは手元で検証する
 func checkJPEG(data []byte) (width, height int, err error) {
-	if len(offloadPeers) > 0 {
-		if res, err := offloadCall(offloadPeers[:1], "/jpeg", data, offloadJPEGTimeout); err == nil && len(res) == 9 {
+	if len(offloadPeers) > 1 {
+		if res, err := offloadCall(offloadPeers[1:], "/jpeg", data, offloadJPEGTimeout); err == nil && len(res) == 9 {
 			if res[0] != 1 {
 				return 0, 0, errInvalidJPEG
 			}
