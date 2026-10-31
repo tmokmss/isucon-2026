@@ -15,13 +15,55 @@ import (
 const imageURLLifetime = 24 * time.Hour
 const imageSignatureIterations = 1000
 
-// 同じ (鍵, 画像 ID, exp) の署名を使い回す。exp を 1 分単位に切り上げるので、同じ 1 分の間は同じ URL になる
-const imageSignatureCacheMax = 1_000_000
+// 署名を exp（1 分単位に切り上げ）ごとの世代に分けて使い回す。直前の分・今の分・先に計算した次の分だけを持ち、古い世代は丸ごと捨てる。
+// キーと値はポインタを含まない固定長にし、GC が走査しないようにする。画像 ID が UUID の長さでなければ使い回さない
+const imageIDLen = 36
+
+type imageSigKey struct {
+	key [sha256.Size]byte
+	id  [imageIDLen]byte
+}
 
 var (
 	imageSignatureCacheMu sync.RWMutex
-	imageSignatureCache   = make(map[string][]byte)
+	imageSignatureCache   = map[int64]map[imageSigKey][sha256.Size]byte{}
 )
+
+func makeImageSigKey(key []byte, imageID string) (imageSigKey, bool) {
+	var k imageSigKey
+	if len(key) != sha256.Size || len(imageID) != imageIDLen {
+		return k, false
+	}
+	copy(k.key[:], key)
+	copy(k.id[:], imageID)
+	return k, true
+}
+
+// imageSignatureGenLocked は imageSignatureCacheMu の書きロックを持って呼ぶ。直前の分より古い世代はここで捨てる
+func imageSignatureGenLocked(exp int64) map[imageSigKey][sha256.Size]byte {
+	gen := imageSignatureCache[exp]
+	if gen == nil {
+		gen = make(map[imageSigKey][sha256.Size]byte)
+		imageSignatureCache[exp] = gen
+		oldest := imageURLExp() - 60
+		for e := range imageSignatureCache {
+			if e < oldest {
+				delete(imageSignatureCache, e)
+			}
+		}
+	}
+	return gen
+}
+
+func putImageSignaturesLocked(exp int64, keys []imageSigKey, sigs []byte) {
+	if exp < imageURLExp()-60 {
+		return
+	}
+	gen := imageSignatureGenLocked(exp)
+	for i, k := range keys {
+		gen[k] = [sha256.Size]byte(sigs[i*sha256.Size : (i+1)*sha256.Size])
+	}
+}
 
 func imageSigningKey(secretKeyHash string) ([]byte, error) {
 	key, err := hex.DecodeString(secretKeyHash)
@@ -32,22 +74,21 @@ func imageSigningKey(secretKeyHash string) ([]byte, error) {
 }
 
 func imageSignature(key []byte, imageID string, exp int64) []byte {
-	cacheKey := imageSignatureCacheKey(key, imageID, exp)
-
+	k, cacheable := makeImageSigKey(key, imageID)
+	if !cacheable {
+		return computeImageSignature(key, imageID, exp)
+	}
 	imageSignatureCacheMu.RLock()
-	cached, ok := imageSignatureCache[cacheKey]
+	cached, ok := imageSignatureCache[exp][k]
 	imageSignatureCacheMu.RUnlock()
 	if ok {
-		return cached
+		return cached[:]
 	}
 
 	value := computeImageSignature(key, imageID, exp)
 
 	imageSignatureCacheMu.Lock()
-	if len(imageSignatureCache) >= imageSignatureCacheMax {
-		imageSignatureCache = make(map[string][]byte)
-	}
-	imageSignatureCache[cacheKey] = value
+	putImageSignaturesLocked(exp, []imageSigKey{k}, value)
 	imageSignatureCacheMu.Unlock()
 	return value
 }
@@ -63,10 +104,6 @@ func computeImageSignature(key []byte, imageID string, exp int64) []byte {
 		value = append(value[:0], sum...)
 	}
 	return value
-}
-
-func imageSignatureCacheKey(key []byte, imageID string, exp int64) string {
-	return string(key) + strconv.FormatInt(exp, 10) + ":" + imageID
 }
 
 func imageURLExp() int64 {

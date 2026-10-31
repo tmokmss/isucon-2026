@@ -12,7 +12,6 @@ package isureal
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -21,7 +20,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -124,15 +122,44 @@ func offloadPost(url string, body []byte, timeout time.Duration) ([]byte, error)
 var errInvalidJPEG = errors.New("invalid JPEG")
 
 // 逃がし先の JPEG の検証の空き
-var jpegPeerSlots = func() chan *offloadPeer {
-	ch := make(chan *offloadPeer, len(offloadJPEGPeers)*32)
+// 先頭の逃がし先（同じリージョンの asia2）が空いていればそちらを使い、埋まっているときだけ残りの空きを待つ
+// （リージョンをまたぐと往復と帯域で遅く、複製の送り出しと帯域を取り合う）
+var jpegPeerSlots, jpegFirstPeerSlots = func() (chan *offloadPeer, chan *offloadPeer) {
+	rest := make(chan *offloadPeer, len(offloadJPEGPeers)*32)
+	first := make(chan *offloadPeer, 32)
 	for range 32 {
-		for _, peer := range offloadJPEGPeers {
-			ch <- peer
+		for i, peer := range offloadJPEGPeers {
+			if i == 0 {
+				first <- peer
+			} else {
+				rest <- peer
+			}
 		}
 	}
-	return ch
+	return rest, first
 }()
+
+func acquireJPEGPeer() *offloadPeer {
+	select {
+	case peer := <-jpegFirstPeerSlots:
+		return peer
+	default:
+	}
+	select {
+	case peer := <-jpegFirstPeerSlots:
+		return peer
+	case peer := <-jpegPeerSlots:
+		return peer
+	}
+}
+
+func releaseJPEGPeer(peer *offloadPeer) {
+	if len(offloadJPEGPeers) > 0 && peer == offloadJPEGPeers[0] {
+		jpegFirstPeerSlots <- peer
+	} else {
+		releaseJPEGPeer(peer)
+	}
+}
 
 // 手元の JPEG の検証の空き。逃がし先がすべて外れているときだけ使う
 var jpegLocalSlots = make(chan struct{}, runtime.NumCPU())
@@ -150,7 +177,7 @@ func jpegPeerAvailable() bool {
 // jpegcheck.Check と同じ判定を返す。逃がし先が使えないときは手元で検証する
 func checkJPEG(data []byte) (width, height int, err error) {
 	if jpegPeerAvailable() {
-		peer := <-jpegPeerSlots
+		peer := acquireJPEGPeer()
 		ok := peer.downUntil.Load() <= time.Now().UnixNano()
 		var res []byte
 		if ok {
@@ -160,7 +187,7 @@ func checkJPEG(data []byte) (width, height int, err error) {
 				peer.downUntil.Store(time.Now().Add(offloadPeerBackoff).UnixNano())
 			}
 		}
-		jpegPeerSlots <- peer
+		releaseJPEGPeer(peer)
 		if ok {
 			if res[0] != 1 {
 				return 0, 0, errInvalidJPEG
@@ -184,38 +211,38 @@ func prefetchImageSignatures(targets []signTarget) {
 	if len(offloadPeers) == 0 {
 		return
 	}
-	exp := imageURLExp()
+	offloadImageSignatures(targets, imageURLExp(), offloadSignTimeout)
+}
+
+// まだ持っていない署名だけを逃がし先に頼み、キャッシュに入れる
+func offloadImageSignatures(targets []signTarget, exp int64, timeout time.Duration) {
 	var body []byte
-	var keys []string
-	seen := make(map[string]bool, len(targets))
+	var keys []imageSigKey
+	seen := make(map[imageSigKey]bool, len(targets))
 	imageSignatureCacheMu.RLock()
+	gen := imageSignatureCache[exp]
 	for _, t := range targets {
-		cacheKey := imageSignatureCacheKey(t.key, t.imageID, exp)
-		if seen[cacheKey] {
+		k, ok := makeImageSigKey(t.key, t.imageID)
+		if !ok || seen[k] {
 			continue
 		}
-		seen[cacheKey] = true
-		if _, ok := imageSignatureCache[cacheKey]; ok {
+		seen[k] = true
+		if _, ok := gen[k]; ok {
 			continue
 		}
-		keys = append(keys, cacheKey)
+		keys = append(keys, k)
 		body = appendSignRequest(body, t.key, t.imageID, exp)
 	}
 	imageSignatureCacheMu.RUnlock()
 	if len(keys) == 0 {
 		return
 	}
-	res, err := offloadCall(offloadPeers, "/sign", body, offloadSignTimeout)
+	res, err := offloadCall(offloadPeers, "/sign", body, timeout)
 	if err != nil || len(res) != len(keys)*32 {
 		return
 	}
 	imageSignatureCacheMu.Lock()
-	if len(imageSignatureCache)+len(keys) > imageSignatureCacheMax {
-		imageSignatureCache = make(map[string][]byte)
-	}
-	for i, k := range keys {
-		imageSignatureCache[k] = res[i*32 : (i+1)*32 : (i+1)*32]
-	}
+	putImageSignaturesLocked(exp, keys, res)
 	imageSignatureCacheMu.Unlock()
 }
 
@@ -330,40 +357,16 @@ func presignNextMinuteForever() {
 			continue
 		}
 		done = next
-		prefix := strconv.FormatInt(exp, 10) + ":"
 		var targets []signTarget
 		imageSignatureCacheMu.RLock()
-		for k := range imageSignatureCache {
-			if len(k) > sha256.Size+len(prefix) && k[sha256.Size:sha256.Size+len(prefix)] == prefix {
-				targets = append(targets, signTarget{[]byte(k[:sha256.Size]), k[sha256.Size+len(prefix):]})
-			}
+		for k := range imageSignatureCache[exp] {
+			targets = append(targets, signTarget{bytes.Clone(k.key[:]), string(k.id[:])})
 		}
 		imageSignatureCacheMu.RUnlock()
 		for len(targets) > 0 {
 			n := min(presignBatch, len(targets))
-			presignImageSignatures(targets[:n], next)
+			offloadImageSignatures(targets[:n], next, 5*time.Second)
 			targets = targets[n:]
 		}
 	}
-}
-
-func presignImageSignatures(targets []signTarget, exp int64) {
-	var body []byte
-	keys := make([]string, 0, len(targets))
-	for _, t := range targets {
-		keys = append(keys, imageSignatureCacheKey(t.key, t.imageID, exp))
-		body = appendSignRequest(body, t.key, t.imageID, exp)
-	}
-	res, err := offloadCall(offloadPeers, "/sign", body, 5*time.Second)
-	if err != nil || len(res) != len(keys)*32 {
-		return
-	}
-	imageSignatureCacheMu.Lock()
-	if len(imageSignatureCache)+len(keys) > imageSignatureCacheMax {
-		imageSignatureCache = make(map[string][]byte)
-	}
-	for i, k := range keys {
-		imageSignatureCache[k] = res[i*32 : (i+1)*32 : (i+1)*32]
-	}
-	imageSignatureCacheMu.Unlock()
 }
