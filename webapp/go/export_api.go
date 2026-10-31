@@ -42,9 +42,9 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 		for _, p := range posts {
 			if data, _, ok := imageCache.get(p.ImageID); ok {
 				images[p.ImageID] = data
-			} else if data, ok := readNewImage(p.ImageID); ok {
+			} else if data, ok := readHeldLocal(p.ImageID); ok {
 				images[p.ImageID] = data
-			} else if data, ok := exportLocalImage(p.ImageID); ok {
+			} else if data, ok, _ := fetchHeldImage(ctx, p.ImageID); ok {
 				images[p.ImageID] = data
 			} else {
 				missingIDs = append(missingIDs, p.ImageID)
