@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -183,6 +184,12 @@ type Store struct {
 	boundary       time.Time
 
 	notifyCh chan struct{}
+
+	// 永続化（persist.go）。dirty は前回のスナップショットより後に書き込みがあったか
+	dirty            atomic.Bool
+	changedPosts     map[string]*PostRow
+	changedRealMojis map[string]*RealMojiRow
+	changedComments  map[string]*CommentRow
 }
 
 func now() time.Time { return time.Now().UTC().Truncate(time.Microsecond) }
@@ -900,10 +907,11 @@ func (s *Store) pruneAfterBoundary() {
 }
 
 func NewStore() *Store {
-	return &Store{notifyCh: make(chan struct{})}
+	return &Store{notifyCh: make(chan struct{}), changedPosts: map[string]*PostRow{}, changedRealMojis: map[string]*RealMojiRow{}, changedComments: map[string]*CommentRow{}}
 }
 
-func (s *Store) LoadAll(ctx context.Context, db *sqlx.DB) error {
+// LoadAll は PostgreSQL の初期データを読み、snapshot が返すスナップショット（無ければ nil）を重ねる
+func (s *Store) LoadAll(ctx context.Context, db *sqlx.DB, snapshot func() (*snapshotData, error)) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := loadBig(ctx, db, s); err != nil {
@@ -911,6 +919,14 @@ func (s *Store) LoadAll(ctx context.Context, db *sqlx.DB) error {
 	}
 	if err := loadSmall(ctx, db, s); err != nil {
 		return err
+	}
+	d, err := snapshot()
+	if err != nil {
+		return err
+	}
+	if d != nil {
+		s.applySnapshotLocked(d)
+		log.Printf("applied snapshot: users=%d posts=%d realmojis=%d comments=%d", len(d.Users), len(d.Posts), len(d.RealMojis), len(d.Comments))
 	}
 	start := time.Now()
 	s.rebuildIndexes()

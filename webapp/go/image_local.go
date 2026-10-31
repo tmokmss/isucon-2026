@@ -199,6 +199,8 @@ func StartImageEventPublisher() {
 	mux.HandleFunc("/_internal/image-events", imageEvents.serveHTTP)
 	StartReplPublisher(mux)
 	mux.HandleFunc("/_internal/image", serveOriginImage)
+	mux.HandleFunc("/_internal/image-check", serveOriginImageCheck)
+	mux.HandleFunc("/_internal/snapshot", serveOriginSnapshot)
 	serveInternal(mux)
 }
 
@@ -441,25 +443,13 @@ func writeLocalImage(id string, data []byte, initial bool) {
 }
 
 type remoteImageCheck struct {
-	SecretKeyHash string         `db:"secret_key_hash"`
-	OwnerID       string         `db:"owner_id"`
-	MediaType     string         `db:"media_type"`
-	IsProfile     bool           `db:"is_profile"`
-	HasPost       bool           `db:"has_post"`
-	RealMoji      sql.NullString `db:"realmoji"`
+	SecretKeyHash string
+	OwnerID       string
+	MediaType     string
+	IsProfile     bool
+	HasPost       bool
+	RealMoji      sql.NullString
 }
-
-// 判定の SQL は image_api.go の元の判定と同じ条件。RealMoji のときは、投稿者と投稿の画像 ID も返す（その無効化で判定を捨てるため）
-const remoteImageCheckQuery = `
-SELECT u.secret_key_hash, u.id AS owner_id, i.media_type,
-  COALESCE(u.profile_image_id = i.id, false) AS is_profile,
-  EXISTS (SELECT 1 FROM posts p WHERE p.image_id = i.id AND p.author_id = u.id AND p.deleted_at IS NULL) AS has_post,
-  (SELECT p.author_id || ' ' || p.image_id FROM realmojis r
-     JOIN posts p ON p.id = r.post_id AND p.deleted_at IS NULL
-     JOIN users author ON author.id = p.author_id AND author.status = 'active'
-     WHERE r.image_id = i.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL LIMIT 1) AS realmoji
-FROM image_objects i JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'
-WHERE i.id = $1`
 
 type imageServer struct {
 	db     atomic.Pointer[sqlx.DB]
@@ -487,7 +477,6 @@ func (s *imageServer) handler(c *echo.Context) error {
 	}
 	id := input.ImageID
 	ctx := c.Request().Context()
-	db := s.db.Load()
 
 	var data []byte
 	haveData := false
@@ -500,8 +489,7 @@ func (s *imageServer) handler(c *echo.Context) error {
 	entry, startSeq, trusted := s.state.lookup(id)
 	valid := entry != nil
 	if entry == nil {
-		var row remoteImageCheck
-		err := db.GetContext(ctx, &row, remoteImageCheckQuery, id)
+		row, err := fetchImageCheck(c.Request(), s.origin, id)
 		if errors.Is(err, sql.ErrNoRows) {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}

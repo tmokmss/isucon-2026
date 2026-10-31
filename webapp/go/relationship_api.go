@@ -30,10 +30,6 @@ func deleteFriendshipHandler(h *HandlerContext) echo.HandlerFunc {
 		if !exists {
 			return NewAPIError(http.StatusConflict, "relationship_conflict")
 		}
-		lo, hi := pairKey(actor, input.UserID)
-		if _, err := h.DB.ExecContext(c.Request().Context(), `DELETE FROM friendships WHERE user_low_id=$1 AND user_high_id=$2`, lo, hi); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		rw := s.commitLocked(&opFriendshipRemove{A: actor, B: input.UserID})
 		s.mu.Unlock()
@@ -70,9 +66,6 @@ func followHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		at := now()
 		f := &FollowRow{ID: uuid.NewString(), FollowerID: actor, FolloweeID: target.ID, CreatedAt: at, UpdatedAt: at}
-		if _, err := h.DB.ExecContext(c.Request().Context(), `INSERT INTO follows (id, follower_id, followee_id, created_at, updated_at) VALUES ($1,$2,$3,$4,$4)`, f.ID, actor, target.ID, at); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		rw := s.commitLocked(&opFollowAdd{F: f})
 		s.mu.Unlock()
@@ -104,9 +97,6 @@ func unfollowHandler(h *HandlerContext) echo.HandlerFunc {
 		if !exists {
 			return NewAPIError(http.StatusConflict, "relationship_conflict")
 		}
-		if _, err := h.DB.ExecContext(c.Request().Context(), `DELETE FROM follows WHERE follower_id=$1 AND followee_id=$2`, actor, input.UserID); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		rw := s.commitLocked(&opFollowRemove{Follower: actor, Followee: input.UserID})
 		s.mu.Unlock()
@@ -125,7 +115,6 @@ func blockHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := c.Bind(&input); err != nil {
 			return err
 		}
-		ctx := c.Request().Context()
 		actor := GetSession(c).UserID
 		target := input.UserID
 		unlock, err := h.lockRelationship(actor, target)
@@ -143,28 +132,7 @@ func blockHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		at := now()
 		b := &BlockRow{ID: uuid.NewString(), BlockerID: actor, BlockedID: target, CreatedAt: at}
-		lo, hi := pairKey(actor, target)
-		tx, err := h.DB.BeginTxx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO block_relations (id, blocker_id, blocked_id, created_at) VALUES ($1,$2,$3,$4)`, b.ID, actor, target, at); err != nil {
-			return err
-		}
-		if _, err := tx.ExecContext(ctx, `DELETE FROM friendships WHERE user_low_id=$1 AND user_high_id=$2`, lo, hi); err != nil {
-			return err
-		}
-		if _, err := tx.ExecContext(ctx, `DELETE FROM follows WHERE (follower_id=$1 AND followee_id=$2) OR (follower_id=$2 AND followee_id=$1)`, actor, target); err != nil {
-			return err
-		}
 		if pending != nil {
-			if _, err := tx.ExecContext(ctx, `UPDATE friend_requests SET status='cancelled', updated_at=$3 WHERE status='pending' AND ((requester_id=$1 AND recipient_id=$2) OR (requester_id=$2 AND recipient_id=$1))`, actor, target, at); err != nil {
-				return err
-			}
-		}
-		if err := tx.Commit(); err != nil {
-			return err
 		}
 		s.mu.Lock()
 		rw := s.commitLocked(newOpBlockAddLocked(s, b))
@@ -197,9 +165,6 @@ func unblockHandler(h *HandlerContext) echo.HandlerFunc {
 		s.mu.RUnlock()
 		if b == nil {
 			return NewAPIError(http.StatusForbidden, "relationship_action_forbidden")
-		}
-		if _, err := h.DB.ExecContext(c.Request().Context(), `DELETE FROM block_relations WHERE blocker_id=$1 AND blocked_id=$2`, actor, target); err != nil {
-			return err
 		}
 		s.mu.Lock()
 		rw := s.commitLocked(&opBlockRemove{Blocker: actor, Blocked: target})
