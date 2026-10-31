@@ -1,0 +1,12 @@
+notifications|1534484
+realmojis|1199348
+posts|625111
+comments|546011
+image_objects_202605|155262
+image_objects_202601|154984
+image_objects_202608|154966
+image_objects_202603|154867
+image_objects_202512|153901
+image_objects_202607|153703
+image_objects_202609|150783
+image_objects_202604|150384

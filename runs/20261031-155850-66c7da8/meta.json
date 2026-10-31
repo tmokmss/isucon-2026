@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-155850-66c7da8",
+  "startedAt": "2026-10-31T15:58:50+09:00",
+  "finishedAt": "2026-10-31T16:02:16+09:00",
+  "ref": "image-etag-gzip",
+  "sha": "66c7da811fe961f58593a1dd4e71658dd06c2739",
+  "score": 171617,
+  "status": "pass",
+  "note": "image-etag-304-and-gzip-json",
+  "benchJobId": "25713",
+  "prevRunId": "20261031-152137-8c13252",
+  "bestRunId": "20261031-151339-5a230a4"
+}

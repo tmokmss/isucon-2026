@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-171105-5c44717",
+  "startedAt": "2026-10-31T17:11:05+09:00",
+  "finishedAt": "2026-10-31T17:15:01+09:00",
+  "ref": "5c44717",
+  "sha": "5c4471724b9b1451394ce33b79fbe7e88f056fef",
+  "score": 201585,
+  "status": "pass",
+  "note": "asia1 GET memories export to EU US replicas on 885b12c",
+  "benchJobId": "32861",
+  "prevRunId": "20261031-170001-a1cea2f",
+  "bestRunId": "20261031-164055-bdf05cd"
+}

@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-160103-8ff9b1d",
+  "startedAt": "2026-10-31T16:01:03+09:00",
+  "finishedAt": "2026-10-31T16:08:51+09:00",
+  "ref": "export-initial-images-split",
+  "sha": "8ff9b1dbf6c31c68726e74f26063a69467741695",
+  "score": 182075,
+  "status": "pass",
+  "note": "export: half of initial images from asia1 init/, parallel with PG",
+  "benchJobId": "26322",
+  "prevRunId": "20261031-152137-8c13252",
+  "bestRunId": "20261031-151339-5a230a4"
+}

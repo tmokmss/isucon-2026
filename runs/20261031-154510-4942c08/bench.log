@@ -1,0 +1,80 @@
+{"id":"24416","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"負荷走行を打ち切りました"}
+
+--- stdout ---
+time=2026-10-31T06:46:55.239Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:46:58.230Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:47:01.228Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:47:04.050Z level=INFO msg="user moved" user=noashimia-5119 from=america to=europe
+time=2026-10-31T06:47:04.238Z level=INFO msg="asia 2 日目: 47 人"
+time=2026-10-31T06:47:07.020Z level=INFO msg="user moved" user=yuzoe5279 from=asia to=america
+time=2026-10-31T06:47:07.227Z level=INFO msg="europe 2 日目: 20 人"
+time=2026-10-31T06:47:09.638Z level=INFO msg="user moved" user=noashimia-5119 from=europe to=america
+time=2026-10-31T06:47:10.229Z level=INFO msg="america 2 日目: 21 人"
+time=2026-10-31T06:47:10.282Z level=INFO msg="user moved" user=yuzoe5279 from=america to=asia
+time=2026-10-31T06:47:13.239Z level=INFO msg="asia 3 日目: 134 人"
+time=2026-10-31T06:47:13.976Z level=INFO msg="user moved" user=rais-5612 from=asia to=america
+time=2026-10-31T06:47:14.709Z level=INFO msg="user moved" user=rais-5612 from=america to=asia
+time=2026-10-31T06:47:15.222Z level=INFO msg="user moved" user=waya.5523 from=america to=europe
+time=2026-10-31T06:47:16.204Z level=INFO msg="user moved" user=matorno_5812 from=asia to=europe
+time=2026-10-31T06:47:16.235Z level=INFO msg="europe 3 日目: 59 人"
+time=2026-10-31T06:47:17.036Z level=INFO msg="user moved" user=yuzoe5279 from=asia to=america
+time=2026-10-31T06:47:19.228Z level=INFO msg="america 3 日目: 59 人"
+time=2026-10-31T06:47:20.740Z level=INFO msg="user moved" user=waya.5523 from=europe to=america
+time=2026-10-31T06:47:21.146Z level=INFO msg="user moved" user=maevaan-6381 from=europe to=asia
+time=2026-10-31T06:47:21.700Z level=INFO msg="user moved" user=noashimia-5119 from=america to=europe
+time=2026-10-31T06:47:22.297Z level=INFO msg="asia 4 日目: 391 人"
+time=2026-10-31T06:47:23.285Z level=INFO msg="user moved" user=rais-5612 from=asia to=america
+time=2026-10-31T06:47:23.525Z level=INFO msg="user moved" user=benyufu.6718 from=asia to=america
+time=2026-10-31T06:47:24.574Z level=INFO msg="user moved" user=ivyho.6681 from=asia to=europe
+time=2026-10-31T06:47:24.636Z level=INFO msg="user moved" user=benyufu.6718 from=america to=europe
+time=2026-10-31T06:47:24.987Z level=INFO msg="user moved" user=maevaan-6381 from=asia to=europe
+time=2026-10-31T06:47:25.340Z level=INFO msg="europe 4 日目: 171 人"
+time=2026-10-31T06:47:25.439Z level=INFO msg="user moved" user=tanusu.6957 from=asia to=europe
+time=2026-10-31T06:47:27.735Z level=INFO msg="user moved" user=kona.8261 from=asia to=europe
+time=2026-10-31T06:47:28.232Z level=INFO msg="user moved" user=kumano-7972 from=asia to=america
+time=2026-10-31T06:47:28.334Z level=INFO msg="user moved" user=noashimia-5119 from=europe to=america
+time=2026-10-31T06:47:28.335Z level=INFO msg="america 4 日目: 170 人"
+time=2026-10-31T06:47:29.158Z level=INFO msg="user moved" user=ruvin8540 from=asia to=europe
+time=2026-10-31T06:47:29.570Z level=INFO msg="user moved" user=tsuvinna_8822 from=europe to=asia
+time=2026-10-31T06:47:30.495Z level=INFO msg="user moved" user=noatormar-8500 from=europe to=asia
+time=2026-10-31T06:47:31.317Z level=INFO msg="asia 5 日目: 1070 人"
+time=2026-10-31T06:47:31.593Z level=INFO msg="user moved" user=shiul.9158 from=europe to=asia
+time=2026-10-31T06:47:33.645Z level=INFO msg="user moved" user=ulruyo_6635 from=america to=asia
+time=2026-10-31T06:47:35.002Z level=INFO msg="europe 5 日目: 465 人"
+time=2026-10-31T06:47:35.207Z level=INFO msg="user moved" user=honoatsu-9096 from=europe to=america
+time=2026-10-31T06:47:35.746Z level=INFO msg="user moved" user=waya.5523 from=america to=europe
+time=2026-10-31T06:47:38.587Z level=INFO msg="america 5 日目: 330 人"
+time=2026-10-31T06:47:47.132Z level=INFO msg="europe 最終日（グランプリ）: 465 人"
+time=2026-10-31T06:47:47.151Z level=INFO msg="asia 最終日（グランプリ）: 1071 人"
+time=2026-10-31T06:47:47.316Z level=INFO msg="america 最終日（グランプリ）: 330 人"
+time=2026-10-31T06:47:55.272Z level=INFO msg="グランプリ: アジア 344 人, ヨーロッパ 220 人, アメリカ 103 人"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "負荷走行を打ち切りました: 55s〜1m0s のエラー率 76.9%（11603/15081 件）が上限 10.0% を超えました",
+    "kuko-15483: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "wanoa17721: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "yasa.17233: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "maroni16571: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "neko.8343: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "noamiaha6667: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "rini13827: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "chito-13072: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "mita-11407: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "marru-17985: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "isis.9595: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "teyomar.7801: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "ruivy-7559: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "koma17938: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "hiro.12788: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": readfrom tcp 10.27.37.77:59952-\u003e52.69.202.109:8080: write tcp 10.27.37.77:59952-\u003e52.69.202.109:8080: use of closed network connection",
+    "evaki-17678: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "kibenel-6888: 今日の投稿を取得できません: GET /api/posts/me/current: ステータスコード 502 が返りました（期待値 200、unknown）",
+    "minjun_kim_4078: 履歴を読めません: GET /api/images/e2c69dcf-675f-44a2-8c73-067364eac63d?exp=1793515680\u0026sig=lxC2Gck2_La68Akxb-d5b9Z9_N8XvOXbvFTShFcf5qQ: ステータスコード 502 が返りました（期待値 200、unknown）",
+    "teheri-6901: 投稿できません: POST /api/posts: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "tomu-5631: 投稿 b1cce782-9539-4c08-8c68-507a4ede3ec5 の画像を取得できません: GET /api/images/707af79d-823f-4fa9-85b9-8ced76951b90?exp=1793515680\u0026sig=l4W81CgutXK5WAeURGQuifWIBen4p1Phy6O3u6PHKPg: ステータスコード 502 が返りました（期待値 200、unknown）"
+  ]
+}
+
+--- stderr ---
+

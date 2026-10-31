@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-150358-c416920",
+  "startedAt": "2026-10-31T15:03:58+09:00",
+  "finishedAt": "2026-10-31T15:10:08+09:00",
+  "ref": "origin/slow-before-1700-v2",
+  "sha": "c416920db0e2f1e670896316d3536540249239d3",
+  "score": 1315,
+  "status": "pass",
+  "note": "slow-v2 3000ms after window opens",
+  "benchJobId": "20728",
+  "prevRunId": "20261031-141745-a28a701",
+  "bestRunId": "20261031-141027-bd0fe45"
+}

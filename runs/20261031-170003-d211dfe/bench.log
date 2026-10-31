@@ -1,0 +1,58 @@
+{"id":"32034","status":"done","portalStatus":"finished","passed":true,"score":219108,"raw":219108,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T08:05:08.204Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T08:05:11.195Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T08:05:14.195Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T08:05:17.208Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T08:05:20.194Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T08:05:23.194Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T08:05:26.206Z level=INFO msg="asia 3 日目: 153 人"
+time=2026-10-31T08:05:29.097Z level=INFO msg="user moved" user=muwaso_5947 from=asia to=europe
+time=2026-10-31T08:05:29.195Z level=INFO msg="europe 3 日目: 56 人"
+time=2026-10-31T08:05:29.742Z level=INFO msg="user moved" user=kuyuta.6086 from=asia to=europe
+time=2026-10-31T08:05:29.758Z level=INFO msg="user moved" user=seru.6047 from=asia to=europe
+time=2026-10-31T08:05:30.089Z level=INFO msg="user moved" user=mini5746 from=asia to=europe
+time=2026-10-31T08:05:32.195Z level=INFO msg="america 3 日目: 46 人"
+time=2026-10-31T08:05:35.211Z level=INFO msg="asia 4 日目: 424 人"
+time=2026-10-31T08:05:38.196Z level=INFO msg="europe 4 日目: 158 人"
+time=2026-10-31T08:05:40.165Z level=INFO msg="user moved" user=muwaso_5947 from=europe to=america
+time=2026-10-31T08:05:40.284Z level=INFO msg="user moved" user=seru.6047 from=europe to=asia
+time=2026-10-31T08:05:40.353Z level=INFO msg="user moved" user=kuyuta.6086 from=europe to=america
+time=2026-10-31T08:05:41.279Z level=INFO msg="user moved" user=maneeva-7126 from=asia to=europe
+time=2026-10-31T08:05:41.366Z level=INFO msg="america 4 日目: 133 人"
+time=2026-10-31T08:05:42.205Z level=INFO msg="user moved" user=nema-7635 from=asia to=america
+time=2026-10-31T08:05:42.205Z level=INFO msg="user moved" user=zoemamia.8880 from=europe to=america
+time=2026-10-31T08:05:42.416Z level=INFO msg="user moved" user=raliamax7768 from=asia to=america
+time=2026-10-31T08:05:42.603Z level=INFO msg="user moved" user=fuke-7289 from=asia to=europe
+time=2026-10-31T08:05:42.939Z level=INFO msg="user moved" user=chielhe.8981 from=europe to=america
+time=2026-10-31T08:05:43.490Z level=INFO msg="user moved" user=miakiha_9128 from=europe to=asia
+time=2026-10-31T08:05:44.061Z level=INFO msg="user moved" user=hael_7220 from=asia to=europe
+time=2026-10-31T08:05:44.221Z level=INFO msg="asia 5 日目: 757 人"
+time=2026-10-31T08:05:44.223Z level=INFO msg="user moved" user=numiasol-8939 from=europe to=asia
+time=2026-10-31T08:05:47.205Z level=INFO msg="europe 5 日目: 433 人"
+time=2026-10-31T08:05:50.819Z level=INFO msg="america 5 日目: 332 人"
+time=2026-10-31T08:05:59.259Z level=INFO msg="america 最終日（グランプリ）: 331 人"
+time=2026-10-31T08:05:59.263Z level=INFO msg="europe 最終日（グランプリ）: 432 人"
+time=2026-10-31T08:05:59.298Z level=INFO msg="asia 最終日（グランプリ）: 757 人"
+time=2026-10-31T08:06:08.254Z level=INFO msg="グランプリ: アジア 521 人, ヨーロッパ 425 人, アメリカ 327 人"
+{
+  "pass": true,
+  "score": 219108,
+  "messages": [
+    "min_zhang_4: 履歴を読めません: GET /api/memories?month=2026-05: 応答がタイムアウトしました",
+    "torinu_8811: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "muwaso_5947: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "chiben_12547: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "liam_davis_92: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "raleo_10066: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "croquette_sodachi_1965: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "reme-9692: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": EOF",
+    "makuwa-6053: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "tordanben_11752: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": EOF",
+    "hetotor_8533: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": EOF"
+  ]
+}
+
+--- stderr ---
+

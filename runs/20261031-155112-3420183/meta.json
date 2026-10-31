@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-155112-3420183",
+  "startedAt": "2026-10-31T15:51:12+09:00",
+  "finishedAt": "2026-10-31T15:56:05+09:00",
+  "ref": "export-parallel-initial-images",
+  "sha": "3420183f8d451d9aadd48c6bbea3107f30aa93e4",
+  "score": 184837,
+  "status": "pass",
+  "note": "export-parallel-initial-images-16",
+  "benchJobId": "25156",
+  "prevRunId": "20261031-152137-8c13252",
+  "bestRunId": "20261031-151339-5a230a4"
+}

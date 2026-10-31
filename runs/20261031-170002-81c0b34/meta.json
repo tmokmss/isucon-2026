@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-170002-81c0b34",
+  "startedAt": "2026-10-31T17:00:02+09:00",
+  "finishedAt": "2026-10-31T17:04:36+09:00",
+  "ref": "asia-read-split",
+  "sha": "81c0b34af98363d5f6aadc5552797d2d1ba419a4",
+  "score": 197896,
+  "status": "pass",
+  "note": "asia1 の nginx が GET を asia1 と asia2 に 1:1 で送る、asia2 の GOGC=200（main bdf05cd の上）",
+  "benchJobId": "31814",
+  "prevRunId": "20261031-163606-15a1e6c",
+  "bestRunId": "20261031-163105-6f2cd6f"
+}
