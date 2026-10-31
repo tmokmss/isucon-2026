@@ -4,7 +4,9 @@ package isureal
 // JPEG の判定は手元と同じ jpegcheck.Check で行う。
 // 逃がし先は、署名が ISUREAL_OFFLOAD_PEERS、JPEG が ISUREAL_OFFLOAD_JPEG_PEERS（頼む順、カンマ区切りの host:port）。
 // asia2 は PostgreSQL の台なので、署名は europe1・america1 を先に使い、JPEG は asia2 に頼まない。失敗した逃がし先は数秒外し、
-// どの逃がし先も同時に頼める数（offloadPeerSlots）まで埋まっている・失敗した・遅いときは手元で計算する。逃がし先は鍵を受け取るので、
+// 署名は、どの逃がし先も同時に頼める数（offloadPeerSlots）まで埋まっている・失敗した・遅いときは手元で計算する。
+// JPEG は、逃がし先 1 台につき 32 件（往復を待つ間も逃がし先の CPU を埋める）・手元で CPU 数の件数まで同時に検証し、あふれた分は先着順に待たせる
+// （一斉の投稿で全件を同時に計算すると、どの投稿も揃って遅れる）。逃がし先は鍵を受け取るので、
 // 受け付けはプライベートネットワーク（192.168.0.0/16）からだけにし、nginx には出さない。
 
 import (
@@ -43,7 +45,6 @@ type offloadPeer struct {
 
 var offloadPeerByAddr = map[string]*offloadPeer{}
 
-// 同じ台は署名と JPEG で同時に頼める数を分け合う
 func offloadPeersFromEnv(key string) []*offloadPeer {
 	var peers []*offloadPeer
 	for _, addr := range strings.Split(os.Getenv(key), ",") {
@@ -120,15 +121,33 @@ func offloadPost(url string, body []byte, timeout time.Duration) ([]byte, error)
 
 var errInvalidJPEG = errors.New("invalid JPEG")
 
+// JPEG の検証を担う先の空き。nil は手元
+var jpegWorkers = func() chan *offloadPeer {
+	ch := make(chan *offloadPeer, runtime.NumCPU()+len(offloadJPEGPeers)*32)
+	for range runtime.NumCPU() {
+		ch <- nil
+	}
+	for range 32 {
+		for _, peer := range offloadJPEGPeers {
+			ch <- peer
+		}
+	}
+	return ch
+}()
+
 // jpegcheck.Check と同じ判定を返す。逃がし先が使えないときは手元で検証する
 func checkJPEG(data []byte) (width, height int, err error) {
-	if len(offloadJPEGPeers) > 0 {
-		if res, err := offloadCall(offloadJPEGPeers, "/jpeg", data, offloadJPEGTimeout); err == nil && len(res) == 9 {
+	peer := <-jpegWorkers
+	defer func() { jpegWorkers <- peer }()
+	if peer != nil && peer.downUntil.Load() <= time.Now().UnixNano() {
+		res, err := offloadPost(peer.url+"/jpeg", data, offloadJPEGTimeout)
+		if err == nil && len(res) == 9 {
 			if res[0] != 1 {
 				return 0, 0, errInvalidJPEG
 			}
 			return int(binary.BigEndian.Uint32(res[1:5])), int(binary.BigEndian.Uint32(res[5:9])), nil
 		}
+		peer.downUntil.Store(time.Now().Add(offloadPeerBackoff).UnixNano())
 	}
 	return jpegcheck.Check(bytes.NewReader(data))
 }

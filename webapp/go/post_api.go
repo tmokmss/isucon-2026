@@ -1,9 +1,11 @@
 package isureal
 
 import (
+	"bytes"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,6 +13,7 @@ import (
 )
 
 type createPostRequest struct {
+	// 画像の本体は readPostImage が読む。この欄は、image がファイルでない値で来たときに Bind が元と同じく 400 を返すために残す
 	Image        *multipart.FileHeader `form:"image"`
 	Caption      string                `form:"caption"`
 	Visibility   string                `form:"visibility"`
@@ -44,11 +47,15 @@ type createPostResponse struct {
 
 func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
+		imageData, hasImage, err := readPostImage(c)
+		if err != nil {
+			return err
+		}
 		var input createPostRequest
 		if err := c.Bind(&input); err != nil {
 			return err
 		}
-		if input.Image == nil || !validUserText(input.Caption, 0, 1000) {
+		if !hasImage || !validUserText(input.Caption, 0, 1000) {
 			return NewAPIError(http.StatusBadRequest, "invalid_post")
 		}
 		switch input.Visibility {
@@ -62,15 +69,6 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		if !location.valid() {
 			return NewAPIError(http.StatusBadRequest, "invalid_post")
-		}
-		imageFile, err := input.Image.Open()
-		if err != nil {
-			return err
-		}
-		defer imageFile.Close()
-		imageData, err := io.ReadAll(imageFile)
-		if err != nil {
-			return err
 		}
 		width, height, err := checkJPEG(imageData)
 		if err != nil {
@@ -137,6 +135,50 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		rw.wait()
 		return c.JSON(http.StatusCreated, newPostResponse(post, user))
 	}
+}
+
+// multipart の本文を自分で読み、画像のパート（最初の image）を本文の長さで確保した 1 つの領域へ 1 回のコピーで取る。
+// ParseMultipartForm は画像を伸ばしながら複写し、ReadAll でもう一度複写するので、一斉の投稿で asia1 の CPU と GC を食う。
+// 画像以外のフィールドは ReadForm と同じ形で MultipartForm に置き、Bind に任せる（Bind は MultipartForm があれば本文を読まない）
+func readPostImage(c *echo.Context) ([]byte, bool, error) {
+	req := c.Request()
+	if !strings.HasPrefix(req.Header.Get(echo.HeaderContentType), echo.MIMEMultipartForm) {
+		return nil, false, nil
+	}
+	mr, err := req.MultipartReader()
+	if err != nil {
+		return nil, false, echo.ErrBadRequest.Wrap(err)
+	}
+	form := &multipart.Form{Value: map[string][]string{}, File: map[string][]*multipart.FileHeader{}}
+	req.MultipartForm = form
+	var image bytes.Buffer
+	hasImage := false
+	for {
+		p, err := mr.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, false, echo.ErrBadRequest.Wrap(err)
+		}
+		name := p.FormName()
+		switch {
+		case name == "":
+		case p.FileName() == "":
+			var b strings.Builder
+			if _, err := io.Copy(&b, p); err != nil {
+				return nil, false, echo.ErrBadRequest.Wrap(err)
+			}
+			form.Value[name] = append(form.Value[name], b.String())
+		case name == "image" && !hasImage:
+			hasImage = true
+			image.Grow(max(int(req.ContentLength), 0) + bytes.MinRead)
+			if _, err := image.ReadFrom(p); err != nil {
+				return nil, false, echo.ErrBadRequest.Wrap(err)
+			}
+		}
+	}
+	return image.Bytes(), hasImage, nil
 }
 
 func newPostResponse(post Post, user User) createPostResponse {
