@@ -32,8 +32,7 @@ func imageSigningKey(secretKeyHash string) ([]byte, error) {
 }
 
 func imageSignature(key []byte, imageID string, exp int64) []byte {
-	value := []byte(strconv.FormatInt(exp, 10) + ":" + imageID)
-	cacheKey := string(key) + string(value)
+	cacheKey := imageSignatureCacheKey(key, imageID, exp)
 
 	imageSignatureCacheMu.RLock()
 	cached, ok := imageSignatureCache[cacheKey]
@@ -42,14 +41,7 @@ func imageSignature(key []byte, imageID string, exp int64) []byte {
 		return cached
 	}
 
-	mac := hmac.New(sha256.New, key)
-	sum := make([]byte, 0, sha256.Size)
-	for range imageSignatureIterations {
-		mac.Reset()
-		mac.Write(value)
-		sum = mac.Sum(sum[:0])
-		value = append(value[:0], sum...)
-	}
+	value := computeImageSignature(key, imageID, exp)
 
 	imageSignatureCacheMu.Lock()
 	if len(imageSignatureCache) >= imageSignatureCacheMax {
@@ -60,8 +52,29 @@ func imageSignature(key []byte, imageID string, exp int64) []byte {
 	return value
 }
 
+func computeImageSignature(key []byte, imageID string, exp int64) []byte {
+	value := []byte(strconv.FormatInt(exp, 10) + ":" + imageID)
+	mac := hmac.New(sha256.New, key)
+	sum := make([]byte, 0, sha256.Size)
+	for range imageSignatureIterations {
+		mac.Reset()
+		mac.Write(value)
+		sum = mac.Sum(sum[:0])
+		value = append(value[:0], sum...)
+	}
+	return value
+}
+
+func imageSignatureCacheKey(key []byte, imageID string, exp int64) string {
+	return string(key) + strconv.FormatInt(exp, 10) + ":" + imageID
+}
+
+func imageURLExp() int64 {
+	return time.Now().Add(imageURLLifetime).Add(time.Minute - time.Nanosecond).Truncate(time.Minute).Unix()
+}
+
 func signedImageURL(user User, imageID string) string {
-	exp := time.Now().Add(imageURLLifetime).Add(time.Minute - time.Nanosecond).Truncate(time.Minute).Unix()
+	exp := imageURLExp()
 	query := url.Values{
 		"exp": {strconv.FormatInt(exp, 10)},
 		"sig": {base64.RawURLEncoding.EncodeToString(imageSignature(user.ImageKey, imageID, exp))},
