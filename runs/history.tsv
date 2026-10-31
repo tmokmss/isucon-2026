@@ -134,3 +134,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-165402-07a4cc3	2026-10-31T16:54:02+09:00	07a4cc334e288da93b193cd48d5ac93cb9894b03	slow-before-1700-v4	1561	pass	low version before 17:00 (3000ms wait during fresh posting windows)
 20261031-170001-a1cea2f	2026-10-31T17:00:01+09:00	a1cea2f11404a718f0c18a191d787ec7efbb5a55	sign-cache-to-asia1	223475	pass	asia2 が計算した署名を asia1 のキャッシュへ送る（main bdf05cd の上）
 20261031-171010-53bad13	2026-10-31T17:10:10+09:00	53bad13c4a4b8e9fd5011a7f6a548dc056295727	asia2-gogc	219729	pass	asia2 GOGC=400 GOMEMLIMIT=1400MiB MemoryMax=1800M
+20261031-172155-076bbd3	2026-10-31T17:21:55+09:00	076bbd3dca1f6590fd8bc752e6f459a94a1a7051	asia2-sign-euus	223494	pass	asia2 sign offload to europe1/america1, 64 slots

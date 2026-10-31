@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-172155-076bbd3",
+  "startedAt": "2026-10-31T17:21:55+09:00",
+  "finishedAt": "2026-10-31T17:28:06+09:00",
+  "ref": "asia2-sign-euus",
+  "sha": "076bbd3dca1f6590fd8bc752e6f459a94a1a7051",
+  "score": 223494,
+  "status": "pass",
+  "note": "asia2 sign offload to europe1/america1, 64 slots",
+  "benchJobId": "34218",
+  "prevRunId": "20261031-171010-53bad13",
+  "bestRunId": "20261031-164055-bdf05cd"
+}
