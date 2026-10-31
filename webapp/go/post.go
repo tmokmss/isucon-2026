@@ -38,13 +38,53 @@ type Post struct {
 	WindowEndedAt  *time.Time
 }
 
+// viewerContext は閲覧者の友達・ブロックを手元の UserRow から直接引く。読みロックを持っている間だけ使う。
+// 友達の友達と共通の友達の数は、使うときに一度だけ作る
 type viewerContext struct {
 	User
-	HasPostedToday   bool
-	Friends          map[string]bool
-	FriendsOfFriends map[string]bool
-	MutualFriends    map[string]int
-	Blocked          map[string]bool
+	HasPostedToday bool
+	u              *UserRow
+	s              *Store
+	fof            *viewerFoF
+}
+
+type viewerFoF struct {
+	all    map[string]bool
+	mutual map[string]int
+}
+
+func (v viewerContext) isFriend(id string) bool {
+	_, ok := v.u.friends[id]
+	return ok
+}
+
+func (v viewerContext) isBlocked(id string) bool {
+	if _, ok := v.u.blockOut[id]; ok {
+		return true
+	}
+	_, ok := v.u.blockIn[id]
+	return ok
+}
+
+func (v viewerContext) friendsOfFriends() *viewerFoF {
+	if v.fof.all != nil {
+		return v.fof
+	}
+	v.fof.all = map[string]bool{}
+	v.fof.mutual = map[string]int{}
+	for id := range v.u.friends {
+		f := v.s.users[id]
+		if f == nil {
+			continue
+		}
+		for g := range f.friends {
+			v.fof.all[g] = true
+			if g != v.ID {
+				v.fof.mutual[g]++
+			}
+		}
+	}
+	return v.fof
 }
 
 // livePostLocked は削除されていない投稿を返す
@@ -103,52 +143,27 @@ func postCountsLocked(u *UserRow, localDate time.Time) (active, deleted int) {
 }
 
 func (s *Store) loadViewerContextLocked(viewerID string) (viewerContext, bool) {
-	viewer := viewerContext{Friends: map[string]bool{}, FriendsOfFriends: map[string]bool{}, MutualFriends: map[string]int{}}
 	u := s.activeUser(viewerID)
 	if u == nil {
-		return viewer, false
+		return viewerContext{}, false
 	}
-	viewer.User = u.User
-	viewer.HasPostedToday = s.hasPostedTodayLocked(u)
-	viewer.Blocked = make(map[string]bool, len(u.blockOut)+len(u.blockIn))
-	for id := range u.blockOut {
-		viewer.Blocked[id] = true
-	}
-	for id := range u.blockIn {
-		viewer.Blocked[id] = true
-	}
-	for id := range u.friends {
-		viewer.Friends[id] = true
-	}
-	for id := range u.friends {
-		f := s.users[id]
-		if f == nil {
-			continue
-		}
-		for g := range f.friends {
-			viewer.FriendsOfFriends[g] = true
-			if g != viewer.ID {
-				viewer.MutualFriends[g]++
-			}
-		}
-	}
-	return viewer, true
+	return viewerContext{User: u.User, HasPostedToday: s.hasPostedTodayLocked(u), u: u, s: s, fof: &viewerFoF{}}, true
 }
 
 func (viewer viewerContext) canView(post Post) bool {
 	if post.AuthorID == viewer.ID {
 		return true
 	}
-	if post.WindowEndedAt != nil || !viewer.HasPostedToday || viewer.Blocked[post.AuthorID] {
+	if post.WindowEndedAt != nil || !viewer.HasPostedToday || viewer.isBlocked(post.AuthorID) {
 		return false
 	}
 	switch post.Visibility {
 	case "public":
 		return true
 	case "friends":
-		return viewer.Friends[post.AuthorID]
+		return viewer.isFriend(post.AuthorID)
 	case "friends_of_friends":
-		return viewer.Friends[post.AuthorID] || viewer.FriendsOfFriends[post.AuthorID]
+		return viewer.isFriend(post.AuthorID) || viewer.friendsOfFriends().all[post.AuthorID]
 	default:
 		return false
 	}

@@ -122,7 +122,7 @@ func (s *Store) feedCandidatesLocked(viewer viewerContext, following map[string]
 			return true
 		}
 		post := p.post()
-		if viewer.canView(post) && matchesFeed(viewer, following, post, feed) {
+		if matchesFeed(viewer, following, post, feed) && viewer.canView(post) {
 			candidates = append(candidates, feedCandidate{post: post, author: author.User, row: p})
 			if !ranked && len(candidates) == 51 {
 				return false
@@ -154,21 +154,26 @@ func (s *Store) feedCandidatesLocked(viewer viewerContext, following map[string]
 			}
 		}
 	}
-	var authors map[string]bool
+	var authors []string
 	switch feed {
 	case "friends":
-		authors = viewer.Friends
+		for id := range viewer.u.friends {
+			authors = append(authors, id)
+		}
 	case "following":
-		authors = following
+		for id := range following {
+			authors = append(authors, id)
+		}
 	case "friends-of-friends":
-		authors = viewer.FriendsOfFriends
+		for id := range viewer.friendsOfFriends().all {
+			if !viewer.isFriend(id) {
+				authors = append(authors, id)
+			}
+		}
 	}
 	var rows []*PostRow
 	for _, w := range s.activeWindows {
-		for id := range authors {
-			if feed == "friends-of-friends" && viewer.Friends[id] {
-				continue
-			}
+		for _, id := range authors {
 			for _, p := range w.byAuthor[id] {
 				if keep(p) {
 					rows = append(rows, p)
@@ -198,6 +203,7 @@ func rankedBefore(score int64, post Post, beforeScore int64, beforePostedAt time
 func (s *Store) recommendationScoresLocked(viewer viewerContext, candidates []feedCandidate) map[string]int64 {
 	scores := make(map[string]int64, len(candidates))
 	connections := map[string]int64{}
+	mutual := viewer.friendsOfFriends().mutual
 	for _, cand := range candidates {
 		authorID := cand.post.AuthorID
 		if _, ok := connections[authorID]; ok {
@@ -206,7 +212,7 @@ func (s *Store) recommendationScoresLocked(viewer viewerContext, candidates []fe
 		var sum int64
 		if a := s.users[authorID]; a != nil {
 			for f := range a.friends {
-				sum += int64(viewer.MutualFriends[f])
+				sum += int64(mutual[f])
 			}
 		}
 		connections[authorID] = sum
@@ -219,7 +225,7 @@ func (s *Store) recommendationScoresLocked(viewer viewerContext, candidates []fe
 				continue
 			}
 			seen[r.ReactorID] = true
-			if viewer.Friends[r.ReactorID] {
+			if viewer.isFriend(r.ReactorID) {
 				engaged++
 			}
 		}
@@ -228,11 +234,11 @@ func (s *Store) recommendationScoresLocked(viewer viewerContext, candidates []fe
 				continue
 			}
 			seen[cm.AuthorID] = true
-			if viewer.Friends[cm.AuthorID] {
+			if viewer.isFriend(cm.AuthorID) {
 				engaged++
 			}
 		}
-		scores[cand.post.ID] = 10*engaged + 3*int64(viewer.MutualFriends[cand.post.AuthorID]) + min(connections[cand.post.AuthorID], 30)
+		scores[cand.post.ID] = 10*engaged + 3*int64(mutual[cand.post.AuthorID]) + min(connections[cand.post.AuthorID], 30)
 	}
 	return scores
 }
@@ -244,9 +250,9 @@ func matchesFeed(viewer viewerContext, following map[string]bool, post Post, fee
 	case "following":
 		return following[post.AuthorID]
 	case "friends":
-		return viewer.Friends[post.AuthorID]
+		return viewer.isFriend(post.AuthorID)
 	case "friends-of-friends":
-		return !viewer.Friends[post.AuthorID] && viewer.FriendsOfFriends[post.AuthorID]
+		return !viewer.isFriend(post.AuthorID) && viewer.friendsOfFriends().all[post.AuthorID]
 	default:
 		return false
 	}

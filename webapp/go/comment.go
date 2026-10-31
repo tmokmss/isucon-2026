@@ -32,5 +32,5 @@ func (s *Store) canCommentLocked(viewerID, postID string) bool {
 	if post.Visibility == "public" {
 		return true
 	}
-	return viewer.Friends[post.AuthorID]
+	return viewer.isFriend(post.AuthorID)
 }

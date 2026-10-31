@@ -243,8 +243,9 @@ func getPostHandler(h *HandlerContext) echo.HandlerFunc {
 		post := p.post()
 		authorUser := author.User
 		viewer, ok := s.loadViewerContextLocked(GetSession(c).UserID)
+		ok = ok && viewer.canView(post)
 		s.mu.RUnlock()
-		if !ok || !viewer.canView(post) {
+		if !ok {
 			return NewAPIError(http.StatusNotFound, "post_not_found")
 		}
 		return c.JSON(http.StatusOK, getPostResponse(newPostResponse(post, authorUser)))
