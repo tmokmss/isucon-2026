@@ -157,7 +157,7 @@ func releaseJPEGPeer(peer *offloadPeer) {
 	if len(offloadJPEGPeers) > 0 && peer == offloadJPEGPeers[0] {
 		jpegFirstPeerSlots <- peer
 	} else {
-		releaseJPEGPeer(peer)
+		jpegPeerSlots <- peer
 	}
 }
 
