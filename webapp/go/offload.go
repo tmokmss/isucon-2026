@@ -3,7 +3,7 @@ package isureal
 // まとめて返す画像の署名（Memories・エクスポート）と、受け取った JPEG の検証を、CPU の空いている台へ逃がす。
 // JPEG の判定は手元と同じ jpegcheck.Check で行う。
 // 逃がし先は、署名が ISUREAL_OFFLOAD_PEERS、JPEG が ISUREAL_OFFLOAD_JPEG_PEERS（頼む順、カンマ区切りの host:port）。
-// asia2 は PostgreSQL の台なので、署名は europe1・america1 を先に使い、JPEG は asia2 に頼まない。失敗した逃がし先は数秒外し、
+// 署名は europe1・america1 を先に使う。asia2 の PostgreSQL は書き込みを受けなくなったので、JPEG は asia2 にも頼む。失敗した逃がし先は数秒外し、
 // 署名は、どの逃がし先も同時に頼める数（offloadPeerSlots）まで埋まっている・失敗した・遅いときは手元で計算する。
 // JPEG は、逃がし先 1 台につき 32 件（往復を待つ間も逃がし先の CPU を埋める）まで同時に検証し、あふれた分は先着順に待たせる
 // （一斉の投稿で全件を同時に計算すると、どの投稿も揃って遅れる）。手元の CPU は他の API に残し、逃がし先が外れたときだけ CPU 数の件数まで検証する。逃がし先は鍵を受け取るので、
