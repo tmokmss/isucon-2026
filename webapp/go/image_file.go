@@ -1,7 +1,7 @@
 package isureal
 
 // 画像の本体はファイルに置き、PostgreSQL の image_objects.data には新しい画像では空のバイト列を入れる（行は判定と初期化のために残す）。
-// - asia1: 書き込みは new/ に一時ファイル → rename をしてから DB を commit する（ディスクへの同期は裏で 1 秒ごと）。
+// - asia1: 書き込みは new/ に一時ファイル → rename をしてから DB を commit する。
 //   読み出しは new/ のファイルを探し、無ければ PostgreSQL の data（初期データの画像だけが中身を持つ）を読む
 // - europe1・america1: 手元に無い画像は asia1 の :8081 /_internal/image から取る（PostgreSQL の data は読まない）
 // - initialize で asia1 の new/ も消す
@@ -16,7 +16,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -24,21 +23,8 @@ import (
 
 var originImageDB atomic.Pointer[sqlx.DB]
 
-var newImagesDirty atomic.Bool
-
-// 書き込みの経路では fsync しない。fsync を投稿ごとに待つと、最終日の一斉の投稿で asia1 のディスクが詰まり、
-// nginx のログの書き込みまで止まる。代わりに裏で 1 秒ごとに sync する（PostgreSQL の synchronous_commit=off と同じ程度の幅）
-func init() {
-	go func() {
-		for range time.Tick(time.Second) {
-			if newImagesDirty.Swap(false) {
-				syscall.Sync()
-			}
-		}
-	}()
-}
-
-// storeNewImage は new/ へ一時ファイルを書いてから rename する。DB の commit より前に呼ぶ
+// storeNewImage は new/ へ一時ファイルを書いてから rename する。DB の commit より前に呼ぶ。
+// fsync はしない。正常な shutdown ではページキャッシュが書き出される。投稿ごとに fsync を待つと最終日の一斉の投稿で asia1 のディスクが詰まる
 func storeNewImage(id string, data []byte) error {
 	sub := filepath.Join(imageRootDir, "new", id[:2])
 	if err := os.MkdirAll(sub, 0o755); err != nil {
@@ -59,7 +45,6 @@ func storeNewImage(id string, data []byte) error {
 		_ = os.Remove(f.Name())
 		return err
 	}
-	newImagesDirty.Store(true)
 	return nil
 }
 
