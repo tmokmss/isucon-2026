@@ -40,6 +40,7 @@ func initializeHandler(h *HandlerContext) echo.HandlerFunc {
 		s.pruneAfterBoundary()
 		s.rebuildIndexes()
 		imageCache.reset()
+		imagesReset()
 		log.Printf("initialize done in %s", time.Since(start))
 
 		return c.JSON(http.StatusOK, initializeResponse{Language: "go", Agent: "claude-code", Harness: "claude-code", Model: "claude-opus-5-5"})
