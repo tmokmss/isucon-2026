@@ -196,12 +196,26 @@ const startProfiling = async (cfg: Config, dir: string): Promise<() => Promise<v
     write(dir, "pprof.txt", "未取得: metrics.pprofEnabled = false（アプリに pprof を仕込んでいない）");
     return async () => {};
   }
-  const host = cfg.hosts.app[0];
-  if (host === undefined || cfg.metrics.pprofUrl === "") {
+  if (cfg.hosts.app.length === 0 || cfg.metrics.pprofUrl === "") {
     write(dir, "pprof.txt", "未取得: hosts.app / metrics.pprofUrl が未設定");
     return async () => {};
   }
+  // hosts.app[0] は cpu.pprof / pprof.txt（report.md が読む）、残りの台は cpu-<host>.pprof / pprof-<host>.txt
+  const stops = await Promise.all(
+    cfg.hosts.app.map((host, i) => startProfilingOn(cfg, dir, host, i === 0 ? "" : `-${host}`)),
+  );
+  return async () => {
+    await Promise.all(stops.map((stop) => stop()));
+  };
+};
 
+const startProfilingOn = async (
+  cfg: Config,
+  dir: string,
+  host: string,
+  suffix: string,
+): Promise<() => Promise<void>> => {
+  const txt = `pprof${suffix}.txt`;
   const url = cfg.metrics.pprofUrl;
   const seconds = profileSeconds(url);
   const startedAt = Date.now();
@@ -215,7 +229,7 @@ const startProfiling = async (cfg: Config, dir: string): Promise<() => Promise<v
     { allowFailure: true },
   );
   if (started.exitCode !== 0) {
-    write(dir, "pprof.txt", `未取得: ${host} で pprof の取得を開始できませんでした\n${started.stderr}`);
+    write(dir, txt, `未取得: ${host} で pprof の取得を開始できませんでした\n${started.stderr}`);
     return async () => {};
   }
   log.info(`pprof: ${host} で ${seconds}s のプロファイルを開始しました`);
@@ -231,13 +245,13 @@ const startProfiling = async (cfg: Config, dir: string): Promise<() => Promise<v
     }
     await stopRemote(host, PPROF_PID);
 
-    const raw = join(dir, "cpu.pprof");
+    const raw = join(dir, `cpu${suffix}.pprof`);
     const got = await copyFrom(host, PPROF_OUT, raw, { allowFailure: true });
     if (!got || !existsSync(raw) || statSync(raw).size === 0) {
       const err = await onHostShell(host, `cat ${shQuote(PPROF_ERR)} 2>/dev/null`, { allowFailure: true });
       write(
         dir,
-        "pprof.txt",
+        txt,
         `未取得: プロファイルを取れませんでした (${host})\n  ${url}\n\n${err.stdout}`,
       );
       log.warn(`pprof を取得できませんでした (${host})`);
@@ -247,14 +261,14 @@ const startProfiling = async (cfg: Config, dir: string): Promise<() => Promise<v
     // 生のプロファイルも残す（go tool pprof -http で後から掘れる）。整形は手元で行う。
     const top = await local("go", ["tool", "pprof", "-top", "-nodecount=40", raw], { allowFailure: true });
     if (top.exitCode === 0 && top.stdout.trim() !== "") {
-      write(dir, "pprof.txt", top.stdout);
+      write(dir, txt, top.stdout);
       log.info("pprof: 回収しました");
     } else {
       write(
         dir,
-        "pprof.txt",
+        txt,
         `未取得: go tool pprof で読めませんでした (exit=${top.exitCode})\n` +
-          `  生のプロファイルは cpu.pprof にある\n\n${top.stderr}`,
+          `  生のプロファイルは cpu${suffix}.pprof にある\n\n${top.stderr}`,
       );
       log.warn("pprof を整形できませんでした");
     }
