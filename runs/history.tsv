@@ -130,3 +130,5 @@ run_id	started_at	sha	ref	score	status	note
 20261031-160039-1f0e740	2026-10-31T16:00:39+09:00	1f0e74082a6fd3d839689339ecc9f72d246a32f6	presign-next-minute	181170	pass	on b3440cf: sig cache by exp generation + presign (JPEG unchanged), heap capture
 20261031-160409-40e65ef	2026-10-31T16:04:09+09:00	40e65ef68604ca176cec4a58cd8fadbd953fbcb3	asia2-replica	201497	pass	asia2 as asia read replica, asia1 nginx sends GET to asia2
 20261031-160719-1f0e740	2026-10-31T16:07:19+09:00	1f0e74082a6fd3d839689339ecc9f72d246a32f6	presign-next-minute	175643	pass	sig cache + presign, rerun with heap capture
+20261031-161627-94b75aa	2026-10-31T16:16:27+09:00	94b75aa284de67ba64075b7c2a562dba2067f917	presign-next-minute	0	fail	on 73b6aff: sig cache by exp generation, fixed-size keys only
+20261031-162121-94b75aa	2026-10-31T16:21:21+09:00	94b75aa284de67ba64075b7c2a562dba2067f917	presign-next-minute	197693	pass	rerun: sig cache by exp generation only

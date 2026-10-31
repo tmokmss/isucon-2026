@@ -1,0 +1,49 @@
+File: isureal
+Build ID: 86ee2acaab68161eeb395570172a7829f04d19ba
+Type: cpu
+Time: 2026-10-31 16:18:47 JST
+Duration: 60s, Total samples = 25.25s (42.08%)
+Showing nodes accounting for 19.51s, 77.27% of 25.25s total
+Dropped 722 nodes (cum <= 0.13s)
+Showing top 40 nodes out of 245
+      flat  flat%   sum%        cum   cum%
+     3.65s 14.46% 14.46%      3.65s 14.46%  crypto/internal/fips140/sha256.blockAVX2
+     2.50s  9.90% 24.36%      2.50s  9.90%  internal/runtime/syscall/linux.Syscall6
+     1.68s  6.65% 31.01%      5.93s 23.49%  example.com/isureal-company/isureal.(*Store).rebuildIndexes
+     1.39s  5.50% 36.51%      1.39s  5.50%  internal/runtime/maps.ctrlGroup.matchH2 (inline)
+     1.33s  5.27% 41.78%      1.33s  5.27%  runtime.memmove
+     1.02s  4.04% 45.82%      1.02s  4.04%  aeshashbody
+     0.77s  3.05% 48.87%      2.76s 10.93%  runtime.scanObject
+     0.67s  2.65% 51.52%      0.99s  3.92%  runtime.tryDeferToSpanScan
+     0.60s  2.38% 53.90%      0.60s  2.38%  runtime.memclrNoHeapPointers
+     0.58s  2.30% 56.20%      0.78s  3.09%  runtime.findObject
+     0.44s  1.74% 57.94%      1.95s  7.72%  runtime.mapaccess1_faststr
+     0.34s  1.35% 59.29%      0.34s  1.35%  runtime.nextFreeFast (inline)
+     0.33s  1.31% 60.59%      0.33s  1.31%  memeqbody
+     0.33s  1.31% 61.90%      0.33s  1.31%  runtime.futex
+     0.32s  1.27% 63.17%      0.46s  1.82%  database/sql.convertAssignRows
+     0.32s  1.27% 64.44%      0.49s  1.94%  example.com/isureal-company/isureal.postLess
+     0.25s  0.99% 65.43%      0.78s  3.09%  runtime.mallocgcSmallScanNoHeader
+     0.25s  0.99% 66.42%      0.25s  0.99%  sync/atomic.(*Int32).Add (inline)
+     0.23s  0.91% 67.33%      4.12s 16.32%  crypto/internal/fips140/sha256.(*Digest).checkSum
+     0.21s  0.83% 68.16%      0.21s  0.83%  runtime.spanClass.sizeclass (inline)
+     0.20s  0.79% 68.95%      4.03s 15.96%  crypto/internal/fips140/sha256.(*Digest).Write
+     0.18s  0.71% 69.66%      0.20s  0.79%  example.com/isureal-company/isureal.(*Store).pruneAfterBoundary
+     0.15s  0.59% 70.26%      2.02s  8.00%  runtime.mallocgc
+     0.15s  0.59% 70.85%      0.35s  1.39%  runtime.mapaccess2_faststr
+     0.15s  0.59% 71.45%      1.41s  5.58%  runtime.mapassign_faststr
+     0.14s  0.55% 72.00%      0.15s  0.59%  example.com/isureal-company/isureal.rmLess
+     0.13s  0.51% 72.51%      2.10s  8.32%  github.com/jackc/pgx/v5/stdlib.(*Rows).Next
+     0.12s  0.48% 72.99%      4.53s 17.94%  crypto/internal/fips140/hmac.(*HMAC).Sum
+     0.12s  0.48% 73.47%      4.26s 16.87%  crypto/internal/fips140/sha256.(*Digest).Sum
+     0.12s  0.48% 73.94%      0.16s  0.63%  runtime.(*mspan).markBitsForIndex (inline)
+     0.11s  0.44% 74.38%      4.12s 16.32%  example.com/isureal-company/isureal.loadBig
+     0.10s   0.4% 74.77%      0.14s  0.55%  example.com/isureal-company/isureal/jpegcheck.(*decoder).decodeHuffman
+     0.10s   0.4% 75.17%      1.10s  4.36%  github.com/jackc/pgx/v5/stdlib.(*Rows).initValueFuncs.func14
+     0.09s  0.36% 75.52%      1.58s  6.26%  encoding/gob.(*Encoder).encodeStruct
+     0.09s  0.36% 75.88%      0.51s  2.02%  sort.insertionSort_func
+     0.07s  0.28% 76.16%      0.21s  0.83%  crypto/internal/fips140/sha256.(*Digest).UnmarshalBinary
+     0.07s  0.28% 76.44%      4.83s 19.13%  example.com/isureal-company/isureal.computeImageSignature
+     0.07s  0.28% 76.71%      0.27s  1.07%  example.com/isureal-company/isureal/jpegcheck.(*decoder).processSOS
+     0.07s  0.28% 76.99%      0.40s  1.58%  github.com/jackc/pgx/v5/pgproto3.(*chunkReader).Next
+     0.07s  0.28% 77.27%      0.47s  1.86%  runtime.convTstring

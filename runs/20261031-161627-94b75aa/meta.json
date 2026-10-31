@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-161627-94b75aa",
+  "startedAt": "2026-10-31T16:16:27+09:00",
+  "finishedAt": "2026-10-31T16:20:23+09:00",
+  "ref": "presign-next-minute",
+  "sha": "94b75aa284de67ba64075b7c2a562dba2067f917",
+  "score": 0,
+  "status": "fail",
+  "note": "on 73b6aff: sig cache by exp generation, fixed-size keys only",
+  "benchJobId": "27473",
+  "prevRunId": "20261031-160719-1f0e740",
+  "bestRunId": "20261031-160409-40e65ef"
+}

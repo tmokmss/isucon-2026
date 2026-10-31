@@ -1,0 +1,51 @@
+{"id":"27473","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"post-validation evidence"}
+
+--- stdout ---
+time=2026-10-31T07:19:16.150Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:19:19.137Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:19:22.138Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:19:25.183Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T07:19:27.048Z level=INFO msg="user moved" user=meyo_5223 from=asia to=america
+time=2026-10-31T07:19:28.137Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T07:19:28.918Z level=INFO msg="user moved" user=meyo_5223 from=america to=europe
+time=2026-10-31T07:19:31.138Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T07:19:32.074Z level=INFO msg="user moved" user=hohe.5405 from=europe to=america
+time=2026-10-31T07:19:34.150Z level=INFO msg="asia 3 日目: 149 人"
+time=2026-10-31T07:19:37.137Z level=INFO msg="europe 3 日目: 55 人"
+time=2026-10-31T07:19:38.606Z level=INFO msg="user moved" user=chitsu-6010 from=asia to=america
+time=2026-10-31T07:19:39.633Z level=INFO msg="user moved" user=chitsu-6010 from=america to=europe
+time=2026-10-31T07:19:40.172Z level=INFO msg="america 3 日目: 55 人"
+time=2026-10-31T07:19:40.347Z level=INFO msg="user moved" user=meyo_5223 from=europe to=asia
+time=2026-10-31T07:19:40.768Z level=INFO msg="user moved" user=teteha_5629 from=asia to=europe
+time=2026-10-31T07:19:43.178Z level=INFO msg="asia 4 日目: 399 人"
+time=2026-10-31T07:19:45.734Z level=INFO msg="user moved" user=hohe.5405 from=america to=europe
+time=2026-10-31T07:19:46.159Z level=INFO msg="europe 4 日目: 162 人"
+time=2026-10-31T07:19:47.132Z level=INFO msg="user moved" user=hiwaha_6695 from=america to=asia
+time=2026-10-31T07:19:48.809Z level=INFO msg="user moved" user=hiorul_8474 from=europe to=asia
+time=2026-10-31T07:19:48.970Z level=INFO msg="user moved" user=nomarro_7563 from=asia to=america
+time=2026-10-31T07:19:49.169Z level=INFO msg="america 4 日目: 157 人"
+time=2026-10-31T07:19:50.049Z level=INFO msg="user moved" user=chitsu-6010 from=europe to=america
+time=2026-10-31T07:19:51.870Z level=INFO msg="user moved" user=vinrimax-8639 from=europe to=asia
+time=2026-10-31T07:19:52.154Z level=INFO msg="asia 5 日目: 699 人"
+time=2026-10-31T07:19:52.722Z level=INFO msg="user moved" user=fuliaso-8849 from=europe to=asia
+time=2026-10-31T07:19:54.243Z level=INFO msg="user moved" user=toranku_8447 from=europe to=asia
+time=2026-10-31T07:19:55.178Z level=INFO msg="europe 5 日目: 444 人"
+time=2026-10-31T07:19:58.872Z level=INFO msg="america 5 日目: 422 人"
+time=2026-10-31T07:20:07.157Z level=INFO msg="america 最終日（グランプリ）: 421 人"
+time=2026-10-31T07:20:07.178Z level=INFO msg="europe 最終日（グランプリ）: 443 人"
+time=2026-10-31T07:20:07.343Z level=INFO msg="asia 最終日（グランプリ）: 700 人"
+time=2026-10-31T07:20:16.226Z level=INFO msg="グランプリ: アジア 398 人, ヨーロッパ 342 人, アメリカ 286 人"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "post-validation evidence: GET /api/images/aee5f59d-333f-42aa-ba53-8a6c5c420c71?exp=1793517660\u0026sig=4x_32mGwLRxqXTUV4jcipThfa5WnI6X94J6W7_vCZss: ステータスコード 403 が返りました（期待値 200、image_forbidden）",
+    "shihama.5127: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "vinma-15808: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "chitsu-6010: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "yuxin_wu_2929: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF"
+  ]
+}
+
+--- stderr ---
+
