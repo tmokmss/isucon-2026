@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-141745-a28a701",
+  "startedAt": "2026-10-31T14:17:45+09:00",
+  "finishedAt": "2026-10-31T14:23:22+09:00",
+  "ref": "a28a701",
+  "sha": "a28a701c6be3e8bc33a447050f32c4afe806d10d",
+  "score": 140030,
+  "status": "pass",
+  "note": "複製 local・時刻の印で待つ（main e42c64c 取り込み済み）",
+  "benchJobId": "17033",
+  "prevRunId": "20261031-141027-bd0fe45",
+  "bestRunId": "20261031-141027-bd0fe45"
+}

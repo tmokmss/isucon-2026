@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 
 	"example.com/isureal-company/isureal"
@@ -12,6 +13,11 @@ func main() {
 		panic(isureal.ServeOffload())
 	}
 	config := isureal.ConfigFromEnv()
+	// 複製を持つ台（europe1・america1）は、asia1 から変更を受けて読み取りの一部を手元で返す
+	if os.Getenv("ISUREAL_PASSIVE") == "1" && os.Getenv("ISUREAL_REPLICA_MODE") != "" {
+		go func() { panic(isureal.ServeOffload()) }()
+		panic(http.ListenAndServe(":8080", isureal.NewReplicaServer(config)))
+	}
 	// 状態を持たない台（nginx が /api/ を asia1 へ転送する台）は、/api/images/ だけを返す
 	server := isureal.NewImageServer
 	if os.Getenv("ISUREAL_PASSIVE") != "1" {
