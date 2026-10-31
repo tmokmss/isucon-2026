@@ -117,3 +117,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-140924-a0e6742	2026-10-31T14:09:24+09:00	a0e674282db2faf1aa480ff05027aa88794e8596	lane2-tune	127403	pass	reset: VACUUM (TRUNCATE false) image_objects on c6abd65
 20261031-150350-0343458	2026-10-31T15:03:50+09:00	034345856596feb60794c500494b2335c15cff76	lane2-tune	0	fail	exp 5min + ipban bg reload + image cache 100MB + GOMEMLIMIT 2200 on 23db9c5
 20261031-151136-dc74738	2026-10-31T15:11:36+09:00	dc74738f80105927d8e9083a78d6d044397f6b4b	lane2-tune	170298	pass	ipban bg reload + image cache 100MB + GOMEMLIMIT 2200 on 5a230a4
+20261031-151629-200016f	2026-10-31T15:16:29+09:00	200016f64d9139ecfd9a3a3f277abdbb21b4282c	lane2-ipban	180317	pass	ip_bans bg reload only on 5a230a4
