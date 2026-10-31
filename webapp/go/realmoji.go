@@ -1,47 +1,44 @@
 package isureal
 
 import (
-	"context"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type RealMoji struct {
-	ID           string     `db:"id"`
-	PostID       string     `db:"post_id"`
-	ReactorID    string     `db:"reactor_id"`
-	ImageID      string     `db:"image_id"`
-	ReactionType string     `db:"reaction_type"`
-	CreatedAt    time.Time  `db:"created_at"`
-	ReplacedAt   *time.Time `db:"replaced_at"`
-	DeletedAt    *time.Time `db:"deleted_at"`
+	ID           string
+	PostID       string
+	ReactorID    string
+	ImageID      string
+	ReactionType string
+	CreatedAt    time.Time
+	ReplacedAt   *time.Time
+	DeletedAt    *time.Time
 }
 
-func getRealMoji(ctx context.Context, db sqlx.QueryerContext, id string) (RealMoji, error) {
-	var reaction RealMoji
-	err := sqlx.GetContext(ctx, db, &reaction, `SELECT id, post_id, reactor_id, image_id, reaction_type, created_at, replaced_at, deleted_at FROM realmojis WHERE id=$1`, id)
-	return reaction, err
+type realMojiWithReactor struct {
+	reaction RealMoji
+	reactor  User
 }
 
-type RealMojiWithReactor struct {
-	RealMoji
-	Reactor User `db:"reactor"`
-}
-
-func selectCurrentRealMojis(ctx context.Context, db sqlx.QueryerContext, conditions string, args ...any) ([]RealMojiWithReactor, error) {
-	var reactions []RealMojiWithReactor
-	if err := sqlx.SelectContext(ctx, db, &reactions, `
-  SELECT r.id, r.post_id, r.reactor_id, r.image_id, r.reaction_type, r.created_at, r.replaced_at, r.deleted_at,
-         `+userColumnsAs("u", "reactor")+`
-  FROM realmojis r JOIN users u ON u.id = r.reactor_id AND u.status = 'active'
-  WHERE r.replaced_at IS NULL AND r.deleted_at IS NULL `+conditions, args...); err != nil {
-		return nil, err
-	}
-	for i := range reactions {
-		if err := reactions[i].Reactor.setImageKey(); err != nil {
-			return nil, err
+// currentRealMojisLocked は投稿の現在の RealMoji を (created_at, id) の降順で返す
+func (s *Store) currentRealMojisLocked(p *PostRow, beforeAt *time.Time, beforeID string, limit int) []realMojiWithReactor {
+	out := make([]realMojiWithReactor, 0)
+	for i := len(p.realmojis) - 1; i >= 0; i-- {
+		r := p.realmojis[i]
+		if !r.current() {
+			continue
+		}
+		if beforeAt != nil && !(r.CreatedAt.Before(*beforeAt) || (r.CreatedAt.Equal(*beforeAt) && r.ID < beforeID)) {
+			continue
+		}
+		u := s.activeUser(r.ReactorID)
+		if u == nil {
+			continue
+		}
+		out = append(out, realMojiWithReactor{reaction: r.RealMoji, reactor: u.User})
+		if len(out) == limit {
+			break
 		}
 	}
-	return reactions, nil
+	return out
 }

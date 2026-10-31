@@ -2,10 +2,9 @@ package isureal
 
 import (
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
-	"errors"
 	"net/http"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
@@ -62,14 +61,20 @@ func newSessionUserResponse(user User) sessionUserResponse {
 	}
 }
 
-func newGetMeResponse(user User) getMeResponse {
-	response := getMeResponse{sessionUserResponse: newSessionUserResponse(user)}
-	if user.ProfileImageID != nil {
-		url := signedImageURL(user, *user.ProfileImageID)
-		response.ProfileImageURL = &url
+func profileImageURL(user User) *string {
+	if user.ProfileImageID == nil {
+		return nil
 	}
-	return response
+	url := signedImageURL(user, *user.ProfileImageID)
+	return &url
 }
+
+func newGetMeResponse(user User) getMeResponse {
+	return getMeResponse{sessionUserResponse: newSessionUserResponse(user), ProfileImageURL: profileImageURL(user)}
+}
+
+// ユーザー名の一意性を守るため、登録は直列にする
+var registerMu sync.Mutex
 
 func registerHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
@@ -84,34 +89,36 @@ func registerHandler(h *HandlerContext) echo.HandlerFunc {
 		secretKey := uuid.NewString()
 		hash := sha256.Sum256([]byte(secretKey))
 		ctx := c.Request().Context()
-		tx, err := h.DB.BeginTxx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		// ユーザー名が一意である必要があります。
-		if _, err := tx.ExecContext(ctx, `LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE`); err != nil {
-			return err
-		}
-		var exists bool
-		if err := tx.GetContext(ctx, &exists, `SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)`, input.Username); err != nil {
-			return err
-		}
+		s := h.Store
+		registerMu.Lock()
+		defer registerMu.Unlock()
+		s.mu.RLock()
+		exists := s.usersByName[input.Username] != nil
+		s.mu.RUnlock()
 		if exists {
 			return NewAPIError(http.StatusConflict, "username_taken")
 		}
 		userID := uuid.NewString()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO users (id, username, secret_key_hash, display_name, region) VALUES ($1, $2, $3, $4, $5)`,
-			userID, input.Username, hex.EncodeToString(hash[:]), input.DisplayName, input.Region); err != nil {
+		createdAt := now()
+		u := &UserRow{
+			User: User{
+				ID: userID, Username: input.Username, SecretKeyHash: hex.EncodeToString(hash[:]), DisplayName: input.DisplayName,
+				Bio: "", Region: input.Region, AccountType: "regular", Status: "active",
+			},
+			CreatedAt: createdAt,
+		}
+		if err := u.setImageKey(); err != nil {
 			return err
 		}
-		user, err := getUser(ctx, tx, userID)
-		if err != nil {
+		u.setNormalized()
+		if _, err := h.DB.ExecContext(ctx, `INSERT INTO users (id, username, secret_key_hash, display_name, region, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $6)`,
+			userID, input.Username, u.SecretKeyHash, input.DisplayName, input.Region, createdAt); err != nil {
 			return err
 		}
-		if err := tx.Commit(); err != nil {
-			return err
-		}
+		s.mu.Lock()
+		s.addUserLocked(u)
+		user := u.User
+		s.mu.Unlock()
 		return c.JSON(http.StatusCreated, registerResponse{SecretKey: secretKey, User: newSessionUserResponse(user)})
 	}
 }
@@ -127,31 +134,51 @@ func loginHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
 		}
 		ctx := c.Request().Context()
+		s := h.Store
+		s.mu.RLock()
+		u := s.usersByName[input.Username]
+		s.mu.RUnlock()
+		if u == nil {
+			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
+		}
+		unlock := lockUsers(u.ID)
+		defer unlock()
+		s.mu.RLock()
+		user := u.User
+		s.mu.RUnlock()
+		hash := sha256.Sum256([]byte(input.SecretKey))
+		if user.Status != "active" || user.SecretKeyHash != hex.EncodeToString(hash[:]) {
+			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
+		}
+		token := uuid.NewString()
+		row := &LoginSessionRow{ID: uuid.NewString(), UserID: user.ID, TokenHash: hashToken(token), Active: true, CreatedAt: now()}
 		tx, err := h.DB.BeginTxx(ctx, nil)
 		if err != nil {
 			return err
 		}
 		defer tx.Rollback()
-		var user User
-		err = tx.GetContext(ctx, &user, `SELECT id, username, secret_key_hash, display_name, bio, profile_image_id, region, account_type, status FROM users WHERE username = $1 FOR NO KEY UPDATE`, input.Username)
-		if errors.Is(err, sql.ErrNoRows) {
-			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
-		}
-		if err != nil {
+		if _, err := tx.ExecContext(ctx, `
+  UPDATE login_sessions
+  SET active = false, invalidated_at = $2, reason = 'replaced'
+  WHERE user_id = $1 AND active = true
+ `, user.ID, row.CreatedAt); err != nil {
 			return err
 		}
-		hash := sha256.Sum256([]byte(input.SecretKey))
-		if user.Status != "active" || user.SecretKeyHash != hex.EncodeToString(hash[:]) {
-			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
-		}
-		session, err := createLoginSessionTx(ctx, tx, user.ID)
-		if err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO login_sessions (id, user_id, token_hash, created_at) VALUES ($1, $2, $3, $4)`, row.ID, row.UserID, row.TokenHash, row.CreatedAt); err != nil {
 			return err
 		}
 		if err := tx.Commit(); err != nil {
 			return err
 		}
-		return c.JSON(http.StatusOK, loginResponse{Token: session.Token, User: newSessionUserResponse(user)})
+		s.mu.Lock()
+		for hash, old := range u.sessions {
+			old.Active = false
+			delete(s.sessions, hash)
+		}
+		u.sessions = map[string]*LoginSessionRow{row.TokenHash: row}
+		s.sessions[row.TokenHash] = row
+		s.mu.Unlock()
+		return c.JSON(http.StatusOK, loginResponse{Token: token, User: newSessionUserResponse(user)})
 	}
 }
 
@@ -161,9 +188,25 @@ func logoutHandler(h *HandlerContext) echo.HandlerFunc {
 		if session == nil {
 			return NewAPIError(http.StatusUnauthorized, "invalid_session")
 		}
-		if err := InvalidateLoginSession(h.DB, session.UserID, session.TokenHash); err != nil {
+		s := h.Store
+		unlock := lockUsers(session.UserID)
+		defer unlock()
+		if _, err := h.DB.ExecContext(c.Request().Context(), `
+		UPDATE login_sessions
+		SET active = false, invalidated_at = $3, reason = 'logout'
+		WHERE user_id = $1 AND active = true AND token_hash = $2
+	`, session.UserID, session.TokenHash, now()); err != nil {
 			return err
 		}
+		s.mu.Lock()
+		if row := s.sessions[session.TokenHash]; row != nil && row.UserID == session.UserID {
+			row.Active = false
+			delete(s.sessions, session.TokenHash)
+			if u := s.users[session.UserID]; u != nil {
+				delete(u.sessions, session.TokenHash)
+			}
+		}
+		s.mu.Unlock()
 		return c.NoContent(http.StatusNoContent)
 	}
 }
@@ -174,12 +217,16 @@ func getMeHandler(h *HandlerContext) echo.HandlerFunc {
 		if session == nil {
 			return NewAPIError(http.StatusUnauthorized, "invalid_session")
 		}
-		user, err := getUser(c.Request().Context(), h.DB, session.UserID)
-		if errors.Is(err, sql.ErrNoRows) {
-			return NewAPIError(http.StatusNotFound, "account_not_found")
+		s := h.Store
+		s.mu.RLock()
+		u := s.activeUser(session.UserID)
+		var user User
+		if u != nil {
+			user = u.User
 		}
-		if err != nil {
-			return err
+		s.mu.RUnlock()
+		if u == nil {
+			return NewAPIError(http.StatusNotFound, "account_not_found")
 		}
 		return c.JSON(http.StatusOK, newGetMeResponse(user))
 	}
@@ -201,36 +248,36 @@ func updateMeHandler(h *HandlerContext) echo.HandlerFunc {
 			(input.Region != nil && !validRegion(*input.Region)) {
 			return NewAPIError(http.StatusBadRequest, "invalid_profile")
 		}
-		ctx := c.Request().Context()
-		tx, err := h.DB.BeginTxx(ctx, nil)
-		if err != nil {
+		s := h.Store
+		unlock := lockUsers(session.UserID)
+		defer unlock()
+		if _, err := h.DB.ExecContext(c.Request().Context(), `
+  UPDATE users SET display_name = COALESCE($2, display_name), bio = COALESCE($3, bio), region = COALESCE($4, region), updated_at = $5
+  WHERE id = $1`, session.UserID, input.DisplayName, input.Bio, input.Region, now()); err != nil {
 			return err
 		}
-		defer tx.Rollback()
-		if input.DisplayName != nil {
-			if _, err := tx.ExecContext(ctx, `UPDATE users SET display_name = $2, updated_at = clock_timestamp() WHERE id = $1`, session.UserID, *input.DisplayName); err != nil {
-				return err
+		s.mu.Lock()
+		u := s.users[session.UserID]
+		if u != nil {
+			if input.DisplayName != nil {
+				u.DisplayName = *input.DisplayName
+				u.normDisplayName = normalizeSearchText(u.DisplayName)
+			}
+			if input.Bio != nil {
+				u.Bio = *input.Bio
+			}
+			if input.Region != nil {
+				u.Region = *input.Region
 			}
 		}
-		if input.Bio != nil {
-			if _, err := tx.ExecContext(ctx, `UPDATE users SET bio = $2, updated_at = clock_timestamp() WHERE id = $1`, session.UserID, *input.Bio); err != nil {
-				return err
-			}
+		var user User
+		ok := u != nil && u.active()
+		if ok {
+			user = u.User
 		}
-		if input.Region != nil {
-			if _, err := tx.ExecContext(ctx, `UPDATE users SET region = $2, updated_at = clock_timestamp() WHERE id = $1`, session.UserID, *input.Region); err != nil {
-				return err
-			}
-		}
-		user, err := getUser(ctx, tx, session.UserID)
-		if errors.Is(err, sql.ErrNoRows) {
+		s.mu.Unlock()
+		if !ok {
 			return NewAPIError(http.StatusNotFound, "account_not_found")
-		}
-		if err != nil {
-			return err
-		}
-		if err := tx.Commit(); err != nil {
-			return err
 		}
 		return c.JSON(http.StatusOK, updateMeResponse(newGetMeResponse(user)))
 	}

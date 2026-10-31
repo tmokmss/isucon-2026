@@ -1,13 +1,8 @@
 package isureal
 
 import (
-	"context"
-	"fmt"
 	"regexp"
-	"strings"
 	"unicode/utf8"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type User struct {
@@ -39,27 +34,8 @@ func validRegion(region string) bool {
 	}
 }
 
-var userColumns = []string{"id", "username", "secret_key_hash", "display_name", "bio", "profile_image_id", "region", "account_type", "status"}
-
-func userColumnsAs(alias, prefix string) string {
-	columns := make([]string, len(userColumns))
-	for i, column := range userColumns {
-		columns[i] = fmt.Sprintf(`%s.%s AS "%s.%s"`, alias, column, prefix, column)
-	}
-	return strings.Join(columns, ", ")
-}
-
 func (user *User) setImageKey() error {
 	key, err := imageSigningKey(user.SecretKeyHash)
 	user.ImageKey = key
 	return err
-}
-
-func getUser(ctx context.Context, db sqlx.QueryerContext, userID string) (User, error) {
-	var user User
-	err := sqlx.GetContext(ctx, db, &user, `SELECT `+strings.Join(userColumns, ", ")+` FROM users WHERE id = $1 AND status = 'active'`, userID)
-	if err != nil {
-		return user, err
-	}
-	return user, user.setImageKey()
 }

@@ -2,11 +2,10 @@ package isureal
 
 import (
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
-	"errors"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
@@ -29,29 +28,29 @@ func adminLoginHandler(h *HandlerContext) echo.HandlerFunc {
 		if !usernamePattern.MatchString(input.Username) {
 			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
 		}
-		var administrator struct {
-			ID           string `db:"id"`
-			PasswordHash string `db:"password_hash"`
-		}
-		err := h.DB.GetContext(c.Request().Context(), &administrator,
-			`SELECT id, password_hash FROM administrators WHERE username = $1`, input.Username)
-		if errors.Is(err, sql.ErrNoRows) {
+		s := h.Store
+		s.mu.RLock()
+		admin := s.admins[input.Username]
+		s.mu.RUnlock()
+		if admin == nil {
 			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
-		}
-		if err != nil {
-			return err
 		}
 		hash := sha256.Sum256([]byte(input.Password))
-		if administrator.PasswordHash != hex.EncodeToString(hash[:]) {
+		if admin.PasswordHash != hex.EncodeToString(hash[:]) {
 			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
 		}
-		session, err := CreateAdminSession(h.DB, administrator.ID)
-		if err != nil {
+		token := uuid.NewString()
+		row := &AdminSessionRow{ID: uuid.NewString(), AdministratorID: admin.ID, TokenHash: hashToken(token), Active: true, CreatedAt: now()}
+		if _, err := h.DB.ExecContext(c.Request().Context(), `
+  INSERT INTO administrator_sessions (id, administrator_id, token_hash, created_at)
+  VALUES ($1, $2, $3, $4)
+ `, row.ID, row.AdministratorID, row.TokenHash, row.CreatedAt); err != nil {
 			return err
 		}
-		return c.JSON(http.StatusOK, adminLoginResponse{
-			Token: session.Token, AdministratorID: session.AdministratorID,
-		})
+		s.mu.Lock()
+		s.adminSessions[row.TokenHash] = row
+		s.mu.Unlock()
+		return c.JSON(http.StatusOK, adminLoginResponse{Token: token, AdministratorID: admin.ID})
 	}
 }
 
@@ -61,9 +60,20 @@ func adminLogoutHandler(h *HandlerContext) echo.HandlerFunc {
 		if session == nil {
 			return NewAPIError(http.StatusUnauthorized, "invalid_administrator_session")
 		}
-		if err := InvalidateAdminSession(h.DB, session.AdministratorID, session.TokenHash); err != nil {
+		if _, err := h.DB.ExecContext(c.Request().Context(), `
+  UPDATE administrator_sessions
+  SET active = false, invalidated_at = $3
+  WHERE administrator_id = $1 AND token_hash = $2 AND active = true
+ `, session.AdministratorID, session.TokenHash, now()); err != nil {
 			return err
 		}
+		s := h.Store
+		s.mu.Lock()
+		if row := s.adminSessions[session.TokenHash]; row != nil && row.AdministratorID == session.AdministratorID {
+			row.Active = false
+			delete(s.adminSessions, session.TokenHash)
+		}
+		s.mu.Unlock()
 		return c.NoContent(http.StatusNoContent)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v5"
 )
@@ -19,23 +20,76 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		userID := GetSession(c).UserID
-		author, err := getUser(ctx, h.DB, userID)
-		if err != nil {
-			return err
+		s := h.Store
+		s.mu.RLock()
+		u := s.activeUser(userID)
+		if u == nil {
+			s.mu.RUnlock()
+			return NewAPIError(http.StatusInternalServerError, "user_not_found")
 		}
-		var posts []struct {
-			Post
-			ImageData []byte `db:"image_data"`
+		author := u.User
+		var posts []Post
+		for _, p := range u.posts {
+			if p.DeletedAt == nil {
+				posts = append(posts, p.post())
+			}
 		}
-		if err := h.DB.SelectContext(ctx, &posts, `
-   SELECT `+postColumns+`, i.data AS image_data
-   FROM posts p
-   JOIN posting_windows w ON w.id = p.posting_window_id
-   JOIN image_objects i ON i.id = p.image_id
-   WHERE p.author_id = $1 AND p.deleted_at IS NULL
-   ORDER BY p.posted_at, p.id
-  `, userID); err != nil {
-			return err
+		s.mu.RUnlock()
+
+		images := make(map[string][]byte, len(posts))
+		var missingIDs []string
+		var missingAt []time.Time
+		for _, p := range posts {
+			if data, _, ok := imageCache.get(p.ImageID); ok {
+				images[p.ImageID] = data
+			} else {
+				missingIDs = append(missingIDs, p.ImageID)
+				missingAt = append(missingAt, p.PostedAt)
+			}
+		}
+		if len(missingIDs) > 0 {
+			rows, err := h.DB.QueryContext(ctx, `SELECT id, data FROM image_objects WHERE id = ANY($1) AND created_at = ANY($2)`, missingIDs, missingAt)
+			if err != nil {
+				return err
+			}
+			for rows.Next() {
+				var id string
+				var data []byte
+				if err := rows.Scan(&id, &data); err != nil {
+					rows.Close()
+					return err
+				}
+				images[id] = data
+			}
+			rows.Close()
+			if err := rows.Err(); err != nil {
+				return err
+			}
+			var stillMissing []string
+			for _, id := range missingIDs {
+				if _, ok := images[id]; !ok {
+					stillMissing = append(stillMissing, id)
+				}
+			}
+			if len(stillMissing) > 0 {
+				rows, err := h.DB.QueryContext(ctx, `SELECT id, data FROM image_objects WHERE id = ANY($1)`, stillMissing)
+				if err != nil {
+					return err
+				}
+				for rows.Next() {
+					var id string
+					var data []byte
+					if err := rows.Scan(&id, &data); err != nil {
+						rows.Close()
+						return err
+					}
+					images[id] = data
+				}
+				rows.Close()
+				if err := rows.Err(); err != nil {
+					return err
+				}
+			}
 		}
 
 		var body bytes.Buffer
@@ -43,15 +97,19 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 		defer writer.Close()
 		items := make([]exportPostResponse, 0, len(posts))
 		for _, post := range posts {
+			data, ok := images[post.ImageID]
+			if !ok {
+				continue
+			}
 			imagePath := fmt.Sprintf("images/%06d.jpg", len(items)+1)
 			image, err := writer.CreateHeader(&zip.FileHeader{Name: imagePath, Method: zip.Store})
 			if err != nil {
 				return err
 			}
-			if _, err := image.Write(post.ImageData); err != nil {
+			if _, err := image.Write(data); err != nil {
 				return err
 			}
-			items = append(items, exportPostResponse{createPostResponse: newPostResponse(post.Post, author), ImagePath: imagePath})
+			items = append(items, exportPostResponse{createPostResponse: newPostResponse(post, author), ImagePath: imagePath})
 		}
 		manifest, err := writer.Create("posts.json")
 		if err != nil {

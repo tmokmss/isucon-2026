@@ -16,17 +16,22 @@ func certifyUserHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := c.Bind(&input); err != nil {
 			return err
 		}
-		result, err := h.DB.ExecContext(c.Request().Context(), `UPDATE users SET account_type='certified_public', updated_at=clock_timestamp() WHERE id=$1 AND status='active' AND account_type='regular'`, input.UserID)
-		if err != nil {
-			return err
-		}
-		count, err := result.RowsAffected()
-		if err != nil {
-			return err
-		}
-		if count == 0 {
+		s := h.Store
+		unlock := lockUsers(input.UserID)
+		defer unlock()
+		s.mu.RLock()
+		u := s.activeUser(input.UserID)
+		ok := u != nil && u.AccountType == "regular"
+		s.mu.RUnlock()
+		if !ok {
 			return NewAPIError(http.StatusConflict, "certification_conflict")
 		}
+		if _, err := h.DB.ExecContext(c.Request().Context(), `UPDATE users SET account_type='certified_public', updated_at=$2 WHERE id=$1`, input.UserID, now()); err != nil {
+			return err
+		}
+		s.mu.Lock()
+		u.AccountType = "certified_public"
+		s.mu.Unlock()
 		return c.NoContent(http.StatusNoContent)
 	}
 }

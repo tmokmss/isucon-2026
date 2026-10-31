@@ -1,9 +1,7 @@
 package isureal
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,10 +10,25 @@ import (
 )
 
 type getNotificationsResponse struct {
-	ID              string    `json:"id" db:"id"`
-	PostingWindowID string    `json:"postingWindowId" db:"posting_window_id"`
-	Region          string    `json:"region" db:"region"`
-	CreatedAt       time.Time `json:"createdAt" db:"created_at"`
+	ID              string    `json:"id"`
+	PostingWindowID string    `json:"postingWindowId"`
+	Region          string    `json:"region"`
+	CreatedAt       time.Time `json:"createdAt"`
+}
+
+// pendingNotificationLocked は接続後に作られ、投稿期間がまだ終わっていない通知のうち最も古いものを返す
+func (s *Store) pendingNotificationLocked(userID string, connectedAt time.Time) *getNotificationsResponse {
+	var best *getNotificationsResponse
+	for _, w := range s.activeWindows {
+		n, ok := w.notified[userID]
+		if !ok || !n.CreatedAt.After(connectedAt) {
+			continue
+		}
+		if best == nil || n.CreatedAt.Before(best.CreatedAt) || (n.CreatedAt.Equal(best.CreatedAt) && n.ID < best.ID) {
+			best = &getNotificationsResponse{ID: n.ID, PostingWindowID: w.ID, Region: w.Region, CreatedAt: n.CreatedAt}
+		}
+	}
+	return best
 }
 
 func getNotificationsHandler(h *HandlerContext) echo.HandlerFunc {
@@ -23,10 +36,7 @@ func getNotificationsHandler(h *HandlerContext) echo.HandlerFunc {
 		ctx := c.Request().Context()
 		session := GetSession(c)
 		userID := session.UserID
-		var connectedAt time.Time
-		if err := h.DB.GetContext(ctx, &connectedAt, `SELECT clock_timestamp()`); err != nil {
-			return err
-		}
+		connectedAt := now()
 		response := c.Response()
 		response.Header().Set("Content-Type", "text/event-stream")
 		response.WriteHeader(http.StatusOK)
@@ -36,25 +46,24 @@ func getNotificationsHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
+		s := h.Store
 		for {
-			user, err := getUser(ctx, h.DB, userID)
-			if err != nil {
-				if !errors.Is(err, sql.ErrNoRows) && ctx.Err() == nil {
-					c.Logger().Error("failed to get notification recipient", "error", err)
-				}
+			s.mu.RLock()
+			u := s.activeUser(userID)
+			var region string
+			if u != nil {
+				region = u.Region
+			}
+			var notification *getNotificationsResponse
+			if u != nil && region == session.Region {
+				notification = s.pendingNotificationLocked(userID, connectedAt)
+			}
+			wait := s.notifyCh
+			s.mu.RUnlock()
+			if u == nil || region != session.Region {
 				return nil
 			}
-			if user.Region != session.Region {
-				return nil
-			}
-			var notification getNotificationsResponse
-			err = h.DB.GetContext(ctx, &notification, `
-    SELECT n.id, n.posting_window_id, w.region, n.created_at
-    FROM notifications n JOIN posting_windows w ON w.id = n.posting_window_id
-    WHERE n.user_id = $1 AND n.created_at > $2 AND w.ended_at IS NULL
-    ORDER BY n.created_at, n.id LIMIT 1
-   `, userID, connectedAt)
-			if err == nil {
+			if notification != nil {
 				data, err := json.Marshal(notification)
 				if err != nil {
 					c.Logger().Error("failed to encode notification", "error", err)
@@ -66,15 +75,10 @@ func getNotificationsHandler(h *HandlerContext) echo.HandlerFunc {
 				_ = controller.Flush()
 				return nil
 			}
-			if !errors.Is(err, sql.ErrNoRows) {
-				if ctx.Err() == nil {
-					c.Logger().Error("failed to get notification", "error", err)
-				}
-				return nil
-			}
 			select {
 			case <-ctx.Done():
 				return nil
+			case <-wait:
 			case <-ticker.C:
 			}
 		}
