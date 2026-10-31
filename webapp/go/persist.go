@@ -6,9 +6,10 @@ package isureal
 //   初期データから変わった行だけ。起動の後・initialize・停止のシグナル・管理者のセッションの変更で書き直す
 //   （一時ファイル → fsync → rename → ディレクトリの fsync）。世代の番号を持つ
 // - 変更の記録（opLogPath(世代)）: 複製へ流すのと同じ変更（replOp）を gob で追記する。書き込みのたびには触らず、
-//   変更があった秒だけ追記して fsync する。追記の前に sync して、new/ の画像を記録より先にディスクへ出す
+//   変更があった秒だけ追記して fsync する。new/ の画像は sync しない（毎秒 sync すると最終日の一斉の投稿で asia1 の IO 待ちが増えた）。
+//   スナップショットを書く前（停止のシグナルを含む）には sync する
 // - SIGTERM・SIGINT・SIGHUP・SIGQUIT では書きロックを取って書き込みを止め、スナップショットを書いてから終わる
-// 失いうる幅: 正常な停止・再起動は 0。プロセスだけが落ちたときとハードリブートは最大 1 秒
+// 失いうる幅: 正常な停止・再起動は 0。プロセスだけが落ちたときは最大 1 秒。ハードリブートでは表は最大 1 秒、new/ の画像はカーネルが書き出す前の分
 
 import (
 	"bytes"
@@ -234,7 +235,6 @@ func flushOpLog() error {
 	if len(data) == 0 {
 		return nil
 	}
-	syscall.Sync()
 	path := opLogPath(gen)
 	_, statErr := os.Stat(path)
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
@@ -430,12 +430,24 @@ func (s *Store) startPersist() {
 	}()
 }
 
+var stopStarted = make(chan struct{})
+
+// WaitStopSnapshot は main の終わりで呼ぶ。停止のシグナルを受けていれば、書き終えて os.Exit するまで待つ
+func WaitStopSnapshot() {
+	select {
+	case <-stopStarted:
+		select {}
+	case <-time.After(3 * time.Second):
+	}
+}
+
 // handleStopSignals は起動直後に呼ぶ。読み込みが終わる前のシグナルでは、手元のファイルを変えずに終わる
 func (s *Store) handleStopSignals(loaded <-chan struct{}) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGQUIT)
 	go func() {
 		sig := <-ch
+		close(stopStarted)
 		select {
 		case <-loaded:
 		default:
