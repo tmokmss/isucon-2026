@@ -125,4 +125,5 @@ run_id	started_at	sha	ref	score	status	note
 20261031-161619-3f85847	2026-10-31T16:16:19+09:00	3f85847efd18f8ef542ba67f704e2874f318fbaf	asia2-offload-to-asia1	194180	pass	asia2 signing offload to europe1/america1, asia2 GOMEMLIMIT 1500MiB
 20261031-161926-3f85847	2026-10-31T16:19:26+09:00	3f85847efd18f8ef542ba67f704e2874f318fbaf	asia2-offload-to-asia1	202575	pass	asia2 signing offload to europe1/america1 (2nd)
 20261031-162248-73b6aff	2026-10-31T16:22:48+09:00	73b6aff4508732bfdef612916addb4ee73c202be	origin/main	205275	pass	main 73b6aff baseline after #93
+20261031-162835-6155bdc	2026-10-31T16:28:35+09:00	6155bdc01658b73b48e2c47789e72cd98c3cece9	jpeg-peers-asia2-last	198345	pass	asia1 JPEG offload peers: europe1/america1 only (drop asia2)
 20261031-163017-8a13cd2	2026-10-31T16:30:17+09:00	8a13cd28132d375bb0a6ecb4e149953de04ebb3f	skip-abandoned-writes	206779	pass	skip commits when client gave up during JPEG check
