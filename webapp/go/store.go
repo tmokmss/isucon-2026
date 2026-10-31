@@ -9,6 +9,7 @@ import (
 	"hash/fnv"
 	"log"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -35,6 +36,27 @@ type UserRow struct {
 }
 
 func (u *UserRow) active() bool { return u.Status == "active" }
+
+// ユーザー検索の走査で UserRow を辿らないよう、検索に使う値を利用者名の順の連続した配列に持つ。
+// text は正規化した利用者名と表示名をつなげたもので、nameLen で切り分ける
+type userSearchEntry struct {
+	u       *UserRow
+	text    string
+	nameLen int
+	active  bool
+}
+
+func newUserSearchEntry(u *UserRow, text string) userSearchEntry {
+	return userSearchEntry{u: u, text: text, nameLen: len(u.normUsername), active: u.active()}
+}
+
+// 表示名・状態を変えた後に呼ぶ。書きロックを持って呼ぶ
+func (s *Store) refreshUserSearchLocked(u *UserRow) {
+	i := sort.Search(len(s.usersSorted), func(i int) bool { return !userLess(s.usersSorted[i].u, u) })
+	if i < len(s.usersSorted) && s.usersSorted[i].u == u {
+		s.usersSorted[i] = newUserSearchEntry(u, u.normUsername+u.normDisplayName)
+	}
+}
 
 func (u *UserRow) setNormalized() {
 	u.normUsername = normalizeSearchText(u.Username)
@@ -141,7 +163,7 @@ type Store struct {
 
 	users          map[string]*UserRow
 	usersByName    map[string]*UserRow
-	usersSorted    []*UserRow
+	usersSorted    []userSearchEntry
 	profileByImage map[string]*UserRow
 	sessions       map[string]*LoginSessionRow
 	admins         map[string]*AdminRow
@@ -621,7 +643,7 @@ func selectRows(ctx context.Context, db *sqlx.DB, query string, fn func(scanner)
 // rebuildIndexes は読み込んだ行から派生のインデックスを作り直す。書きロックを持って呼ぶ
 func (s *Store) rebuildIndexes() {
 	s.usersByName = make(map[string]*UserRow, len(s.users))
-	s.usersSorted = make([]*UserRow, 0, len(s.users))
+	sorted := make([]*UserRow, 0, len(s.users))
 	s.profileByImage = make(map[string]*UserRow, len(s.users))
 	for _, u := range s.users {
 		u.posts = nil
@@ -634,12 +656,29 @@ func (s *Store) rebuildIndexes() {
 		u.pendingIn = map[string]*FriendRequest{}
 		u.sessions = map[string]*LoginSessionRow{}
 		s.usersByName[u.Username] = u
-		s.usersSorted = append(s.usersSorted, u)
+		sorted = append(sorted, u)
 		if u.ProfileImageID != nil {
 			s.profileByImage[*u.ProfileImageID] = u
 		}
 	}
-	sort.Slice(s.usersSorted, func(i, j int) bool { return userLess(s.usersSorted[i], s.usersSorted[j]) })
+	sort.Slice(sorted, func(i, j int) bool { return userLess(sorted[i], sorted[j]) })
+	var textLen int
+	for _, u := range sorted {
+		textLen += len(u.normUsername) + len(u.normDisplayName)
+	}
+	var b strings.Builder
+	b.Grow(textLen)
+	for _, u := range sorted {
+		b.WriteString(u.normUsername)
+		b.WriteString(u.normDisplayName)
+	}
+	texts := b.String()
+	s.usersSorted = make([]userSearchEntry, len(sorted))
+	for i, u := range sorted {
+		n := len(u.normUsername) + len(u.normDisplayName)
+		s.usersSorted[i] = newUserSearchEntry(u, texts[:n])
+		texts = texts[n:]
+	}
 	for _, f := range s.friendships {
 		if lo, hi := s.users[f.LowID], s.users[f.HighID]; lo != nil && hi != nil {
 			lo.friends[f.HighID] = f
@@ -835,10 +874,10 @@ func (s *Store) addUserLocked(u *UserRow) {
 	u.sessions = map[string]*LoginSessionRow{}
 	s.users[u.ID] = u
 	s.usersByName[u.Username] = u
-	i := sort.Search(len(s.usersSorted), func(i int) bool { return userLess(u, s.usersSorted[i]) })
-	s.usersSorted = append(s.usersSorted, nil)
+	i := sort.Search(len(s.usersSorted), func(i int) bool { return userLess(u, s.usersSorted[i].u) })
+	s.usersSorted = append(s.usersSorted, userSearchEntry{})
 	copy(s.usersSorted[i+1:], s.usersSorted[i:])
-	s.usersSorted[i] = u
+	s.usersSorted[i] = newUserSearchEntry(u, u.normUsername+u.normDisplayName)
 }
 
 // pruneAfterBoundary は reset.sql と同じく、初期データの境界より後に作られた投稿・RealMoji・コメントを捨てる

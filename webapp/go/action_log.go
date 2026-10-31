@@ -74,8 +74,17 @@ func ActionLogMiddleware(minLevel string, output io.Writer) echo.MiddlewareFunc 
 			if logLevelRanks[level] < logLevelRanks[minLevel] {
 				return nil
 			}
-
 			route := c.RouteInfo()
+			action, ok := actionNames[route.Method+" "+route.Path]
+			abuse, _ := c.Get("abuse").(string)
+			// journald の負荷を減らすため、エラーと isureal-guard が BAN に数える 3 種類の失敗だけを書く
+			if level != "error" &&
+				!(action == "login" && status == http.StatusUnauthorized) &&
+				!(action == "put_profile_image" && status == http.StatusBadRequest && abuse == "invalid_image") &&
+				!(action == "get_image" && status == http.StatusForbidden && abuse == "invalid_signature") {
+				return nil
+			}
+
 			entry := map[string]any{
 				"level":   level,
 				"action":  nil,
@@ -83,7 +92,6 @@ func ActionLogMiddleware(minLevel string, output io.Writer) echo.MiddlewareFunc 
 				"ip":      c.RealIP(),
 				"user_id": nil,
 			}
-			action, ok := actionNames[route.Method+" "+route.Path]
 			if ok {
 				entry["action"] = action
 			}
@@ -96,7 +104,6 @@ func ActionLogMiddleware(minLevel string, output io.Writer) echo.MiddlewareFunc 
 					entry["username"] = username
 				}
 			}
-			abuse, _ := c.Get("abuse").(string)
 			if abuse != "" {
 				entry["abuse"] = abuse
 			}

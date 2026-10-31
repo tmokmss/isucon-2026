@@ -99,6 +99,7 @@ func (o *opUserDelete) apply(s *Store) {
 		return
 	}
 	u.Status = "deleted"
+	s.refreshUserSearchLocked(u)
 	for hash, sess := range u.sessions {
 		sess.Active = false
 		delete(s.sessions, hash)
@@ -140,6 +141,7 @@ func (o *opUpdateMe) apply(s *Store) {
 	if o.DisplayName.Set {
 		u.DisplayName = o.DisplayName.V
 		u.normDisplayName = normalizeSearchText(u.DisplayName)
+		s.refreshUserSearchLocked(u)
 	}
 	if o.Bio.Set {
 		u.Bio = o.Bio.V

@@ -3,7 +3,6 @@ package isureal
 import (
 	"bytes"
 	"image/jpeg"
-	"io"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -15,10 +14,12 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		if c.Request().Header.Get("Content-Type") != "image/jpeg" {
 			return NewAPIError(http.StatusUnsupportedMediaType, "unsupported_media_type")
 		}
-		data, err := io.ReadAll(c.Request().Body)
-		if err != nil {
+		var body bytes.Buffer
+		body.Grow(max(int(c.Request().ContentLength), 0) + bytes.MinRead)
+		if _, err := body.ReadFrom(c.Request().Body); err != nil {
 			return err
 		}
+		data := body.Bytes()
 		cfg, err := jpeg.DecodeConfig(bytes.NewReader(data))
 		if err == nil {
 			_, _, err = checkJPEG(data)
