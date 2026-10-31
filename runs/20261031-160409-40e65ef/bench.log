@@ -1,0 +1,63 @@
+{"id":"26713","status":"done","portalStatus":"finished","passed":true,"score":201497,"raw":201497,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T07:11:32.712Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:11:35.704Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:11:38.705Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:11:40.161Z level=INFO msg="user moved" user=ishi-5127 from=america to=europe
+time=2026-10-31T07:11:41.740Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T07:11:44.719Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T07:11:45.878Z level=INFO msg="user moved" user=ishi-5127 from=europe to=america
+time=2026-10-31T07:11:47.705Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T07:11:50.716Z level=INFO msg="asia 3 日目: 149 人"
+time=2026-10-31T07:11:52.940Z level=INFO msg="user moved" user=suni.5533 from=asia to=america
+time=2026-10-31T07:11:53.704Z level=INFO msg="europe 3 日目: 49 人"
+time=2026-10-31T07:11:53.727Z level=INFO msg="user moved" user=suni.5533 from=america to=europe
+time=2026-10-31T07:11:54.447Z level=INFO msg="user moved" user=ivymanoa_5495 from=america to=asia
+time=2026-10-31T07:11:56.704Z level=INFO msg="america 3 日目: 52 人"
+time=2026-10-31T07:11:57.401Z level=INFO msg="user moved" user=niel_5858 from=asia to=europe
+time=2026-10-31T07:11:57.616Z level=INFO msg="user moved" user=ivymanoa_5495 from=asia to=europe
+time=2026-10-31T07:11:58.312Z level=INFO msg="user moved" user=chita.6255 from=europe to=america
+time=2026-10-31T07:11:59.718Z level=INFO msg="asia 4 日目: 401 人"
+time=2026-10-31T07:11:59.947Z level=INFO msg="user moved" user=tsuyuho6463 from=europe to=america
+time=2026-10-31T07:12:02.706Z level=INFO msg="europe 4 日目: 144 人"
+time=2026-10-31T07:12:04.257Z level=INFO msg="user moved" user=suni.5533 from=europe to=asia
+time=2026-10-31T07:12:06.116Z level=INFO msg="america 4 日目: 151 人"
+time=2026-10-31T07:12:07.823Z level=INFO msg="user moved" user=rivinso_8725 from=europe to=america
+time=2026-10-31T07:12:07.979Z level=INFO msg="user moved" user=liasaeva_8418 from=asia to=america
+time=2026-10-31T07:12:08.085Z level=INFO msg="user moved" user=solfu_6708 from=asia to=europe
+time=2026-10-31T07:12:08.665Z level=INFO msg="user moved" user=chifumia9113 from=europe to=america
+time=2026-10-31T07:12:08.721Z level=INFO msg="asia 5 日目: 679 人"
+time=2026-10-31T07:12:09.227Z level=INFO msg="user moved" user=niel_5858 from=europe to=america
+time=2026-10-31T07:12:11.349Z level=INFO msg="user moved" user=chita.6255 from=america to=europe
+time=2026-10-31T07:12:12.421Z level=INFO msg="europe 5 日目: 405 人"
+time=2026-10-31T07:12:13.061Z level=INFO msg="user moved" user=tsuyuho6463 from=america to=asia
+time=2026-10-31T07:12:14.901Z level=INFO msg="america 5 日目: 403 人"
+time=2026-10-31T07:12:23.960Z level=INFO msg="asia 最終日（グランプリ）: 679 人"
+time=2026-10-31T07:12:24.124Z level=INFO msg="america 最終日（グランプリ）: 402 人"
+time=2026-10-31T07:12:24.152Z level=INFO msg="europe 最終日（グランプリ）: 404 人"
+time=2026-10-31T07:12:32.787Z level=INFO msg="グランプリ: アジア 373 人, ヨーロッパ 393 人, アメリカ 267 人"
+{
+  "pass": true,
+  "score": 201497,
+  "messages": [
+    "kakaeva-5108: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "isheki-5039: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "danchi.14262: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "fusozoe_14401: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "marmina_14023: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "tormema-15135: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "miwaki_13779: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "liaho_8793: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "shirata_12780: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sardines_en_cocotte_de_terre_2092: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "roro.5605: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "mekazoe_11470: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": readfrom tcp 10.27.36.139:54358-\u003e52.69.202.109:8080: write tcp 10.27.36.139:54358-\u003e52.69.202.109:8080: write: broken pipe",
+    "chiel.13168: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": EOF",
+    "tsuyuho6463: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": EOF",
+    "tenu6924: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": EOF"
+  ]
+}
+
+--- stderr ---
+
