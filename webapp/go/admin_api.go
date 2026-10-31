@@ -43,7 +43,7 @@ func adminLoginHandler(h *HandlerContext) echo.HandlerFunc {
 		row := &AdminSessionRow{ID: uuid.NewString(), AdministratorID: admin.ID, TokenHash: hashToken(token), Active: true, CreatedAt: now()}
 		s.mu.Lock()
 		s.adminSessions[row.TokenHash] = row
-		s.dirty.Store(true)
+		s.needFull.Store(true)
 		s.mu.Unlock()
 		return c.JSON(http.StatusOK, adminLoginResponse{Token: token, AdministratorID: admin.ID})
 	}
@@ -60,7 +60,7 @@ func adminLogoutHandler(h *HandlerContext) echo.HandlerFunc {
 		if row := s.adminSessions[session.TokenHash]; row != nil && row.AdministratorID == session.AdministratorID {
 			row.Active = false
 			delete(s.adminSessions, session.TokenHash)
-			s.dirty.Store(true)
+			s.needFull.Store(true)
 		}
 		s.mu.Unlock()
 		return c.NoContent(http.StatusNoContent)

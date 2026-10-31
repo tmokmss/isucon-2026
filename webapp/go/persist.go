@@ -1,12 +1,13 @@
 package isureal
 
-// asia1 のストアは PostgreSQL へ書かず、ファイル（snapshotPath）に残す。
-// - 初期データは PostgreSQL の表（init.sh で初期状態に戻す。アプリはもう表へ書かない）。起動時はそこから読み、スナップショットを重ねる
-// - スナップショット: 小さい表（利用者・関係・セッション・投稿期間と通知）は全部、大きい表（投稿・RealMoji・コメント）は
-//   初期データから変わった行だけ。変更があった秒だけ、読みロックの中で値を写し、ロックの外で gob に書く
-//   （一時ファイル → fsync → rename → ディレクトリの fsync）。書く前に sync して、new/ の画像をスナップショットより先にディスクへ出す
+// asia1 のストアは PostgreSQL へ書かず、ファイルに残す。
+// - 初期データは PostgreSQL の表（init.sh で初期状態に戻す。アプリはもう表へ書かない）。起動時はそこから読み、スナップショットと変更の記録を重ねる
+// - スナップショット（snapshotPath）: 小さい表（利用者・関係・セッション・投稿期間と通知）は全部、大きい表（投稿・RealMoji・コメント）は
+//   初期データから変わった行だけ。起動の後・initialize・停止のシグナル・管理者のセッションの変更で書き直す
+//   （一時ファイル → fsync → rename → ディレクトリの fsync）。世代の番号を持つ
+// - 変更の記録（opLogPath(世代)）: 複製へ流すのと同じ変更（replOp）を gob で追記する。書き込みのたびには触らず、
+//   変更があった秒だけ追記して fsync する。追記の前に sync して、new/ の画像を記録より先にディスクへ出す
 // - SIGTERM・SIGINT・SIGHUP・SIGQUIT では書きロックを取って書き込みを止め、スナップショットを書いてから終わる
-// - initialize は PostgreSQL と同じ初期化をメモリに行った後、その場でスナップショットを書き直す
 // 失いうる幅: 正常な停止・再起動は 0。プロセスだけが落ちたときとハードリブートは最大 1 秒
 
 import (
@@ -16,6 +17,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -37,6 +39,7 @@ type snapNotified struct {
 }
 
 type snapshotData struct {
+	Gen            int64
 	Users          []UserRow
 	Admins         []AdminRow
 	AdminSessions  []AdminSessionRow
@@ -56,17 +59,14 @@ var snapshotFileMu sync.Mutex
 
 func (s *Store) markPostLocked(p *PostRow) {
 	s.changedPosts[p.ID] = p
-	s.dirty.Store(true)
 }
 
 func (s *Store) markRealMojiLocked(r *RealMojiRow) {
 	s.changedRealMojis[r.ID] = r
-	s.dirty.Store(true)
 }
 
 func (s *Store) markCommentLocked(c *CommentRow) {
 	s.changedComments[c.ID] = c
-	s.dirty.Store(true)
 }
 
 // snapshotLocked は読みロック以上を持って呼ぶ。値を写すだけで、エンコードはしない
@@ -132,7 +132,58 @@ func (s *Store) snapshotLocked() *snapshotData {
 	return d
 }
 
-func writeSnapshot(d *snapshotData) error {
+func opLogPath(gen int64) string {
+	return filepath.Join(filepath.Dir(snapshotPath), "isureal-oplog-"+strconv.FormatInt(gen, 10)+".gob")
+}
+
+type opLogEntry struct{ Op replOp }
+
+// opLog は asia1 で、前のスナップショットより後の変更を貯める。appendLocked は s.mu の書きロックの中で呼ぶ
+type opLogger struct {
+	mu      sync.Mutex
+	enabled bool
+	gen     int64
+	buf     bytes.Buffer
+	enc     *gob.Encoder
+}
+
+var opLog = &opLogger{}
+
+func (l *opLogger) appendLocked(op replOp) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if !l.enabled {
+		return
+	}
+	if err := l.enc.Encode(&opLogEntry{Op: op}); err != nil {
+		log.Printf("oplog: encode: %v", err)
+	}
+}
+
+// fullSnapshotLocked は読みロック以上を持って呼ぶ。新しい世代に切り替え、それまでに貯めた変更を捨てる（スナップショットに含まれるため）
+func (s *Store) fullSnapshotLocked() *snapshotData {
+	d := s.snapshotLocked()
+	opLog.mu.Lock()
+	opLog.gen++
+	d.Gen = opLog.gen
+	opLog.buf.Reset()
+	opLog.enc = gob.NewEncoder(&opLog.buf)
+	opLog.enabled = true
+	opLog.mu.Unlock()
+	s.needFull.Store(false)
+	return d
+}
+
+func syncDir(dir string) error {
+	df, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer df.Close()
+	return df.Sync()
+}
+
+func writeFullSnapshot(d *snapshotData) error {
 	var buf bytes.Buffer
 	if err := gob.NewEncoder(&buf).Encode(d); err != nil {
 		return err
@@ -159,15 +210,54 @@ func writeSnapshot(d *snapshotData) error {
 		_ = os.Remove(f.Name())
 		return err
 	}
-	df, err := os.Open(dir)
+	if err := syncDir(dir); err != nil {
+		return err
+	}
+	old, _ := filepath.Glob(filepath.Join(dir, "isureal-oplog-*.gob"))
+	for _, p := range old {
+		if p != opLogPath(d.Gen) {
+			_ = os.Remove(p)
+		}
+	}
+	return nil
+}
+
+// flushOpLog は貯めた変更を今の世代の記録へ追記する
+func flushOpLog() error {
+	snapshotFileMu.Lock()
+	defer snapshotFileMu.Unlock()
+	opLog.mu.Lock()
+	gen := opLog.gen
+	data := bytes.Clone(opLog.buf.Bytes())
+	opLog.buf.Reset()
+	opLog.mu.Unlock()
+	if len(data) == 0 {
+		return nil
+	}
+	syscall.Sync()
+	path := opLogPath(gen)
+	_, statErr := os.Stat(path)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		return err
 	}
-	defer df.Close()
-	return df.Sync()
+	_, err = f.Write(data)
+	if err == nil {
+		err = f.Sync()
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil && os.IsNotExist(statErr) {
+		err = syncDir(filepath.Dir(path))
+	}
+	return err
 }
 
-func readSnapshot() (*snapshotData, error) {
+var pendingOps []replOp
+
+// readSnapshotAndLog は起動時に、スナップショットと、その世代の変更の記録を読む。記録は読み込みの後に replayPendingOps で当てる
+func readSnapshotAndLog() (*snapshotData, error) {
 	f, err := os.Open(snapshotPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -180,7 +270,36 @@ func readSnapshot() (*snapshotData, error) {
 	if err := gob.NewDecoder(f).Decode(d); err != nil {
 		return nil, err
 	}
+	opLog.gen = d.Gen
+	pendingOps = nil
+	lf, err := os.Open(opLogPath(d.Gen))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return d, nil
+		}
+		return nil, err
+	}
+	defer lf.Close()
+	dec := gob.NewDecoder(lf)
+	for {
+		var e opLogEntry
+		if err := dec.Decode(&e); err != nil {
+			// 末尾の途中で切れた 1 件（ハードリブート）は捨てる
+			break
+		}
+		pendingOps = append(pendingOps, e.Op)
+	}
 	return d, nil
+}
+
+func (s *Store) replayPendingOps() {
+	s.mu.Lock()
+	for _, op := range pendingOps {
+		op.apply(s)
+	}
+	s.mu.Unlock()
+	log.Printf("replayed %d logged changes", len(pendingOps))
+	pendingOps = nil
 }
 
 // applySnapshotLocked は PostgreSQL から読んだ初期データにスナップショットを重ねる。書きロックを持って呼び、後で rebuildIndexes を呼ぶ
@@ -282,19 +401,30 @@ func (s *Store) applySnapshotLocked(d *snapshotData) {
 	}
 }
 
-// startPersist は読み込みが終わった後に呼ぶ
+// startPersist は読み込みが終わった後、受け付けを始める前に呼ぶ
 func (s *Store) startPersist() {
+	s.replayPendingOps()
+	s.mu.RLock()
+	d := s.fullSnapshotLocked()
+	s.mu.RUnlock()
+	if err := writeFullSnapshot(d); err != nil {
+		log.Printf("snapshot: %v", err)
+		s.needFull.Store(true)
+	}
 	go func() {
 		for range time.Tick(time.Second) {
-			if !s.dirty.Swap(false) {
+			if s.needFull.Load() {
+				s.mu.RLock()
+				d := s.fullSnapshotLocked()
+				s.mu.RUnlock()
+				if err := writeFullSnapshot(d); err != nil {
+					log.Printf("snapshot: %v", err)
+					s.needFull.Store(true)
+				}
 				continue
 			}
-			s.mu.RLock()
-			d := s.snapshotLocked()
-			s.mu.RUnlock()
-			if err := writeSnapshot(d); err != nil {
-				s.dirty.Store(true)
-				log.Printf("snapshot: %v", err)
+			if err := flushOpLog(); err != nil {
+				log.Printf("oplog: %v", err)
 			}
 		}
 	}()
@@ -314,12 +444,12 @@ func (s *Store) handleStopSignals(loaded <-chan struct{}) {
 		}
 		start := time.Now()
 		s.mu.Lock()
-		d := s.snapshotLocked()
-		if err := writeSnapshot(d); err != nil {
+		d := s.fullSnapshotLocked()
+		if err := writeFullSnapshot(d); err != nil {
 			log.Printf("snapshot on %s: %v", sig, err)
 			os.Exit(1)
 		}
-		log.Printf("snapshot on %s: users=%d posts=%d realmojis=%d comments=%d in %s", sig, len(d.Users), len(d.Posts), len(d.RealMojis), len(d.Comments), time.Since(start))
+		log.Printf("snapshot on %s: gen=%d users=%d posts=%d realmojis=%d comments=%d in %s", sig, d.Gen, len(d.Users), len(d.Posts), len(d.RealMojis), len(d.Comments), time.Since(start))
 		os.Exit(0)
 	}()
 }

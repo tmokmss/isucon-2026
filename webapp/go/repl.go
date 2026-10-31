@@ -498,7 +498,7 @@ type replWait struct {
 // commitLocked は op をこのストアに当て、各台へ流す。s.mu の書きロックを持って呼び、ロックを外した後に返り値の wait を呼ぶ
 func (s *Store) commitLocked(op replOp) replWait {
 	op.apply(s)
-	s.dirty.Store(true)
+	opLog.appendLocked(op)
 	return repl.publish(op, 0)
 }
 
