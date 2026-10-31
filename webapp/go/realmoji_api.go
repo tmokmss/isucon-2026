@@ -93,6 +93,9 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		createdAt := now()
 		r := &RealMojiRow{RealMoji: RealMoji{ID: uuid.NewString(), PostID: p.ID, ReactorID: actor, ImageID: uuid.NewString(), ReactionType: input.ReactionType, CreatedAt: createdAt}}
+		if err := storeNewImage(r.ImageID, data); err != nil {
+			return err
+		}
 		tx, err := h.DB.BeginTxx(ctx, nil)
 		if err != nil {
 			return err
@@ -103,7 +106,7 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 				return err
 			}
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects(id,owner_user_id,data,media_type,created_at) VALUES($1,$2,$3,'image/jpeg',$4)`, r.ImageID, actor, data, createdAt); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects(id,owner_user_id,data,media_type,created_at) VALUES($1,$2,''::bytea,'image/jpeg',$3)`, r.ImageID, actor, createdAt); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO realmojis(id,post_id,reactor_id,image_id,reaction_type,created_at) VALUES($1,$2,$3,$4,$5,$6)`, r.ID, p.ID, actor, r.ImageID, r.ReactionType, createdAt); err != nil {

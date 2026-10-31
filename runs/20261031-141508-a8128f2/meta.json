@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-141508-a8128f2",
+  "startedAt": "2026-10-31T14:15:08+09:00",
+  "finishedAt": "2026-10-31T14:21:18+09:00",
+  "ref": "image-files",
+  "sha": "a8128f2ba3081f3ab26670e53751109ad694982d",
+  "score": 134342,
+  "status": "pass",
+  "note": "image-files (no fsync/sync) on main e42c64c",
+  "benchJobId": "16844",
+  "prevRunId": "20261031-140544-247167c",
+  "bestRunId": "20261031-140017-04990e1"
+}
