@@ -1,4 +1,5 @@
 // ISUReal のフロントエンド表示確認（閲覧とログインのみ。データは書き換えない）。
+// 初回だけ: このディレクトリで npm install && npx playwright install chromium
 // 使い方: node check.mjs [--region asia|europe|america | --all] [--out <dir>] [--base <url>] [--user <name> --key <secret>]
 // 画面ごとに HTTP/コンソールエラー・/api/ の 4xx/5xx・img の読み込み・フィードの投稿数を確かめる。
 // 初期ユーザーが未投稿だとフィードは空（「まずは、あなたの一枚」）が正で、その場合は WARN にして
