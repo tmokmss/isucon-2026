@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-155347-d7fb2c5",
+  "startedAt": "2026-10-31T15:53:47+09:00",
+  "finishedAt": "2026-10-31T15:58:12+09:00",
+  "ref": "mem-headroom",
+  "sha": "d7fb2c5a7b0e8a3e61b6337011e1fb7e3c7bf923",
+  "score": 187910,
+  "status": "pass",
+  "note": "mem headroom: GOMEMLIMIT 2200MiB, image cache 100MB (on main b3440cf)",
+  "benchJobId": "25333",
+  "prevRunId": "20261031-152604-1884ea4",
+  "bestRunId": "20261031-151339-5a230a4"
+}
