@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-161619-3f85847",
+  "startedAt": "2026-10-31T16:16:19+09:00",
+  "finishedAt": "2026-10-31T16:18:40+09:00",
+  "ref": "asia2-offload-to-asia1",
+  "sha": "3f85847efd18f8ef542ba67f704e2874f318fbaf",
+  "score": 194180,
+  "status": "pass",
+  "note": "asia2 signing offload to europe1/america1, asia2 GOMEMLIMIT 1500MiB",
+  "benchJobId": "27254",
+  "prevRunId": "20261031-160409-40e65ef",
+  "bestRunId": "20261031-160409-40e65ef"
+}

@@ -1,0 +1,60 @@
+{"id":"27254","status":"done","portalStatus":"finished","passed":true,"score":194180,"raw":194180,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T07:16:51.427Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:16:54.421Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:16:57.420Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:17:00.430Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T07:17:03.419Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T07:17:04.033Z level=INFO msg="user moved" user=mute5288 from=asia to=america
+time=2026-10-31T07:17:06.421Z level=INFO msg="america 2 日目: 21 人"
+time=2026-10-31T07:17:09.207Z level=INFO msg="user moved" user=benniku-5410 from=europe to=america
+time=2026-10-31T07:17:09.431Z level=INFO msg="asia 3 日目: 139 人"
+time=2026-10-31T07:17:10.169Z level=INFO msg="user moved" user=shiyara_5499 from=america to=europe
+time=2026-10-31T07:17:10.714Z level=INFO msg="user moved" user=tsufumu_5528 from=asia to=america
+time=2026-10-31T07:17:11.873Z level=INFO msg="user moved" user=sunoso5883 from=asia to=america
+time=2026-10-31T07:17:12.442Z level=INFO msg="europe 3 日目: 47 人"
+time=2026-10-31T07:17:12.523Z level=INFO msg="user moved" user=sunoso5883 from=america to=asia
+time=2026-10-31T07:17:12.810Z level=INFO msg="user moved" user=shiro-6105 from=asia to=america
+time=2026-10-31T07:17:13.340Z level=INFO msg="user moved" user=shiyara_5499 from=europe to=asia
+time=2026-10-31T07:17:13.482Z level=INFO msg="user moved" user=shiro-6105 from=america to=asia
+time=2026-10-31T07:17:15.095Z level=INFO msg="user moved" user=tsufumu_5528 from=america to=europe
+time=2026-10-31T07:17:15.420Z level=INFO msg="america 3 日目: 66 人"
+time=2026-10-31T07:17:17.609Z level=INFO msg="user moved" user=danhemu.6317 from=europe to=asia
+time=2026-10-31T07:17:18.376Z level=INFO msg="user moved" user=evator.6515 from=america to=asia
+time=2026-10-31T07:17:18.376Z level=INFO msg="user moved" user=benniku-5410 from=america to=asia
+time=2026-10-31T07:17:18.432Z level=INFO msg="asia 4 日目: 411 人"
+time=2026-10-31T07:17:19.521Z level=INFO msg="user moved" user=shiyara_5499 from=asia to=europe
+time=2026-10-31T07:17:20.662Z level=INFO msg="user moved" user=shiro-6105 from=asia to=america
+time=2026-10-31T07:17:21.117Z level=INFO msg="user moved" user=evator.6515 from=asia to=europe
+time=2026-10-31T07:17:21.480Z level=INFO msg="europe 4 日目: 135 人"
+time=2026-10-31T07:17:21.688Z level=INFO msg="user moved" user=sunoso5883 from=asia to=america
+time=2026-10-31T07:17:24.003Z level=INFO msg="user moved" user=neha_6941 from=asia to=europe
+time=2026-10-31T07:17:24.367Z level=INFO msg="user moved" user=mute5288 from=america to=asia
+time=2026-10-31T07:17:24.501Z level=INFO msg="america 4 日目: 193 人"
+time=2026-10-31T07:17:24.571Z level=INFO msg="user moved" user=hiben.7178 from=asia to=america
+time=2026-10-31T07:17:25.126Z level=INFO msg="user moved" user=rinoke.8269 from=asia to=europe
+time=2026-10-31T07:17:25.211Z level=INFO msg="user moved" user=benniku-5410 from=asia to=america
+time=2026-10-31T07:17:26.187Z level=INFO msg="user moved" user=danhemu.6317 from=asia to=america
+time=2026-10-31T07:17:26.309Z level=INFO msg="user moved" user=elku-7596 from=asia to=america
+time=2026-10-31T07:17:27.073Z level=INFO msg="user moved" user=himia_7419 from=asia to=america
+time=2026-10-31T07:17:27.436Z level=INFO msg="asia 5 日目: 1021 人"
+time=2026-10-31T07:17:31.143Z level=INFO msg="europe 5 日目: 374 人"
+time=2026-10-31T07:17:32.993Z level=INFO msg="user moved" user=rosare9109 from=america to=asia
+time=2026-10-31T07:17:33.460Z level=INFO msg="user moved" user=liatachi9709 from=america to=asia
+time=2026-10-31T07:17:33.626Z level=INFO msg="america 5 日目: 475 人"
+time=2026-10-31T07:17:46.473Z level=INFO msg="america 最終日（グランプリ）: 474 人"
+time=2026-10-31T07:17:47.770Z level=INFO msg="asia 最終日（グランプリ）: 1022 人"
+time=2026-10-31T07:17:47.792Z level=INFO msg="europe 最終日（グランプリ）: 373 人"
+time=2026-10-31T07:17:51.542Z level=INFO msg="グランプリ: アジア 145 人, ヨーロッパ 46 人, アメリカ 194 人"
+{
+  "pass": true,
+  "score": 194180,
+  "messages": [
+    "noaruel15444: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "tsufumu_5528: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": readfrom tcp 10.27.33.159:52380-\u003e52.69.202.109:8080: write tcp 10.27.33.159:52380-\u003e52.69.202.109:8080: use of closed network connection"
+  ]
+}
+
+--- stderr ---
+
