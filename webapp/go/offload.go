@@ -122,44 +122,15 @@ func offloadPost(url string, body []byte, timeout time.Duration) ([]byte, error)
 var errInvalidJPEG = errors.New("invalid JPEG")
 
 // 逃がし先の JPEG の検証の空き
-// 先頭の逃がし先（同じリージョンの asia2）が空いていればそちらを使い、埋まっているときだけ残りの空きを待つ
-// （リージョンをまたぐと往復と帯域で遅く、複製の送り出しと帯域を取り合う）
-var jpegPeerSlots, jpegFirstPeerSlots = func() (chan *offloadPeer, chan *offloadPeer) {
-	rest := make(chan *offloadPeer, len(offloadJPEGPeers)*32)
-	first := make(chan *offloadPeer, 32)
+var jpegPeerSlots = func() chan *offloadPeer {
+	ch := make(chan *offloadPeer, len(offloadJPEGPeers)*32)
 	for range 32 {
-		for i, peer := range offloadJPEGPeers {
-			if i == 0 {
-				first <- peer
-			} else {
-				rest <- peer
-			}
+		for _, peer := range offloadJPEGPeers {
+			ch <- peer
 		}
 	}
-	return rest, first
+	return ch
 }()
-
-func acquireJPEGPeer() *offloadPeer {
-	select {
-	case peer := <-jpegFirstPeerSlots:
-		return peer
-	default:
-	}
-	select {
-	case peer := <-jpegFirstPeerSlots:
-		return peer
-	case peer := <-jpegPeerSlots:
-		return peer
-	}
-}
-
-func releaseJPEGPeer(peer *offloadPeer) {
-	if len(offloadJPEGPeers) > 0 && peer == offloadJPEGPeers[0] {
-		jpegFirstPeerSlots <- peer
-	} else {
-		jpegPeerSlots <- peer
-	}
-}
 
 // 手元の JPEG の検証の空き。逃がし先がすべて外れているときだけ使う
 var jpegLocalSlots = make(chan struct{}, runtime.NumCPU())
@@ -177,7 +148,7 @@ func jpegPeerAvailable() bool {
 // jpegcheck.Check と同じ判定を返す。逃がし先が使えないときは手元で検証する
 func checkJPEG(data []byte) (width, height int, err error) {
 	if jpegPeerAvailable() {
-		peer := acquireJPEGPeer()
+		peer := <-jpegPeerSlots
 		ok := peer.downUntil.Load() <= time.Now().UnixNano()
 		var res []byte
 		if ok {
@@ -187,7 +158,7 @@ func checkJPEG(data []byte) (width, height int, err error) {
 				peer.downUntil.Store(time.Now().Add(offloadPeerBackoff).UnixNano())
 			}
 		}
-		releaseJPEGPeer(peer)
+		jpegPeerSlots <- peer
 		if ok {
 			if res[0] != 1 {
 				return 0, 0, errInvalidJPEG
