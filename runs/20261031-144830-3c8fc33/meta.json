@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-144830-3c8fc33",
+  "startedAt": "2026-10-31T14:48:30+09:00",
+  "finishedAt": "2026-10-31T14:51:53+09:00",
+  "ref": "3c8fc33",
+  "sha": "3c8fc3341aa7e5ea7c324d286d062f9517d08b92",
+  "score": 136044,
+  "status": "pass",
+  "note": "DB外し5: 追記でfsyncしない",
+  "benchJobId": "19400",
+  "prevRunId": "20261031-144534-f7ca385",
+  "bestRunId": "20261031-141027-bd0fe45"
+}
