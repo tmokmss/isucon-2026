@@ -1,7 +1,8 @@
 package isureal
 
 // europe1・america1（ISUREAL_PASSIVE=1）で GET /api/images/:imageId だけを返す。
-// - 画像の本体: 初期データは setup/image-export.sh で書き出した images/init/、新しい画像は PostgreSQL から取って images/new/ に置く
+// - 画像の本体: images/init/（初期データ。setup/image-export.sh で書き出した分と、PostgreSQL から取った初期データの画像）、
+//   images/new/（PostgreSQL から取った新しい画像。initialize で消す）の順に探し、無ければ PostgreSQL から取って置く
 // - 取得してよいかの判定: PostgreSQL に 1 回問い合わせ、結果を依存キー（img:<画像 ID>、user:<利用者 ID>）付きで手元に持つ
 // - 無効化: asia1 が画像を取れなくしたときに、:8081 のストリームで img:/user: のキーを流す。受けた台は該当の判定を捨てる
 // - ストリームのハートビートが imageEventLease を超えて途絶えたら、手元の判定は使わず毎回 PostgreSQL で判定する。
@@ -320,16 +321,29 @@ func readLocalImage(id string) ([]byte, bool) {
 	return nil, false
 }
 
-func writeLocalImage(id string, data []byte) {
+// 初期データの画像は initialize で消えない init/ に、新しい画像は new/ に置く。一時ファイルに書いてから rename する
+func writeLocalImage(id string, data []byte, initial bool) {
 	sub := filepath.Join(imageRootDir, "new", id[:2])
+	if initial {
+		sub = filepath.Join(imageRootDir, "init", id[:2])
+	}
 	if err := os.MkdirAll(sub, 0o755); err != nil {
 		return
 	}
-	tmp := filepath.Join(sub, "."+id+".tmp")
-	if os.WriteFile(tmp, data, 0o644) != nil {
+	f, err := os.CreateTemp(sub, "."+id+".tmp*")
+	if err != nil {
 		return
 	}
-	_ = os.Rename(tmp, filepath.Join(sub, id))
+	_, err = f.Write(data)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Rename(f.Name(), filepath.Join(sub, id))
+	}
+	if err != nil {
+		_ = os.Remove(f.Name())
+	}
 }
 
 type remoteImageCheck struct {
@@ -339,6 +353,7 @@ type remoteImageCheck struct {
 	IsProfile     bool           `db:"is_profile"`
 	HasPost       bool           `db:"has_post"`
 	RealMoji      sql.NullString `db:"realmoji"`
+	Initial       bool           `db:"initial"`
 	Data          []byte         `db:"data"`
 }
 
@@ -351,6 +366,7 @@ SELECT u.secret_key_hash, u.id AS owner_id, i.media_type,
      JOIN posts p ON p.id = r.post_id AND p.deleted_at IS NULL
      JOIN users author ON author.id = p.author_id AND author.status = 'active'
      WHERE r.image_id = i.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL LIMIT 1) AS realmoji,
+  i.created_at <= (SELECT created_at FROM initial_data_boundary) AS initial,
   CASE WHEN $2 THEN i.data END AS data
 FROM image_objects i JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'
 WHERE i.id = $1`
@@ -417,7 +433,7 @@ func (s *imageServer) handler(c *echo.Context) error {
 		}
 		if valid && !haveData && row.Data != nil {
 			data, haveData = row.Data, true
-			writeLocalImage(id, data)
+			writeLocalImage(id, data, row.Initial)
 		}
 		if valid && trusted {
 			s.state.insert(id, entry, startSeq)
@@ -431,13 +447,18 @@ func (s *imageServer) handler(c *echo.Context) error {
 		return NewAPIError(http.StatusForbidden, "image_forbidden")
 	}
 	if !haveData {
-		if err := db.GetContext(ctx, &data, `SELECT data FROM image_objects WHERE id = $1`, id); err != nil {
+		var object struct {
+			Data    []byte `db:"data"`
+			Initial bool   `db:"initial"`
+		}
+		if err := db.GetContext(ctx, &object, `SELECT data, created_at <= (SELECT created_at FROM initial_data_boundary) AS initial FROM image_objects WHERE id = $1`, id); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return NewAPIError(http.StatusForbidden, "image_forbidden")
 			}
 			return err
 		}
-		writeLocalImage(id, data)
+		data = object.Data
+		writeLocalImage(id, data, object.Initial)
 	}
 	if exp <= time.Now().Unix() {
 		return NewAPIError(http.StatusForbidden, "image_forbidden")
