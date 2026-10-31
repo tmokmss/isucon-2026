@@ -521,9 +521,6 @@ func (s *imageServer) handler(c *echo.Context) error {
 	if !valid {
 		return NewAPIError(http.StatusForbidden, "image_forbidden")
 	}
-	if imageNotModified(c, id) {
-		return c.NoContent(http.StatusNotModified)
-	}
 	if !haveData {
 		fetched, ok, err := fetchHeldImage(ctx, id, imageHolderOf(id))
 		if err != nil {
