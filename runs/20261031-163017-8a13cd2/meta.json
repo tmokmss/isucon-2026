@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-163017-8a13cd2",
+  "startedAt": "2026-10-31T16:30:17+09:00",
+  "finishedAt": "2026-10-31T16:32:59+09:00",
+  "ref": "skip-abandoned-writes",
+  "sha": "8a13cd28132d375bb0a6ecb4e149953de04ebb3f",
+  "score": 206779,
+  "status": "pass",
+  "note": "skip commits when client gave up during JPEG check",
+  "benchJobId": "28648",
+  "prevRunId": "20261031-162248-73b6aff",
+  "bestRunId": "20261031-163017-8a13cd2"
+}

@@ -100,6 +100,10 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 		for i, old := range replaced {
 			replacedIDs[i] = old.ID
 		}
+		// 検証を待つ間にクライアントが切ったら当てない。応答を受け取れなかった置き換えが後から当たると、前の RealMoji の画像が 403 になる
+		if err := c.Request().Context().Err(); err != nil {
+			return err
+		}
 		s.mu.Lock()
 		rw := s.commitLocked(&opRealMojiAdd{R: r, Replaced: replacedIDs})
 		s.mu.Unlock()
