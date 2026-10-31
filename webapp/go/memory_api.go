@@ -112,6 +112,24 @@ func listMemories(s *Store, userID string, start, end time.Time, beforeAt *time.
 		}
 	}
 	s.mu.RUnlock()
+	var targets []signTarget
+	addProfile := func(u User) {
+		if u.ProfileImageID != nil {
+			targets = append(targets, signTarget{u.ImageKey, *u.ProfileImageID})
+		}
+	}
+	for _, e := range entries {
+		targets = append(targets, signTarget{e.author.ImageKey, e.post.ImageID})
+		addProfile(e.author)
+		for _, r := range e.realmojis {
+			targets = append(targets, signTarget{r.reactor.ImageKey, r.reaction.ImageID})
+			addProfile(r.reactor)
+		}
+		for _, cm := range e.comments {
+			addProfile(cm.author)
+		}
+	}
+	prefetchImageSignatures(targets)
 	items := make([]memoryPostResponse, 0, len(entries))
 	for _, e := range entries {
 		item := memoryPostResponse{

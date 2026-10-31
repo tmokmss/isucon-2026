@@ -92,6 +92,15 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 			}
 		}
 
+		targets := make([]signTarget, 0, len(posts)+1)
+		for _, post := range posts {
+			targets = append(targets, signTarget{author.ImageKey, post.ImageID})
+		}
+		if author.ProfileImageID != nil {
+			targets = append(targets, signTarget{author.ImageKey, *author.ProfileImageID})
+		}
+		prefetchImageSignatures(targets)
+
 		var body bytes.Buffer
 		writer := zip.NewWriter(&body)
 		defer writer.Close()

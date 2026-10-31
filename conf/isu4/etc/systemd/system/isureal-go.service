@@ -1,0 +1,17 @@
+[Unit]
+Description=isureal-go
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=isucon
+Group=isucon
+WorkingDirectory=/home/isucon/webapp/go
+Environment=ISUREAL_OFFLOAD_WORKER=1 GOMEMLIMIT=300MiB
+Nice=10
+ExecStart=/home/isucon/webapp/go/isureal
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
