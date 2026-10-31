@@ -36,6 +36,7 @@ func deleteAccountHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		s.mu.Lock()
 		u.Status = "deleted"
+		s.refreshUserSearchLocked(u)
 		for hash, sess := range u.sessions {
 			sess.Active = false
 			delete(s.sessions, hash)
