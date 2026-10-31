@@ -701,7 +701,7 @@ func (r *replica) fresh() bool {
 func (r *replica) run() {
 	loaded := false
 	for {
-		err := r.session(&loaded)
+		err := r.safeSession(&loaded)
 		r.live.Store(false)
 		loaded = false
 		log.Printf("repl: stream from %s lost: %v", r.upstream, err)
@@ -780,32 +780,7 @@ func (r *replica) session(loaded *bool) error {
 		for len(batch) < 256 && len(in) > 0 {
 			batch = append(batch, <-in)
 		}
-		r.s.mu.Lock()
-		var err error
-		for _, b := range batch {
-			if b.err != nil {
-				err = b.err
-				break
-			}
-			switch op := b.m.Op.(type) {
-			case *opReset:
-				start := time.Now()
-				err = r.resetLocked()
-				log.Printf("repl: reset in %s", time.Since(start))
-			case *opLive:
-				r.live.Store(true)
-				log.Printf("repl: live at seq %d", b.m.Seq)
-			case *opHeartbeat:
-			default:
-				op.apply(r.s)
-			}
-			if err != nil {
-				break
-			}
-			lastSeq = b.m.Seq
-		}
-		r.s.mu.Unlock()
-		if err != nil {
+		if err := r.applyBatch(batch, &lastSeq); err != nil {
 			return err
 		}
 		if len(in) == 0 {
@@ -820,6 +795,42 @@ func (r *replica) session(loaded *bool) error {
 			}
 		}
 	}
+}
+
+// safeSession は当てる途中で落ちても台ごと止めず、読み直してつなぎ直す（転送中の書き込みを 502 にしないため）
+func (r *replica) safeSession(loaded *bool) (err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("panic: %v", p)
+		}
+	}()
+	return r.session(loaded)
+}
+
+func (r *replica) applyBatch(batch []replIn, lastSeq *uint64) error {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	for _, b := range batch {
+		if b.err != nil {
+			return b.err
+		}
+		switch op := b.m.Op.(type) {
+		case *opReset:
+			start := time.Now()
+			if err := r.resetLocked(); err != nil {
+				return err
+			}
+			log.Printf("repl: reset in %s", time.Since(start))
+		case *opLive:
+			r.live.Store(true)
+			log.Printf("repl: live at seq %d", b.m.Seq)
+		case *opHeartbeat:
+		default:
+			op.apply(r.s)
+		}
+		*lastSeq = b.m.Seq
+	}
+	return nil
 }
 
 func (r *replica) resetLocked() error {
