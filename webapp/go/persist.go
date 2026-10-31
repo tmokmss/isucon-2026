@@ -6,10 +6,11 @@ package isureal
 //   初期データから変わった行だけ。起動の後・initialize・停止のシグナル・管理者のセッションの変更で書き直す
 //   （一時ファイル → fsync → rename → ディレクトリの fsync）。世代の番号を持つ
 // - 変更の記録（opLogPath(世代)）: 複製へ流すのと同じ変更（replOp）を gob で追記する。書き込みのたびには触らず、
-//   変更があった秒だけ追記して fsync する。new/ の画像は sync しない（毎秒 sync すると最終日の一斉の投稿で asia1 の IO 待ちが増えた）。
-//   スナップショットを書く前（停止のシグナルを含む）には sync する
+//   変更があった秒だけ追記する。fsync はしない（ext4 では 1 ファイルの fsync が new/ の画像の書き出しも待たせ、
+//   最終日の一斉の投稿で asia1 の IO 待ちが最大 85% になった）。スナップショットを書く前（停止のシグナルを含む）には sync する
 // - SIGTERM・SIGINT・SIGHUP・SIGQUIT では書きロックを取って書き込みを止め、スナップショットを書いてから終わる
-// 失いうる幅: 正常な停止・再起動は 0。プロセスだけが落ちたときは最大 1 秒。ハードリブートでは表は最大 1 秒、new/ の画像はカーネルが書き出す前の分
+// 失いうる幅: 正常な停止・再起動（systemctl reboot・EC2 の RebootInstances）は 0。プロセスだけが落ちたときは最大 1 秒。
+// ハードリブートでは、カーネルがまだディスクへ書き出していない分（表の変更の記録と new/ の画像）
 
 import (
 	"bytes"
@@ -235,21 +236,13 @@ func flushOpLog() error {
 	if len(data) == 0 {
 		return nil
 	}
-	path := opLogPath(gen)
-	_, statErr := os.Stat(path)
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
+	f, err := os.OpenFile(opLogPath(gen), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		return err
 	}
 	_, err = f.Write(data)
-	if err == nil {
-		err = f.Sync()
-	}
 	if cerr := f.Close(); err == nil {
 		err = cerr
-	}
-	if err == nil && os.IsNotExist(statErr) {
-		err = syncDir(filepath.Dir(path))
 	}
 	return err
 }
