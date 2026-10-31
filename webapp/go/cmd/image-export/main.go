@@ -1,6 +1,6 @@
 // 初期データの画像を、手元の PostgreSQL（AMI から来た止まったデータを一時的に起動したもの）から
 // /home/isucon/images/init/<id の先頭 2 文字>/<id> に書き出す。既にあるファイルは書き直さないので、途中で止めても再実行できる。
-// 手順は setup/image-export.sh。
+// 他のベンチとディスクを取り合うので、ベンチのロック（isu1 の /tmp/isucon-bench.lock）を取ってから流す。手順は setup/image-export.sh。
 package main
 
 import (
@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -26,10 +25,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// 他のベンチとディスクを取り合わないよう、読み出しを毎秒 20MB までに抑える
-	const bytesPerSecond = 20 << 20
-	start := time.Now()
-	total := 0
 	seen, written := 0, 0
 	for rows.Next() {
 		var id string
@@ -38,10 +33,6 @@ func main() {
 			log.Fatal(err)
 		}
 		seen++
-		total += len(data)
-		if ahead := time.Duration(float64(total)/bytesPerSecond*float64(time.Second)) - time.Since(start); ahead > 0 {
-			time.Sleep(ahead)
-		}
 		if seen%100000 == 0 {
 			log.Printf("%d seen, %d written", seen, written)
 		}
