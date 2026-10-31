@@ -1,0 +1,511 @@
+package isureal
+
+// europe1・america1（ISUREAL_PASSIVE=1）で GET /api/images/:imageId だけを返す。
+// - 画像の本体: 初期データは setup/image-export.sh で書き出した images/init/、新しい画像は PostgreSQL から取って images/new/ に置く
+// - 取得してよいかの判定: PostgreSQL に 1 回問い合わせ、結果を依存キー（img:<画像 ID>、user:<利用者 ID>）付きで手元に持つ
+// - 無効化: asia1 が画像を取れなくしたときに、:8081 のストリームで img:/user: のキーを流す。受けた台は該当の判定を捨てる
+// - ストリームのハートビートが imageEventLease を超えて途絶えたら、手元の判定は使わず毎回 PostgreSQL で判定する。
+//   切れたときは判定を全部捨てる（届かなかった無効化があっても、手元の判定が残らない）
+// - initialize（asia1）は "*" を流し、受けた台は判定を全部捨てて images/new/ を消す
+
+import (
+	"bufio"
+	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
+)
+
+const (
+	imageEventAddr      = ":8081"
+	imageEventHeartbeat = 300 * time.Millisecond
+	imageEventLease     = 2 * time.Second
+	imageRootDir        = "/home/isucon/images"
+)
+
+var localImageIDPattern = regexp.MustCompile(`^[0-9A-Za-z_-]{1,64}$`)
+
+// ---- asia1: 無効化を流す側 ----
+
+type imageEventHub struct {
+	mu   sync.Mutex
+	subs map[chan string]struct{}
+}
+
+var imageEvents = &imageEventHub{subs: map[chan string]struct{}{}}
+
+func (hub *imageEventHub) publish(lines ...string) {
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+	for ch := range hub.subs {
+		if !sendAll(ch, lines) {
+			// 詰まった購読者は切る。受けた側は切断を検知して判定を全部捨てる
+			close(ch)
+			delete(hub.subs, ch)
+		}
+	}
+}
+
+func sendAll(ch chan string, lines []string) bool {
+	for _, line := range lines {
+		select {
+		case ch <- line:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func (hub *imageEventHub) serveHTTP(w http.ResponseWriter, r *http.Request) {
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if ip := net.ParseIP(host); ip == nil || !ip.IsPrivate() {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		return
+	}
+	ch := make(chan string, 4096)
+	hub.mu.Lock()
+	hub.subs[ch] = struct{}{}
+	hub.mu.Unlock()
+	defer func() {
+		hub.mu.Lock()
+		if _, ok := hub.subs[ch]; ok {
+			delete(hub.subs, ch)
+			close(ch)
+		}
+		hub.mu.Unlock()
+	}()
+	ticker := time.NewTicker(imageEventHeartbeat)
+	defer ticker.Stop()
+	bw := bufio.NewWriter(w)
+	for {
+		select {
+		case line, ok := <-ch:
+			if !ok {
+				return
+			}
+			bw.WriteString(line + "\n")
+			for drained := false; !drained; {
+				select {
+				case more, ok := <-ch:
+					if !ok {
+						return
+					}
+					bw.WriteString(more + "\n")
+				default:
+					drained = true
+				}
+			}
+		case <-ticker.C:
+			bw.WriteString(".\n")
+		case <-r.Context().Done():
+			return
+		}
+		if bw.Flush() != nil {
+			return
+		}
+		flusher.Flush()
+	}
+}
+
+// StartImageEventPublisher は asia1 で呼ぶ。画像が取れなくなる箇所の呼び出し口を、ストリームへ流す処理につなぐ
+func StartImageEventPublisher() {
+	imagesInvalidated = func(imageIDs ...string) {
+		lines := make([]string, len(imageIDs))
+		for i, id := range imageIDs {
+			lines[i] = "img:" + id
+		}
+		imageEvents.publish(lines...)
+	}
+	userImagesInvalidated = func(userID string) { imageEvents.publish("user:" + userID) }
+	mux := http.NewServeMux()
+	mux.HandleFunc("/_internal/image-events", imageEvents.serveHTTP)
+	go func() {
+		for {
+			err := http.ListenAndServe(imageEventAddr, mux)
+			log.Printf("image event server stopped: %v", err)
+			time.Sleep(time.Second)
+		}
+	}()
+}
+
+// imagesReset は initialize の後に呼ぶ
+func imagesReset() { imageEvents.publish("*") }
+
+// ---- europe1・america1: 受けて画像を返す側 ----
+
+type localImageEntry struct {
+	key       []byte
+	mediaType string
+	deps      []string
+}
+
+type localImageState struct {
+	mu       sync.Mutex
+	entries  map[string]*localImageEntry
+	byDep    map[string][]string
+	seq      uint64
+	flushSeq uint64
+	recent   []seqDep // 直近の無効化。問い合わせ中に来た無効化を、結果を入れるときに当てる
+	lastSeen map[string]time.Time
+}
+
+type seqDep struct {
+	seq uint64
+	at  time.Time
+	dep string
+}
+
+func newLocalImageState(peers []string) *localImageState {
+	st := &localImageState{entries: map[string]*localImageEntry{}, byDep: map[string][]string{}, lastSeen: map[string]time.Time{}}
+	for _, p := range peers {
+		st.lastSeen[p] = time.Time{}
+	}
+	return st
+}
+
+func (st *localImageState) trustedLocked() bool {
+	if len(st.lastSeen) == 0 {
+		return false
+	}
+	now := time.Now()
+	for _, t := range st.lastSeen {
+		if now.Sub(t) > imageEventLease {
+			return false
+		}
+	}
+	return true
+}
+
+func (st *localImageState) flushLocked() {
+	st.seq++
+	st.flushSeq = st.seq
+	st.entries = map[string]*localImageEntry{}
+	st.byDep = map[string][]string{}
+	st.recent = nil
+}
+
+func (st *localImageState) invalidateLocked(dep string) {
+	st.seq++
+	now := time.Now()
+	st.recent = append(st.recent, seqDep{seq: st.seq, at: now, dep: dep})
+	if len(st.recent) > 0 && now.Sub(st.recent[0].at) > time.Minute {
+		i := 0
+		for i < len(st.recent) && now.Sub(st.recent[i].at) > 10*time.Second {
+			i++
+		}
+		st.recent = append([]seqDep(nil), st.recent[i:]...)
+	}
+	for _, id := range st.byDep[dep] {
+		delete(st.entries, id)
+	}
+	delete(st.byDep, dep)
+}
+
+// lookup は手元の判定を返す。trusted でなければ使わない
+func (st *localImageState) lookup(id string) (entry *localImageEntry, seq uint64, trusted bool) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	trusted = st.trustedLocked()
+	if trusted {
+		entry = st.entries[id]
+	}
+	return entry, st.seq, trusted
+}
+
+func (st *localImageState) insert(id string, entry *localImageEntry, startSeq uint64) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	if !st.trustedLocked() || st.flushSeq > startSeq {
+		return
+	}
+	for i := len(st.recent) - 1; i >= 0 && st.recent[i].seq > startSeq; i-- {
+		for _, d := range entry.deps {
+			if d == st.recent[i].dep {
+				return
+			}
+		}
+	}
+	st.entries[id] = entry
+	for _, d := range entry.deps {
+		st.byDep[d] = append(st.byDep[d], id)
+	}
+}
+
+func (st *localImageState) subscribe(peer string) {
+	client := &http.Client{}
+	for {
+		err := st.readStream(client, peer)
+		st.mu.Lock()
+		st.lastSeen[peer] = time.Time{}
+		st.flushLocked()
+		st.mu.Unlock()
+		log.Printf("image event stream from %s lost: %v", peer, err)
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func (st *localImageState) readStream(client *http.Client, peer string) error {
+	resp, err := client.Get("http://" + peer + "/_internal/image-events")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("status %d", resp.StatusCode)
+	}
+	// 届かなかった間の無効化は分からないので、つながり直したら全部捨ててから使い始める
+	st.mu.Lock()
+	st.flushLocked()
+	st.mu.Unlock()
+	sc := bufio.NewScanner(resp.Body)
+	for sc.Scan() {
+		line := sc.Text()
+		st.mu.Lock()
+		switch {
+		case line == "*":
+			st.flushLocked()
+			go resetNewImages()
+		case line != ".":
+			st.invalidateLocked(line)
+		}
+		st.lastSeen[peer] = time.Now()
+		st.mu.Unlock()
+	}
+	if sc.Err() != nil {
+		return sc.Err()
+	}
+	return errors.New("closed")
+}
+
+func resetNewImages() {
+	dir := filepath.Join(imageRootDir, "new")
+	old := dir + ".old-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if err := os.Rename(dir, old); err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Printf("failed to reset new images: %v", err)
+		return
+	}
+	_ = os.RemoveAll(old)
+}
+
+func readLocalImage(id string) ([]byte, bool) {
+	for _, sub := range []string{"init", "new"} {
+		if data, err := os.ReadFile(filepath.Join(imageRootDir, sub, id[:2], id)); err == nil {
+			return data, true
+		}
+	}
+	return nil, false
+}
+
+func writeLocalImage(id string, data []byte) {
+	sub := filepath.Join(imageRootDir, "new", id[:2])
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		return
+	}
+	tmp := filepath.Join(sub, "."+id+".tmp")
+	if os.WriteFile(tmp, data, 0o644) != nil {
+		return
+	}
+	_ = os.Rename(tmp, filepath.Join(sub, id))
+}
+
+type remoteImageCheck struct {
+	SecretKeyHash string         `db:"secret_key_hash"`
+	OwnerID       string         `db:"owner_id"`
+	MediaType     string         `db:"media_type"`
+	IsProfile     bool           `db:"is_profile"`
+	HasPost       bool           `db:"has_post"`
+	RealMoji      sql.NullString `db:"realmoji"`
+	Data          []byte         `db:"data"`
+}
+
+// 判定の SQL は image_api.go の元の判定と同じ条件。RealMoji のときは、投稿者と投稿の画像 ID も返す（その無効化で判定を捨てるため）
+const remoteImageCheckQuery = `
+SELECT u.secret_key_hash, u.id AS owner_id, i.media_type,
+  COALESCE(u.profile_image_id = i.id, false) AS is_profile,
+  EXISTS (SELECT 1 FROM posts p WHERE p.image_id = i.id AND p.author_id = u.id AND p.deleted_at IS NULL) AS has_post,
+  (SELECT p.author_id || ' ' || p.image_id FROM realmojis r
+     JOIN posts p ON p.id = r.post_id AND p.deleted_at IS NULL
+     JOIN users author ON author.id = p.author_id AND author.status = 'active'
+     WHERE r.image_id = i.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL LIMIT 1) AS realmoji,
+  CASE WHEN $2 THEN i.data END AS data
+FROM image_objects i JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'
+WHERE i.id = $1`
+
+type imageServer struct {
+	db    atomic.Pointer[sqlx.DB]
+	state *localImageState
+}
+
+func (s *imageServer) handler(c *echo.Context) error {
+	c.Response().Header().Set("Cache-Control", "no-store")
+	var input getImageRequest
+	if err := c.Bind(&input); err != nil {
+		return NewAPIError(http.StatusForbidden, "image_forbidden")
+	}
+	query, err := url.ParseQuery(c.Request().URL.RawQuery)
+	if err != nil || len(query["exp"]) != 1 || len(query["sig"]) != 1 {
+		return NewAPIError(http.StatusForbidden, "image_forbidden")
+	}
+	exp, err := strconv.ParseInt(input.Exp, 10, 64)
+	if err != nil || strconv.FormatInt(exp, 10) != input.Exp || exp <= time.Now().Unix() {
+		return NewAPIError(http.StatusForbidden, "image_forbidden")
+	}
+	sig, err := base64.RawURLEncoding.Strict().DecodeString(input.Sig)
+	if err != nil || len(sig) != sha256.Size || base64.RawURLEncoding.EncodeToString(sig) != input.Sig {
+		return NewAPIError(http.StatusForbidden, "image_forbidden")
+	}
+	id := input.ImageID
+	ctx := c.Request().Context()
+	db := s.db.Load()
+
+	var data []byte
+	haveData := false
+	if localImageIDPattern.MatchString(id) && len(id) >= 2 {
+		data, haveData = readLocalImage(id)
+	} else {
+		return NewAPIError(http.StatusForbidden, "image_forbidden")
+	}
+
+	entry, startSeq, trusted := s.state.lookup(id)
+	valid := entry != nil
+	if entry == nil {
+		var row remoteImageCheck
+		err := db.GetContext(ctx, &row, remoteImageCheckQuery, id, !haveData)
+		if errors.Is(err, sql.ErrNoRows) {
+			return NewAPIError(http.StatusForbidden, "image_forbidden")
+		}
+		if err != nil {
+			return err
+		}
+		key, err := imageSigningKey(row.SecretKeyHash)
+		if err != nil {
+			return err
+		}
+		entry = &localImageEntry{key: key, mediaType: row.MediaType}
+		switch {
+		case row.IsProfile, row.HasPost:
+			valid = true
+			entry.deps = []string{"img:" + id, "user:" + row.OwnerID}
+		case row.RealMoji.Valid:
+			valid = true
+			author, postImage, _ := strings.Cut(row.RealMoji.String, " ")
+			entry.deps = []string{"img:" + id, "user:" + row.OwnerID, "user:" + author, "img:" + postImage}
+		}
+		if valid && !haveData && row.Data != nil {
+			data, haveData = row.Data, true
+			writeLocalImage(id, data)
+		}
+		if valid && trusted {
+			s.state.insert(id, entry, startSeq)
+		}
+	}
+	if !hmac.Equal(sig, imageSignature(entry.key, id, exp)) {
+		c.Set("abuse", "invalid_signature")
+		return NewAPIError(http.StatusForbidden, "image_forbidden")
+	}
+	if !valid {
+		return NewAPIError(http.StatusForbidden, "image_forbidden")
+	}
+	if !haveData {
+		if err := db.GetContext(ctx, &data, `SELECT data FROM image_objects WHERE id = $1`, id); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return NewAPIError(http.StatusForbidden, "image_forbidden")
+			}
+			return err
+		}
+		writeLocalImage(id, data)
+	}
+	if exp <= time.Now().Unix() {
+		return NewAPIError(http.StatusForbidden, "image_forbidden")
+	}
+	return c.Blob(http.StatusOK, entry.mediaType, data)
+}
+
+// NewImageServer は ISUREAL_PASSIVE=1 の台で動かす。/api/images/:imageId だけを返し、ほかの /api/ は nginx が asia1 へ送る
+func NewImageServer(config *Config) *echo.Echo {
+	e := echo.New()
+	e.IPExtractor = extractClientIP
+	e.Use(ActionLogMiddleware(config.LogLevel, os.Stdout))
+	e.Use(middleware.Recover())
+	e.HTTPErrorHandler = APIErrorHandler
+
+	var peers []string
+	for _, p := range strings.Split(os.Getenv("ISUREAL_IMAGE_EVENT_PEERS"), ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			peers = append(peers, p)
+		}
+	}
+	s := &imageServer{state: newLocalImageState(peers)}
+	for _, p := range peers {
+		go s.state.subscribe(p)
+	}
+	bans := &IPBanList{}
+	ready := make(chan struct{})
+	go func() {
+		db := openDatabase(config)
+		db.SetMaxOpenConns(40)
+		db.SetMaxIdleConns(40)
+		s.db.Store(db)
+		// ip_bans は裏で読み直し、リクエストでは DB を待たない
+		for bans.snapshot.Load() == nil {
+			if loaded, err := loadIPBans(context.Background(), db); err == nil {
+				bans.snapshot.Store(loaded)
+			} else {
+				time.Sleep(time.Second)
+			}
+		}
+		close(ready)
+		for {
+			if loaded, err := loadIPBans(context.Background(), db); err == nil {
+				bans.snapshot.Store(loaded)
+			}
+			time.Sleep(ipBanReloadInterval / 2)
+		}
+	}()
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			select {
+			case <-ready:
+			case <-c.Request().Context().Done():
+				return c.Request().Context().Err()
+			}
+			return next(c)
+		}
+	})
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			if snapshot := bans.snapshot.Load(); snapshot != nil {
+				if until, ok := snapshot.bans[c.RealIP()]; ok && time.Now().Before(until) {
+					return NewAPIError(http.StatusForbidden, "ip_banned")
+				}
+			}
+			return next(c)
+		}
+	})
+	e.GET("/api/images/:imageId", s.handler)
+	return e
+}
