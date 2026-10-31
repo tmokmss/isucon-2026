@@ -4,7 +4,7 @@ import "sync"
 
 // 画像の本体の読み取りキャッシュ。取得してよいかの判定はキャッシュの前にメモリで行う。
 // 上限を超えたら古い順に捨てる
-const imageCacheLimit = 200 << 20
+const imageCacheLimit = 100 << 20
 
 type cachedImage struct {
 	data      []byte
