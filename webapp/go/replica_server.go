@@ -11,6 +11,7 @@ package isureal
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -56,6 +58,8 @@ type replicaFront struct {
 	shadowTotal atomic.Int64
 	shadowDiff  atomic.Int64
 	shadowLate  atomic.Int64
+	routeMu     sync.Mutex
+	routeCounts map[string]*[3]int64 // 比べた数・食い違い・届く順の差
 	localTotal  atomic.Int64
 }
 
@@ -150,6 +154,8 @@ func (f *replicaFront) shadow(w http.ResponseWriter, r *http.Request) {
 	w.Write(rec.Body.Bytes())
 
 	f.shadowTotal.Add(1)
+	route := routeKey(r.URL.Path)
+	f.countRoute(route, 0)
 	if !fresh || rec.Code == http.StatusBadGateway || sameResponse(rec, before) || sameResponse(rec, after) {
 		return
 	}
@@ -160,11 +166,13 @@ func (f *replicaFront) shadow(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(d)
 			if sameResponse(rec, f.record(f.local, r2)) {
 				f.shadowLate.Add(1)
+				f.countRoute(route, 2)
 				return
 			}
 		}
 		n := f.shadowDiff.Add(1)
-		if n <= 300 {
+		f.countRoute(route, 1)
+		if n <= 1000 {
 			log.Printf("repl-diff %s %s asia=%d local=%d/%d\n  asia:  %s\n  local: %s", r2.Method, r2.URL.RequestURI(), rec.Code, before.Code, after.Code,
 				diffContext(rec.Body.Bytes(), after.Body.Bytes()), diffContext(after.Body.Bytes(), rec.Body.Bytes()))
 		}
@@ -185,8 +193,42 @@ func diffContext(a, b []byte) string {
 	return string(a[lo:hi])
 }
 
+func routeKey(path string) string {
+	parts := strings.Split(strings.TrimPrefix(path, "/api/"), "/")
+	switch {
+	case parts[0] == "feeds" || parts[0] == "relationships" || (parts[0] == "posts" && len(parts) == 2 && parts[1] == "me"):
+		return strings.Join(parts, "/")
+	case len(parts) >= 2 && parts[0] != "me" && parts[0] != "posting-window":
+		parts[1] = ":id"
+	}
+	return strings.Join(parts, "/")
+}
+
+func (f *replicaFront) countRoute(route string, i int) {
+	f.routeMu.Lock()
+	defer f.routeMu.Unlock()
+	if f.routeCounts == nil {
+		f.routeCounts = map[string]*[3]int64{}
+	}
+	c := f.routeCounts[route]
+	if c == nil {
+		c = &[3]int64{}
+		f.routeCounts[route] = c
+	}
+	c[i]++
+}
+
 func (f *replicaFront) statsLoop() {
 	for range time.Tick(10 * time.Second) {
 		log.Printf("repl-stats fresh=%v shadow=%d diff=%d late=%d local=%d", f.rep.fresh(), f.shadowTotal.Load(), f.shadowDiff.Load(), f.shadowLate.Load(), f.localTotal.Load())
+		f.routeMu.Lock()
+		var b strings.Builder
+		for k, c := range f.routeCounts {
+			fmt.Fprintf(&b, " %s=%d/%d/%d", k, c[0], c[1], c[2])
+		}
+		f.routeMu.Unlock()
+		if b.Len() > 0 {
+			log.Printf("repl-routes (compared/diff/late)%s", b.String())
+		}
 	}
 }
