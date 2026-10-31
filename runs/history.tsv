@@ -22,3 +22,5 @@ run_id	started_at	sha	ref	score	status	note
 20261031-115409-773f053	2026-10-31T11:54:09+09:00	773f0539cdf50f0c9d8d96da4529c5754a7435d8	try-limiter-register	56553	pass	main + #70 同時実行の制御 + 登録の並列化
 20261031-115822-a8d9e7d	2026-10-31T11:58:22+09:00	a8d9e7d3cca4f3ca5fe322dcd1a10b905f08612c	origin/main	56314	pass	main: 登録の並列化を入れ直した
 20261031-120912-249be25	2026-10-31T12:09:12+09:00	249be2509f9627b7ed6307d439e5436ecd78bd61	origin/main	0	fail	main: +#71 JPEG の検証を europe1・america1 へ（再起動試験の後）
+20261031-121631-55a9d63	2026-10-31T12:16:31+09:00	55a9d638ae233fed89f3151801291550f7002d05	slow-before-1700	29539	pass	17:00 直前用の低い点の版（試験 300ms）
+20261031-122039-fdbe826	2026-10-31T12:20:39+09:00	fdbe82670a24bac83689b804c1fe8dfb08f1c5d9	origin/main	65904	pass	低い版の試走の直後の main
