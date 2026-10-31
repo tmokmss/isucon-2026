@@ -29,7 +29,8 @@ type openPostingWindowResponse struct {
 var postingWindowMu sync.Mutex
 
 // 投稿期間の開始は、利用者のリクエストで共有のプールが埋まっていても待たされないよう、専用の接続で書く。
-// 期間の終了・開始・通知の 3 文は 1 回の往復で送る（pgx の batch は 1 つの暗黙のトランザクションになる）
+// 期間の終了と開始の 2 文は 1 回の往復で送る（pgx の batch は 1 つの暗黙のトランザクションになる）。
+// 通知は notifications へ 1 行ずつ入れると索引（計 450MB）へのランダムな読み書きで数秒かかるので、期間の行に配列で持たせる
 var postingWindowPool struct {
 	once sync.Once
 	pool *pgxpool.Pool
@@ -109,15 +110,9 @@ func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 		batch := &pgx.Batch{}
 		batch.Queue(`UPDATE posting_windows SET ended_at = $2 WHERE region = $1 AND ended_at IS NULL`, region, startsAt)
 		batch.Queue(`
-   INSERT INTO posting_windows (id, region, local_date, starts_at, on_time_deadline, created_at)
-   VALUES ($1, $2, $3, $4, $5, $4)
-  `, w.ID, region, localDate, startsAt, w.OnTimeDeadline)
-		if len(userIDs) > 0 {
-			batch.Queue(`
-   INSERT INTO notifications (id, user_id, posting_window_id, created_at)
-   SELECT unnest($1::text[]), unnest($2::text[]), $3, $4
-  `, notificationIDs, userIDs, w.ID, startsAt)
-		}
+   INSERT INTO posting_windows (id, region, local_date, starts_at, on_time_deadline, created_at, notification_ids, notified_user_ids)
+   VALUES ($1, $2, $3, $4, $5, $4, $6, $7)
+  `, w.ID, region, localDate, startsAt, w.OnTimeDeadline, notificationIDs, userIDs)
 		if err := pool.SendBatch(ctx, batch).Close(); err != nil {
 			return err
 		}
