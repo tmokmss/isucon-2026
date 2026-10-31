@@ -45,6 +45,7 @@ type WindowRow struct {
 	PostingWindow
 	CreatedAt time.Time
 	posts     []*PostRow
+	byAuthor  map[string][]*PostRow
 	notified  map[string]notificationRow
 }
 
@@ -689,6 +690,14 @@ func (s *Store) rebuildIndexes() {
 	}
 	for _, w := range s.windows {
 		sort.Slice(w.posts, func(i, j int) bool { return postLess(w.posts[i], w.posts[j]) })
+		w.byAuthor = nil
+		if w.EndedAt != nil {
+			continue
+		}
+		w.byAuthor = map[string][]*PostRow{}
+		for _, p := range w.posts {
+			w.byAuthor[p.AuthorID] = append(w.byAuthor[p.AuthorID], p)
+		}
 	}
 	s.rmByImage = make(map[string]*RealMojiRow, len(s.realmojis))
 	for _, r := range s.realmojis {
@@ -758,6 +767,10 @@ func (s *Store) addPostLocked(p *PostRow) {
 		u.posts = insertPostSorted(u.posts, p)
 	}
 	p.window.posts = insertPostSorted(p.window.posts, p)
+	if p.window.byAuthor == nil {
+		p.window.byAuthor = map[string][]*PostRow{}
+	}
+	p.window.byAuthor[p.AuthorID] = insertPostSorted(p.window.byAuthor[p.AuthorID], p)
 }
 
 func (s *Store) addRealMojiLocked(r *RealMojiRow) {

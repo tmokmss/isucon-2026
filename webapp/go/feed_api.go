@@ -66,33 +66,7 @@ func getFeedHandler(h *HandlerContext) echo.HandlerFunc {
 		if ranked {
 			beforePostedAt, beforeID = nil, ""
 		}
-		var rows []*PostRow
-		for _, w := range s.activeWindows {
-			for _, p := range w.posts {
-				if p.DeletedAt != nil || p.AuthorID == viewer.ID {
-					continue
-				}
-				if beforePostedAt != nil && !(p.PostedAt.Before(*beforePostedAt) || (p.PostedAt.Equal(*beforePostedAt) && p.ID < beforeID)) {
-					continue
-				}
-				rows = append(rows, p)
-			}
-		}
-		sort.Slice(rows, func(i, j int) bool { return postLess(rows[j], rows[i]) })
-		candidates := make([]feedCandidate, 0)
-		for _, p := range rows {
-			author := s.activeUser(p.AuthorID)
-			if author == nil {
-				continue
-			}
-			post := p.post()
-			if viewer.canView(post) && matchesFeed(viewer, following, post, input.Feed) {
-				candidates = append(candidates, feedCandidate{post: post, author: author.User, row: p})
-				if !ranked && len(candidates) == 51 {
-					break
-				}
-			}
-		}
+		candidates := s.feedCandidatesLocked(viewer, following, input.Feed, ranked, beforePostedAt, beforeID)
 		var scores map[string]int64
 		if ranked {
 			scores = s.recommendationScoresLocked(viewer, candidates)
@@ -124,6 +98,91 @@ func getFeedHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		return c.JSON(http.StatusOK, getFeedResponse{Items: items, HasMore: hasMore})
 	}
+}
+
+// feedCandidatesLocked は、受付中の投稿期間の投稿を新しい順にたどり、閲覧できてフィードに合う投稿を返す。
+// friends・following・friends-of-friends は matchesFeed に合う投稿者が決まっているので、投稿期間ごとの投稿者の索引からその投稿者の投稿だけを集める。
+// public は投稿期間ごとの並んだ投稿を新しい側からまとめてたどり、51 件で止める
+func (s *Store) feedCandidatesLocked(viewer viewerContext, following map[string]bool, feed string, ranked bool, beforePostedAt *time.Time, beforeID string) []feedCandidate {
+	candidates := make([]feedCandidate, 0)
+	// 自分以外の投稿は、今日投稿していなければ canView を通らない
+	if !viewer.HasPostedToday {
+		return candidates
+	}
+	older := func(p *PostRow) bool {
+		return beforePostedAt == nil || p.PostedAt.Before(*beforePostedAt) || (p.PostedAt.Equal(*beforePostedAt) && p.ID < beforeID)
+	}
+	keep := func(p *PostRow) bool {
+		return p.DeletedAt == nil && p.AuthorID != viewer.ID && older(p)
+	}
+	// visit は候補に足し、続けてたどるかを返す
+	visit := func(p *PostRow) bool {
+		author := s.activeUser(p.AuthorID)
+		if author == nil {
+			return true
+		}
+		post := p.post()
+		if viewer.canView(post) && matchesFeed(viewer, following, post, feed) {
+			candidates = append(candidates, feedCandidate{post: post, author: author.User, row: p})
+			if !ranked && len(candidates) == 51 {
+				return false
+			}
+		}
+		return true
+	}
+	if feed == "public" {
+		lists := make([][]*PostRow, 0, len(s.activeWindows))
+		for _, w := range s.activeWindows {
+			// w.posts は古い順なので、ページの境目より古い投稿は先頭からの範囲になる
+			lists = append(lists, w.posts[:sort.Search(len(w.posts), func(i int) bool { return !older(w.posts[i]) })])
+		}
+		for {
+			best := -1
+			for i, l := range lists {
+				if len(l) > 0 && (best < 0 || postLess(lists[best][len(lists[best])-1], l[len(l)-1])) {
+					best = i
+				}
+			}
+			if best < 0 {
+				return candidates
+			}
+			l := lists[best]
+			p := l[len(l)-1]
+			lists[best] = l[:len(l)-1]
+			if keep(p) && !visit(p) {
+				return candidates
+			}
+		}
+	}
+	var authors map[string]bool
+	switch feed {
+	case "friends":
+		authors = viewer.Friends
+	case "following":
+		authors = following
+	case "friends-of-friends":
+		authors = viewer.FriendsOfFriends
+	}
+	var rows []*PostRow
+	for _, w := range s.activeWindows {
+		for id := range authors {
+			if feed == "friends-of-friends" && viewer.Friends[id] {
+				continue
+			}
+			for _, p := range w.byAuthor[id] {
+				if keep(p) {
+					rows = append(rows, p)
+				}
+			}
+		}
+	}
+	sort.Slice(rows, func(i, j int) bool { return postLess(rows[j], rows[i]) })
+	for _, p := range rows {
+		if !visit(p) {
+			break
+		}
+	}
+	return candidates
 }
 
 func rankedBefore(score int64, post Post, beforeScore int64, beforePostedAt time.Time, beforeID string) bool {
