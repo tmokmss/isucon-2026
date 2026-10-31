@@ -1,0 +1,49 @@
+{"id":"23713","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"負荷走行を打ち切りました"}
+
+--- stdout ---
+time=2026-10-31T06:39:39.129Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:39:42.125Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:39:45.124Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:39:48.134Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T06:39:49.242Z level=INFO msg="user moved" user=niru.5156 from=asia to=america
+time=2026-10-31T06:39:51.123Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T06:39:54.123Z level=INFO msg="america 2 日目: 21 人"
+time=2026-10-31T06:39:57.134Z level=INFO msg="asia 3 日目: 145 人"
+time=2026-10-31T06:39:59.693Z level=INFO msg="user moved" user=chiwa6020 from=asia to=america
+time=2026-10-31T06:40:00.212Z level=INFO msg="europe 3 日目: 55 人"
+time=2026-10-31T06:40:00.376Z level=INFO msg="user moved" user=chiwa6020 from=america to=asia
+time=2026-10-31T06:40:03.125Z level=INFO msg="america 3 日目: 62 人"
+time=2026-10-31T06:40:03.855Z level=INFO msg="user moved" user=dankator-6369 from=europe to=asia
+time=2026-10-31T06:40:06.166Z level=INFO msg="asia 4 日目: 423 人"
+time=2026-10-31T06:40:07.937Z level=INFO msg="user moved" user=chiwa6020 from=asia to=america
+time=2026-10-31T06:40:24.138Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "負荷走行を打ち切りました: 40s〜45s のエラー率 100.0%（323/323 件）が上限 10.0% を超えました",
+    "renoa-5727: 投稿 d0fd33e5-a765-4cae-8698-47d70c8d160f の画像を取得できません: GET /api/images/ff7bd8b6-7e8f-4e6c-8aa0-5ce844a9d065?exp=1793515260\u0026sig=9MKTmTm138LkVjG1Y-BJT0Li9ECYsk6w__ZkUIXqSLU: ステータスコード 500 が返りました（期待値 200、context deadline exceeded）",
+    "danyosol-6784: 投稿 8f0b28ac-a0ee-47e2-8569-38dab0899000 の画像を取得できません: GET /api/images/9ef56661-31d3-4a74-9817-91cfa3f43149?exp=1793515260\u0026sig=TbvAAZH21J_YfQMg6XklAuLiRfuq1SjoWw_0OFXFmog: ステータスコード 500 が返りました（期待値 200、Get \"http://192.168.3.10:8081/_internal/image?id=9ef56661-31d3-4a74-9817-91cfa3f43149\": context deadline exceeded）",
+    "chibeneva.6847: 投稿 759a55d9-34b2-4423-b814-8bb445b6bdf6 の画像を取得できません: GET /api/images/2f6fad34-cf8e-43ac-b13d-745043f29f54?exp=1793515260\u0026sig=KC2YgkGWh7_yuAjMXH2kPqM56bKkxLnK5mlvWoO5cMo: ステータスコード 500 が返りました（期待値 200、context deadline exceeded）",
+    "tsumax5641: 投稿 d0fd33e5-a765-4cae-8698-47d70c8d160f の画像を取得できません: GET /api/images/ff7bd8b6-7e8f-4e6c-8aa0-5ce844a9d065?exp=1793515260\u0026sig=9MKTmTm138LkVjG1Y-BJT0Li9ECYsk6w__ZkUIXqSLU: ステータスコード 500 が返りました（期待値 200、context deadline exceeded）",
+    "europe の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "manuela_almeida_2494: 履歴を読めません: GET /api/images/4aa3bb4c-2b40-4644-ad36-3071bed34093?exp=1793515260\u0026sig=2EfkuTlIVYRG7PX94dV0qflLOeRY2-I1G7KFuR5lWJs: ステータスコード 500 が返りました（期待値 200、Get \"http://192.168.1.10:8081/_internal/image-check?id=4aa3bb4c-2b40-4644-ad36-3071bed34093\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)）",
+    "diego_gonzalez_4290: 履歴を読めません: GET /api/images/9f1bf4cb-ec6c-472f-926d-be2c0d6a90cb?exp=1793515260\u0026sig=bmzsWnIlwLFVuRvm1LMVP7Ip8ilr6Yz5jaHtZNRQoiI: ステータスコード 500 が返りました（期待値 200、Get \"http://192.168.1.10:8081/_internal/image-check?id=9f1bf4cb-ec6c-472f-926d-be2c0d6a90cb\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)）",
+    "capybaras_en_promenade_4662: 履歴を読めません: GET /api/images/161090aa-3402-48e8-9526-92796080b370?exp=1793515260\u0026sig=UL2Za_hREKHFkW5frwC24nRqFOQUCKGoYi5nsCxTvbs: ステータスコード 500 が返りました（期待値 200、Get \"http://192.168.1.10:8081/_internal/image-check?id=161090aa-3402-48e8-9526-92796080b370\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)）",
+    "charcoal_mini_turkey_2371: 履歴を読めません: GET /api/images/361e649c-2c88-4b9d-93ec-bd017ae405be?exp=1793515260\u0026sig=dn6bLOCaNw11o1MNemzr-6LNZvkmvHVOjsfk8Tq74tQ: ステータスコード 500 が返りました（期待値 200、Get \"http://192.168.1.10:8081/_internal/image-check?id=361e649c-2c88-4b9d-93ec-bd017ae405be\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)）",
+    "america の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "sushi_on_a_sunflower_4749: 履歴を読めません: GET /api/images/af425b18-8c6c-4cb2-b3c4-3464a10f8e0f?exp=1793515260\u0026sig=0mcbwvKjsmhgKhOJtbtUOjKRmBoIJnJwGAmrzcPq4ds: ステータスコード 500 が返りました（期待値 200、Get \"http://192.168.1.10:8081/_internal/image-check?id=af425b18-8c6c-4cb2-b3c4-3464a10f8e0f\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)）",
+    "miyochi-6978: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "seoyeon_lee_20: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "kifu-5667: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "solhozoe.6828: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "mone.6742: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "hahator-5827: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "murito_6578: 投稿 759a55d9-34b2-4423-b814-8bb445b6bdf6 に RealMoji を送れません: POST /api/posts/759a55d9-34b2-4423-b814-8bb445b6bdf6/realmojis: 応答がタイムアウトしました",
+    "yunoana.6106: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "leokune-6898: 投稿できません: POST /api/posts: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

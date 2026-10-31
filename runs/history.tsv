@@ -121,3 +121,11 @@ run_id	started_at	sha	ref	score	status	note
 20261031-151629-200016f	2026-10-31T15:16:29+09:00	200016f64d9139ecfd9a3a3f277abdbb21b4282c	lane2-ipban	180317	pass	ip_bans bg reload only on 5a230a4
 20261031-151835-2fe5b6e	2026-10-31T15:18:35+09:00	2fe5b6ea68ff6bfdf40bb66091bd66c68cd67179	2fe5b6e	183184	pass	RealMoji の画像も受けた台に置く（main 5a230a4 の上）
 20261031-152137-8c13252	2026-10-31T15:21:37+09:00	8c13252c30647a9d6e7624eff3fe75f10e8118b4	8c13252	183331	pass	RealMoji の画像も受けた台に置く（main 5fcd3e6 の上）2回目
+20261031-153030-dca9471	2026-10-31T15:30:30+09:00	dca9471d652ee0ae142345af10862a916b5b557a	presign-next-minute	186885	pass	presign next-minute image signatures on peers
+20261031-153557-106c0a8	2026-10-31T15:35:57+09:00	106c0a8b76647ba441bd25b0edc32eb3aba6c1ec	presign-next-minute	0	fail	sig cache generations fixed-size keys, presign next minute, JPEG prefers asia2
+20261031-154148-dfccbc3	2026-10-31T15:41:48+09:00	dfccbc319c40e37fbb641dc89f0651867d06a73f	presign-next-minute	0	fail	sig cache generations + presign + JPEG prefers asia2 (recursion fixed)
+20261031-154736-f1153ff	2026-10-31T15:47:36+09:00	f1153ff4efe139780f0e842556e31e83920a77c4	presign-next-minute	178616	pass	on b3440cf: sig cache by exp generation + presign next minute
+20261031-155036-b19d232	2026-10-31T15:50:36+09:00	b19d23279da5d21aee21c181678548f94059487c	presign-next-minute	170564	pass	on b3440cf: sig cache + presign + JPEG prefers asia2
+20261031-155429-b3440cf	2026-10-31T15:54:29+09:00	b3440cf1f4d9a29ef93a5620ea94dcca545cf899	b3440cf	184830	pass	main b3440cf baseline (presign lane)
+20261031-160039-1f0e740	2026-10-31T16:00:39+09:00	1f0e74082a6fd3d839689339ecc9f72d246a32f6	presign-next-minute	181170	pass	on b3440cf: sig cache by exp generation + presign (JPEG unchanged), heap capture
+20261031-160719-1f0e740	2026-10-31T16:07:19+09:00	1f0e74082a6fd3d839689339ecc9f72d246a32f6	presign-next-minute	175643	pass	sig cache + presign, rerun with heap capture

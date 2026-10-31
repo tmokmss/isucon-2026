@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-155429-b3440cf",
+  "startedAt": "2026-10-31T15:54:29+09:00",
+  "finishedAt": "2026-10-31T16:00:15+09:00",
+  "ref": "b3440cf",
+  "sha": "b3440cf1f4d9a29ef93a5620ea94dcca545cf899",
+  "score": 184830,
+  "status": "pass",
+  "note": "main b3440cf baseline (presign lane)",
+  "benchJobId": "25530",
+  "prevRunId": "20261031-155036-b19d232",
+  "bestRunId": "20261031-151339-5a230a4"
+}

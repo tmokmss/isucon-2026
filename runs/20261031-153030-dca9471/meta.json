@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-153030-dca9471",
+  "startedAt": "2026-10-31T15:30:30+09:00",
+  "finishedAt": "2026-10-31T15:32:44+09:00",
+  "ref": "presign-next-minute",
+  "sha": "dca9471d652ee0ae142345af10862a916b5b557a",
+  "score": 186885,
+  "status": "pass",
+  "note": "presign next-minute image signatures on peers",
+  "benchJobId": "22914",
+  "prevRunId": "20261031-152137-8c13252",
+  "bestRunId": "20261031-151339-5a230a4"
+}

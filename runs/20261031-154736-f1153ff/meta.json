@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-154736-f1153ff",
+  "startedAt": "2026-10-31T15:47:36+09:00",
+  "finishedAt": "2026-10-31T15:49:55+09:00",
+  "ref": "presign-next-minute",
+  "sha": "f1153ff4efe139780f0e842556e31e83920a77c4",
+  "score": 178616,
+  "status": "pass",
+  "note": "on b3440cf: sig cache by exp generation + presign next minute",
+  "benchJobId": "24550",
+  "prevRunId": "20261031-154148-dfccbc3",
+  "bestRunId": "20261031-151339-5a230a4"
+}
