@@ -91,7 +91,6 @@ func registerHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		secretKey := uuid.NewString()
 		hash := sha256.Sum256([]byte(secretKey))
-		ctx := c.Request().Context()
 		s := h.Store
 		// ユーザー名の予約だけをロックで守り、DB への INSERT は並列に行う
 		registerMu.Lock()
@@ -122,10 +121,6 @@ func registerHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		u.setNormalized()
-		if _, err := h.DB.ExecContext(ctx, `INSERT INTO users (id, username, secret_key_hash, display_name, region, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $6)`,
-			userID, input.Username, u.SecretKeyHash, input.DisplayName, input.Region, createdAt); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		s.addUserLocked(u)
 		user := u.User
@@ -144,7 +139,6 @@ func loginHandler(h *HandlerContext) echo.HandlerFunc {
 		if !usernamePattern.MatchString(input.Username) {
 			return NewAPIError(http.StatusUnauthorized, "invalid_credentials")
 		}
-		ctx := c.Request().Context()
 		s := h.Store
 		s.mu.RLock()
 		u := s.usersByName[input.Username]
@@ -163,24 +157,6 @@ func loginHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		token := uuid.NewString()
 		row := &LoginSessionRow{ID: uuid.NewString(), UserID: user.ID, TokenHash: hashToken(token), Active: true, CreatedAt: now()}
-		tx, err := h.DB.BeginTxx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		if _, err := tx.ExecContext(ctx, `
-  UPDATE login_sessions
-  SET active = false, invalidated_at = $2, reason = 'replaced'
-  WHERE user_id = $1 AND active = true
- `, user.ID, row.CreatedAt); err != nil {
-			return err
-		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO login_sessions (id, user_id, token_hash, created_at) VALUES ($1, $2, $3, $4)`, row.ID, row.UserID, row.TokenHash, row.CreatedAt); err != nil {
-			return err
-		}
-		if err := tx.Commit(); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		for hash, old := range u.sessions {
 			old.Active = false
@@ -202,13 +178,6 @@ func logoutHandler(h *HandlerContext) echo.HandlerFunc {
 		s := h.Store
 		unlock := lockUsers(session.UserID)
 		defer unlock()
-		if _, err := h.DB.ExecContext(c.Request().Context(), `
-		UPDATE login_sessions
-		SET active = false, invalidated_at = $3, reason = 'logout'
-		WHERE user_id = $1 AND active = true AND token_hash = $2
-	`, session.UserID, session.TokenHash, now()); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		if row := s.sessions[session.TokenHash]; row != nil && row.UserID == session.UserID {
 			row.Active = false
@@ -262,11 +231,6 @@ func updateMeHandler(h *HandlerContext) echo.HandlerFunc {
 		s := h.Store
 		unlock := lockUsers(session.UserID)
 		defer unlock()
-		if _, err := h.DB.ExecContext(c.Request().Context(), `
-  UPDATE users SET display_name = COALESCE($2, display_name), bio = COALESCE($3, bio), region = COALESCE($4, region), updated_at = $5
-  WHERE id = $1`, session.UserID, input.DisplayName, input.Bio, input.Region, now()); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		u := s.users[session.UserID]
 		if u != nil {

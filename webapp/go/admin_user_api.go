@@ -26,9 +26,6 @@ func certifyUserHandler(h *HandlerContext) echo.HandlerFunc {
 		if !ok {
 			return NewAPIError(http.StatusConflict, "certification_conflict")
 		}
-		if _, err := h.DB.ExecContext(c.Request().Context(), `UPDATE users SET account_type='certified_public', updated_at=$2 WHERE id=$1`, input.UserID, now()); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		u.AccountType = "certified_public"
 		s.mu.Unlock()

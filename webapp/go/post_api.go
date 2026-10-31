@@ -112,14 +112,6 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects (id, owner_user_id, data, media_type, created_at) VALUES ($1, $2, $3, 'image/jpeg', $4)`, imageID, userID, imageData, postedAt); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `
-   INSERT INTO posts (id, author_id, posting_window_id, image_id, caption, visibility,
-                      location_kind, latitude, longitude, locality, posted_at, created_at)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
-  `, postID, userID, windowID, imageID, input.Caption, input.Visibility,
-			location.Kind, location.Latitude, location.Longitude, location.Locality, postedAt); err != nil {
-			return err
-		}
 		if err := tx.Commit(); err != nil {
 			return err
 		}
@@ -282,7 +274,6 @@ func updatePostHandler(h *HandlerContext) echo.HandlerFunc {
 				return NewAPIError(http.StatusBadRequest, "invalid_post")
 			}
 		}
-		ctx := c.Request().Context()
 		userID := GetSession(c).UserID
 		s := h.Store
 		unlock := lockUsers(userID)
@@ -301,9 +292,6 @@ func updatePostHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		if u == nil {
 			return NewAPIError(http.StatusInternalServerError, "user_not_found")
-		}
-		if _, err := h.DB.ExecContext(ctx, `UPDATE posts SET caption = COALESCE($2, caption), visibility = COALESCE($3, visibility) WHERE id = $1`, p.ID, input.Caption, input.Visibility); err != nil {
-			return err
 		}
 		s.mu.Lock()
 		if input.Caption != nil {
@@ -329,7 +317,6 @@ func deletePostHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := c.Bind(&input); err != nil {
 			return err
 		}
-		ctx := c.Request().Context()
 		userID := GetSession(c).UserID
 		s := h.Store
 		unlock := lockUsers(userID)
@@ -353,9 +340,6 @@ func deletePostHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusConflict, "post_slot_unavailable")
 		}
 		deletedAt := now()
-		if _, err := h.DB.ExecContext(ctx, `UPDATE posts SET deleted_at = $2 WHERE id = $1`, p.ID, deletedAt); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		p.DeletedAt = &deletedAt
 		s.mu.Unlock()

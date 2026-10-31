@@ -25,7 +25,6 @@ func createFriendRequestHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := c.Bind(&input); err != nil {
 			return err
 		}
-		ctx := c.Request().Context()
 		actor := GetSession(c).UserID
 		recipient := input.RecipientID
 		unlock, err := h.lockRelationship(actor, recipient)
@@ -54,20 +53,6 @@ func createFriendRequestHandler(h *HandlerContext) echo.HandlerFunc {
 			lo, hi := pairKey(existing.RequesterID, existing.RecipientID)
 			srcID := existing.ID
 			f := &FriendshipRow{ID: uuid.NewString(), LowID: lo, HighID: hi, SourceRequestID: &srcID, CreatedAt: at, UpdatedAt: at}
-			tx, err := h.DB.BeginTxx(ctx, nil)
-			if err != nil {
-				return err
-			}
-			defer tx.Rollback()
-			if _, err := tx.ExecContext(ctx, `UPDATE friend_requests SET status='accepted', updated_at=$2 WHERE id=$1`, existing.ID, at); err != nil {
-				return err
-			}
-			if _, err := tx.ExecContext(ctx, `INSERT INTO friendships (id, user_low_id, user_high_id, source_request_id, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$5)`, f.ID, lo, hi, srcID, at); err != nil {
-				return err
-			}
-			if err := tx.Commit(); err != nil {
-				return err
-			}
 			s.mu.Lock()
 			s.setRequestStatusLocked(existing, "accepted", at)
 			s.addFriendshipLocked(f)
@@ -75,9 +60,6 @@ func createFriendRequestHandler(h *HandlerContext) echo.HandlerFunc {
 			return c.JSON(http.StatusCreated, createFriendRequestResponse{RelationID: existing.ID, Status: "accepted", UpdatedAt: at})
 		}
 		r := &FriendRequest{ID: uuid.NewString(), RequesterID: actor, RecipientID: recipient, Status: "pending", CreatedAt: at, UpdatedAt: at}
-		if _, err := h.DB.ExecContext(ctx, `INSERT INTO friend_requests (id, requester_id, recipient_id, status, created_at, updated_at) VALUES ($1,$2,$3,'pending',$4,$4)`, r.ID, actor, recipient, at); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		s.friendRequests[r.ID] = r
 		s.users[actor].pendingOut[recipient] = r
@@ -111,7 +93,6 @@ func transitionFriendRequestHandler(h *HandlerContext) echo.HandlerFunc {
 		default:
 			return NewAPIError(http.StatusForbidden, "relationship_action_forbidden")
 		}
-		ctx := c.Request().Context()
 		actor := GetSession(c).UserID
 		s := h.Store
 		s.mu.RLock()
@@ -142,11 +123,6 @@ func transitionFriendRequestHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		at := now()
 		var f *FriendshipRow
-		tx, err := h.DB.BeginTxx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
 		if status == "accepted" {
 			if blocked {
 				return NewAPIError(http.StatusConflict, "relationship_conflict")
@@ -157,15 +133,6 @@ func transitionFriendRequestHandler(h *HandlerContext) echo.HandlerFunc {
 			lo, hi := pairKey(requesterID, recipientID)
 			srcID := r.ID
 			f = &FriendshipRow{ID: uuid.NewString(), LowID: lo, HighID: hi, SourceRequestID: &srcID, CreatedAt: at, UpdatedAt: at}
-			if _, err := tx.ExecContext(ctx, `INSERT INTO friendships (id, user_low_id, user_high_id, source_request_id, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$5)`, f.ID, lo, hi, srcID, at); err != nil {
-				return err
-			}
-		}
-		if _, err := tx.ExecContext(ctx, `UPDATE friend_requests SET status=$2, updated_at=$3 WHERE id=$1`, r.ID, status, at); err != nil {
-			return err
-		}
-		if err := tx.Commit(); err != nil {
-			return err
 		}
 		s.mu.Lock()
 		s.setRequestStatusLocked(r, status, at)

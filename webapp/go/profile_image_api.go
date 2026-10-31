@@ -61,9 +61,6 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects(id,owner_user_id,data,media_type,created_at) VALUES ($1,$2,$3,'image/jpeg',$4)`, imageID, userID, data, createdAt); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE users SET profile_image_id=$2,updated_at=$3 WHERE id=$1`, userID, imageID, createdAt); err != nil {
-			return err
-		}
 		if oldID != nil {
 			if oldCreatedAt != nil {
 				if _, err := tx.ExecContext(ctx, `DELETE FROM image_objects WHERE id=$1 AND created_at=$2`, *oldID, oldCreatedAt); err != nil {
@@ -118,9 +115,6 @@ func deleteProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		defer tx.Rollback()
-		if _, err := tx.ExecContext(ctx, `UPDATE users SET profile_image_id=NULL,updated_at=$2 WHERE id=$1`, userID, now()); err != nil {
-			return err
-		}
 		if createdAt != nil {
 			if _, err := tx.ExecContext(ctx, `DELETE FROM image_objects WHERE id=$1 AND created_at=$2`, *imageID, createdAt); err != nil {
 				return err
