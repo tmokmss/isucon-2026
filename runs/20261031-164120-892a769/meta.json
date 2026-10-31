@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-164120-892a769",
+  "startedAt": "2026-10-31T16:41:20+09:00",
+  "finishedAt": "2026-10-31T16:46:26+09:00",
+  "ref": "presign-on-fast-peers",
+  "sha": "892a769075980a3989d53ef353cbc5d3656fd26d",
+  "score": 229591,
+  "status": "pass",
+  "note": "次の分の署名を毎分30秒過ぎに EU/US で先に計算（main bdf05cd の上）",
+  "benchJobId": "29950",
+  "prevRunId": "20261031-163606-15a1e6c",
+  "bestRunId": "20261031-164120-892a769"
+}
