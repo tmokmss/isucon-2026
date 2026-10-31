@@ -741,7 +741,12 @@ type replica struct {
 	// asia1 で流してから当て終えるまでの時間の合計と件数（印ごと）
 	lagTotal atomic.Int64
 	lagCount atomic.Int64
-	advanced atomic.Pointer[chan struct{}]
+	// 遅れの内訳（10 秒ごとに出して 0 に戻す）: 受けるまで（asia1 で流してから届くまで）と、当てるための書きロックの待ち
+	recvLagTotal  atomic.Int64
+	recvLagCount  atomic.Int64
+	lockWaitTotal atomic.Int64
+	lockWaitCount atomic.Int64
+	advanced      atomic.Pointer[chan struct{}]
 }
 
 // waitCaughtUp は、時刻 t 以降に流れた印まで当て終えるのを待つ。間に合わなければ false
@@ -826,7 +831,12 @@ func (r *replica) session(loaded *bool) error {
 				close(in)
 				return
 			}
-			r.lastRecv.Store(time.Now().UnixNano())
+			now := time.Now().UnixNano()
+			r.lastRecv.Store(now)
+			if m.T > 0 {
+				r.recvLagTotal.Add(now - m.T)
+				r.recvLagCount.Add(1)
+			}
 			in <- replIn{m: m}
 		}
 	}()
@@ -881,7 +891,10 @@ func (r *replica) safeSession(loaded *bool) (err error) {
 }
 
 func (r *replica) applyBatch(batch []replIn, lastSeq *uint64) error {
+	lockStart := time.Now()
 	r.s.mu.Lock()
+	r.lockWaitTotal.Add(int64(time.Since(lockStart)))
+	r.lockWaitCount.Add(1)
 	defer r.s.mu.Unlock()
 	var lastT int64
 	defer func() {

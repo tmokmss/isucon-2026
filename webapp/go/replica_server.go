@@ -253,6 +253,15 @@ func (f *replicaFront) statsLoop() {
 			avgLag = time.Duration(f.rep.lagTotal.Load() / m)
 		}
 		log.Printf("repl-stats fresh=%v shadow=%d diff=%d late=%d local=%d fallback=%d avg_wait=%s avg_lag=%s", f.rep.fresh(), f.shadowTotal.Load(), f.shadowDiff.Load(), f.shadowLate.Load(), f.localTotal.Load(), f.fallbackTotal.Load(), avgWait, avgLag)
+		avg := func(total, count *atomic.Int64) time.Duration {
+			n := count.Swap(0)
+			s := total.Swap(0)
+			if n == 0 {
+				return 0
+			}
+			return time.Duration(s / n)
+		}
+		log.Printf("repl-lag recv=%s lock_wait=%s", avg(&f.rep.recvLagTotal, &f.rep.recvLagCount), avg(&f.rep.lockWaitTotal, &f.rep.lockWaitCount))
 		f.routeMu.Lock()
 		var b strings.Builder
 		for k, c := range f.routeCounts {
