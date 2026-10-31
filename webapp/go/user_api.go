@@ -74,7 +74,10 @@ func newGetMeResponse(user User) getMeResponse {
 }
 
 // ユーザー名の一意性を守るため、登録は直列にする
-var registerMu sync.Mutex
+var (
+	registerMu       sync.Mutex
+	registeringNames = map[string]bool{}
+)
 
 func registerHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
@@ -90,14 +93,22 @@ func registerHandler(h *HandlerContext) echo.HandlerFunc {
 		hash := sha256.Sum256([]byte(secretKey))
 		ctx := c.Request().Context()
 		s := h.Store
+		// ユーザー名の予約だけをロックで守り、DB への INSERT は並列に行う
 		registerMu.Lock()
-		defer registerMu.Unlock()
 		s.mu.RLock()
 		exists := s.usersByName[input.Username] != nil
 		s.mu.RUnlock()
-		if exists {
+		if exists || registeringNames[input.Username] {
+			registerMu.Unlock()
 			return NewAPIError(http.StatusConflict, "username_taken")
 		}
+		registeringNames[input.Username] = true
+		registerMu.Unlock()
+		defer func() {
+			registerMu.Lock()
+			delete(registeringNames, input.Username)
+			registerMu.Unlock()
+		}()
 		userID := uuid.NewString()
 		createdAt := now()
 		u := &UserRow{
