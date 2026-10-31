@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-135832-1338f93",
+  "startedAt": "2026-10-31T13:58:32+09:00",
+  "finishedAt": "2026-10-31T14:05:54+09:00",
+  "ref": "lane2-tune",
+  "sha": "1338f938d5631cbd118caf0caf26466c1fa8412a",
+  "score": 112525,
+  "status": "pass",
+  "note": "pool 100 + GOGC 400 on c6abd65",
+  "benchJobId": "15550",
+  "prevRunId": "20261031-134616-f256785",
+  "bestRunId": "20261031-134616-f256785"
+}

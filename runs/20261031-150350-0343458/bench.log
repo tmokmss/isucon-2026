@@ -1,0 +1,70 @@
+{"id":"20606","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"整合性の違反"}
+
+--- stdout ---
+time=2026-10-31T06:04:18.070Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:04:19.504Z level=INFO msg="user moved" user=reyomia5065 from=asia to=europe
+time=2026-10-31T06:04:21.069Z level=INFO msg="europe 1 日目: 8 人"
+time=2026-10-31T06:04:24.063Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:04:27.070Z level=INFO msg="asia 2 日目: 46 人"
+time=2026-10-31T06:04:30.063Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T06:04:32.903Z level=INFO msg="user moved" user=reyomia5065 from=europe to=asia
+time=2026-10-31T06:04:33.064Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T06:04:36.076Z level=INFO msg="asia 3 日目: 132 人"
+time=2026-10-31T06:04:37.674Z level=INFO msg="user moved" user=reyomia5065 from=asia to=europe
+time=2026-10-31T06:04:38.840Z level=INFO msg="user moved" user=kake5863 from=asia to=europe
+time=2026-10-31T06:04:39.063Z level=INFO msg="europe 3 日目: 57 人"
+time=2026-10-31T06:04:42.065Z level=INFO msg="america 3 日目: 40 人"
+time=2026-10-31T06:04:45.076Z level=INFO msg="asia 4 日目: 379 人"
+time=2026-10-31T06:04:46.058Z level=INFO msg="user moved" user=tsunoben_6256 from=europe to=asia
+time=2026-10-31T06:04:48.145Z level=INFO msg="europe 4 日目: 159 人"
+time=2026-10-31T06:04:48.179Z level=INFO msg="user moved" user=ivymax_6601 from=asia to=america
+time=2026-10-31T06:04:48.181Z level=INFO msg="user moved" user=evasolhi6293 from=europe to=asia
+time=2026-10-31T06:04:48.722Z level=INFO msg="user moved" user=tsunoben_6256 from=asia to=europe
+time=2026-10-31T06:04:48.919Z level=INFO msg="user moved" user=tasol.6995 from=asia to=america
+time=2026-10-31T06:04:50.629Z level=INFO msg="user moved" user=evasolhi6293 from=asia to=europe
+time=2026-10-31T06:04:50.940Z level=INFO msg="user moved" user=tasol.6995 from=america to=europe
+time=2026-10-31T06:04:51.159Z level=INFO msg="america 4 日目: 119 人"
+time=2026-10-31T06:04:52.416Z level=INFO msg="user moved" user=solku_7257 from=asia to=america
+time=2026-10-31T06:04:54.238Z level=INFO msg="asia 5 日目: 1051 人"
+time=2026-10-31T06:04:56.756Z level=INFO msg="user moved" user=kake5863 from=europe to=america
+time=2026-10-31T06:04:57.567Z level=INFO msg="europe 5 日目: 366 人"
+time=2026-10-31T06:05:00.462Z level=INFO msg="america 5 日目: 184 人"
+time=2026-10-31T06:05:01.158Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "整合性の違反: ren_watanabe_3699: 履歴が初期データと違います: 画像 URL \"/api/images/7fb44c75-84c4-4c6b-ad3d-bc9875c4753d?exp=1793513400\u0026sig=Bn6eyPtR6xAcHmYILhSB1hSW34FMK-12_wGc3J3k_qk\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "ren_watanabe_3699: 履歴が初期データと違います: 画像 URL \"/api/images/7fb44c75-84c4-4c6b-ad3d-bc9875c4753d?exp=1793513400\u0026sig=Bn6eyPtR6xAcHmYILhSB1hSW34FMK-12_wGc3J3k_qk\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "jihun_park_3721: 履歴が初期データと違います: 画像 URL \"/api/images/5bfb745b-5102-4308-83de-39dd3d911d2d?exp=1793513400\u0026sig=OyNMsEgia2tqm30DQrs9CigqNha8BCrtANa0K6kBW0k\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "diego_gonzalez_4290: 履歴が初期データと違います: 画像 URL \"/api/images/a80e6004-ef64-4dc1-b47d-bdfcf96fd0fe?exp=1793513400\u0026sig=boAyb9EWe4o6Bzl-THstasy2wtNdCZPhKuLl3SHu948\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "hugo_leroy_4540: 履歴が初期データと違います: 画像 URL \"/api/images/1ffb8b6a-0532-454d-baa8-fb6598c14c73?exp=1793513400\u0026sig=MU3tYJ6MJt3UcYaJNlOaO1EmlHyI1FE2heQqvgZS3a4\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "soba_und_geschmeidiges_rust_2334: 履歴が初期データと違います: エクスポート: 画像 URL \"/api/images/07b22b13-a18b-4ce1-bb30-c6c64b2e2361?exp=1793513400\u0026sig=MabUbYp-ercpSa_PpFWsQCcGfS2LmDkCns37Fb0p9NM\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "shadingyu_menfan_1205: 履歴が初期データと違います: 画像 URL \"/api/images/e0d355fb-39e5-49a0-8659-da92d12534e8?exp=1793513400\u0026sig=-z1a_FnrWNlqhRX1uGghF-jtGY2vUnjRpbRkElqq-jI\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "gansik_yesan_4079: 履歴が初期データと違います: エクスポート: 画像 URL \"/api/images/acb76cfe-de97-4d84-874f-c0c6d734bba0?exp=1793513400\u0026sig=Do8DwujwgvjCzFJQfpPtIidTowWAk0ZfsCyw1WXUTWE\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "donabe_iwashi_53: 履歴が初期データと違います: 画像 URL \"/api/images/26ed3642-2216-4667-8d58-71af669ae66d?exp=1793513400\u0026sig=sFi3qbpCV39-ft-ZH2vePTUgQmqGpt_KwKr3XKIt9B0\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "roor.7957: フィード friends: 投稿 5db5cb50-29ca-4215-8be1-7c67cd0ec50d の画像 URL が不正です: 画像 URL \"/api/images/b2dd8b1c-c9b7-4b9d-afff-0f4557d0f71f?exp=1793513400\u0026sig=A9oguOmPWipoV_gknrOEc6uhvE9EhGdTEmTrPGK9E1E\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "netorna9183: フィード following: 投稿 43875a3d-0f38-42a6-8816-49894a9ff230 の画像 URL が不正です: 画像 URL \"/api/images/1f0c2189-5fb5-4980-afcd-b12fe8c41ceb?exp=1793513400\u0026sig=KllWdeTsBPm-MYQxRZ7MwrdHcj8sOq3M_TlCWf19f8I\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "anwa_7679: フィード friends: 投稿 5aa917a1-ebc2-42f0-92bc-baa9664825f4 の画像 URL が不正です: 画像 URL \"/api/images/09bb3215-c935-4878-a7dc-7c403fc43cc6?exp=1793513400\u0026sig=FeweDxhFXgW2Pba3hbJ_XgaxNfW9GnNE10oGvO6PSB8\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "waelmax5606: フィード friends: 投稿 174935d5-5f98-4566-9329-00658d907a4a の画像 URL が不正です: 画像 URL \"/api/images/d0cb4bdc-cb3a-4482-b315-e696952f04d9?exp=1793513400\u0026sig=xX_jjigzSUNpjs6Licqtm311VYCJX2ff9NAsQIuzP4Y\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "tsuruel.5546: フィード friends: 投稿 83470f1e-6b4f-4d09-b016-87bca5890ef7 の画像 URL が不正です: 画像 URL \"/api/images/100f92c8-cc59-4dbc-b349-189d331c01e9?exp=1793513400\u0026sig=ZDZ3dL4cnCkZAbahxflcMNE9zyBEkoXJU1XNrh8OY9s\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "mitoto-9851: 投稿 e7bd4473-d58d-4294-af3b-78bb37e35f39 の画像 URL が不正です: 画像 URL \"/api/images/89544c01-6ccb-48c1-89e1-d99352d5e84c?exp=1793513400\u0026sig=yLMHJ-6vTTRjCSTOmPfo4Td33toD3jxKmSMTEDdSMcw\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "mifulia8003: フィード friends-of-friends: 投稿 5aa917a1-ebc2-42f0-92bc-baa9664825f4 の画像 URL が不正です: 画像 URL \"/api/images/09bb3215-c935-4878-a7dc-7c403fc43cc6?exp=1793513400\u0026sig=FeweDxhFXgW2Pba3hbJ_XgaxNfW9GnNE10oGvO6PSB8\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "benyumi7636: フィード friends: 投稿 009ec879-9e5e-4235-bac6-b4c498b9bf61 の画像 URL が不正です: 画像 URL \"/api/images/0140bc6a-7e73-425f-8b88-80c5eae305a5?exp=1793513400\u0026sig=WYBKEsX2-JPAC7122YSZJiUxpB6tXbWYsL8Tu_JHxTo\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "chinoaho_7940: フィード friends: 投稿 72a2f15c-80de-4021-98a9-5b5799f85b6c の画像 URL が不正です: 画像 URL \"/api/images/7b19c886-1b9a-4a7f-a4cc-7ad359e42431?exp=1793513400\u0026sig=2WhLbr7hpa6lLS6plasyfuQedUYq2aqV9JWAredsw_E\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "hofuse.7365: 投稿 718c5e04-9b9d-48af-9bd6-dcf6097a0e55 の画像 URL が不正です: 画像 URL \"/api/images/3f3e6684-6440-41ca-ad1d-44d529c74c67?exp=1793513400\u0026sig=jWQTYROdzdkOhrV9cvqGb86mGepyYJ5T2GW30S-QiY0\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "ulel.5821: フィード friends: 投稿 ff1856bd-28c3-4bf2-8116-c76d91915586 の画像 URL が不正です: 画像 URL \"/api/images/36bff905-52f5-4918-87b8-96384969e4eb?exp=1793513400\u0026sig=X9HPbNXIidNQsVRvjTkQaJiDdoTeNVs4TUVTGYSEHRk\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "ulel.5821: フィード friends: 投稿 5afd1eae-31bc-4e19-bc1a-a720cec9c681 の画像 URL が不正です: 画像 URL \"/api/images/68b83d67-daf9-4f82-876b-d0d2ea714037?exp=1793513400\u0026sig=bLSU8TOTN2qklKKqUA2rp8TaOq0aEp4X_G8kNp69Mbw\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "totanoa.5345: フィード friends: 投稿 25720e6b-f343-4097-a788-de8d1548f5ed の画像 URL が不正です: 画像 URL \"/api/images/20075b37-1281-4357-a854-01abbd18a449?exp=1793513400\u0026sig=KANeaYAADExdLL0-c90Hpk9xNLnOpP_7ZhYRH_MklMk\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "totanoa.5345: フィード friends: 投稿 2868a2a8-b6ce-4717-a449-fa6fe05b62f4 の画像 URL が不正です: 画像 URL \"/api/images/3aebc723-81df-4d6b-b4e8-08680165c346?exp=1793513400\u0026sig=LxDRAHUkzWmxRYAl8TlDbSkria71z_j9BhC2VpXsvlU\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "mahe.5743: フィード friends: 投稿 ed8d69b5-0762-4bcb-9917-91303da8e9ae の画像 URL が不正です: 画像 URL \"/api/images/a3233f8b-58a8-408b-8af2-14e337437bc4?exp=1793513400\u0026sig=OFUu-XY2yla26wTfcQDHjooG6q6X1zqKjrCZbHdfjrI\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "nimuro_6882: フィード friends: 投稿 2718d18a-b5e6-4f28-b3bb-d3888adab24f の画像 URL が不正です: 画像 URL \"/api/images/eac0e224-a7e9-477f-b366-a381c70ab22d?exp=1793513400\u0026sig=HKUZiehhmNBWvtgoJZQ7LqLqEWgf4ZO47SaNjyt6egw\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "nimuro_6882: フィード friends: 投稿 78ce89c0-611a-445e-9dea-0e4bfd13d668 の画像 URL が不正です: 画像 URL \"/api/images/bba2f71b-d40d-4258-87ae-913ae9a0d8be?exp=1793513400\u0026sig=JFtbtC9C9AfsCX6-3VUQ8DjTFdreEU_akCVcmt_w3Nc\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "kiho6090: フィード friends: 投稿 c115cc8e-293b-4b5d-86b9-8351fbecb1a5 の画像 URL が不正です: 画像 URL \"/api/images/43efef64-01fb-4887-acb4-0c30a4b5e2a0?exp=1793513400\u0026sig=F3AdKjkYWlLasO-MfNEurB_hFi9_H_7AJx2iMu91oLk\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "kiho6090: フィード friends: 投稿 e63ce4a5-d062-42f8-a8ba-7c15511ac9ae の画像 URL が不正です: 画像 URL \"/api/images/f21fae16-3784-406a-bffc-54f3d557c299?exp=1793513400\u0026sig=wbijRzj8Pt5n413R5dYdNbKS6v4AP0SLnqlMf0jsauc\" の有効期限 2026-11-01T06:10:00Z が範囲外です",
+    "kemax-5759: フィード friends: 投稿 c86e54d0-6c4d-4079-9293-cd9f0c5d6efb の画像 URL が不正です: 画像 URL \"/api/images/caf62beb-43ce-40a9-9865-7cf61a82083c?exp=1793513400\u0026sig=QtQesio6q89JPEYF3dL1Q4G2ErYutmyxhKB1F3_mblY\" の有効期限 2026-11-01T06:10:00Z が範囲外です"
+  ]
+}
+
+--- stderr ---
+

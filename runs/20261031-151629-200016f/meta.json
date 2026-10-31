@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-151629-200016f",
+  "startedAt": "2026-10-31T15:16:29+09:00",
+  "finishedAt": "2026-10-31T15:18:31+09:00",
+  "ref": "lane2-ipban",
+  "sha": "200016f64d9139ecfd9a3a3f277abdbb21b4282c",
+  "score": 180317,
+  "status": "pass",
+  "note": "ip_bans bg reload only on 5a230a4",
+  "benchJobId": "21720",
+  "prevRunId": "20261031-151136-dc74738",
+  "bestRunId": "20261031-151629-200016f"
+}

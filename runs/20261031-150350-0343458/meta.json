@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-150350-0343458",
+  "startedAt": "2026-10-31T15:03:50+09:00",
+  "finishedAt": "2026-10-31T15:05:02+09:00",
+  "ref": "lane2-tune",
+  "sha": "034345856596feb60794c500494b2335c15cff76",
+  "score": 0,
+  "status": "fail",
+  "note": "exp 5min + ipban bg reload + image cache 100MB + GOMEMLIMIT 2200 on 23db9c5",
+  "benchJobId": "20606",
+  "prevRunId": "20261031-145346-4535807",
+  "bestRunId": "20261031-141027-bd0fe45"
+}
