@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-115409-773f053",
+  "startedAt": "2026-10-31T11:54:09+09:00",
+  "finishedAt": "2026-10-31T11:57:52+09:00",
+  "ref": "try-limiter-register",
+  "sha": "773f0539cdf50f0c9d8d96da4529c5754a7435d8",
+  "score": 56553,
+  "status": "pass",
+  "note": "main + #70 同時実行の制御 + 登録の並列化",
+  "benchJobId": "5987",
+  "prevRunId": "20261031-115123-0904d44",
+  "bestRunId": "20261031-115040-1c73ee4"
+}

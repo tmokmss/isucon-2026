@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-114247-8e518c1",
+  "startedAt": "2026-10-31T11:42:47+09:00",
+  "finishedAt": "2026-10-31T11:50:00+09:00",
+  "ref": "limiter-test-reg",
+  "sha": "8e518c1e77cf07359b49733cd3ccdc5750e17101",
+  "score": 26395,
+  "status": "pass",
+  "note": "limiter post4 mem2 heavy1 + register fix 1376dd7",
+  "benchJobId": "5454",
+  "prevRunId": "20261031-113441-6a7a33a",
+  "bestRunId": "20261031-114247-8e518c1"
+}

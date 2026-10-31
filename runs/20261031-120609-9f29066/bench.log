@@ -1,0 +1,41 @@
+{"id":"6824","status":"done","portalStatus":"finished","passed":true,"score":68346,"raw":68346,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T03:08:49.074Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:08:52.038Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:08:55.039Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:08:58.068Z level=INFO msg="asia 2 日目: 53 人"
+time=2026-10-31T03:09:01.097Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T03:09:04.038Z level=INFO msg="america 2 日目: 13 人"
+time=2026-10-31T03:09:07.070Z level=INFO msg="asia 3 日目: 156 人"
+time=2026-10-31T03:09:08.885Z level=INFO msg="user moved" user=tekedan.5538 from=asia to=america
+time=2026-10-31T03:09:09.713Z level=INFO msg="user moved" user=rimumia-5765 from=asia to=europe
+time=2026-10-31T03:09:10.068Z level=INFO msg="europe 3 日目: 47 人"
+time=2026-10-31T03:09:10.079Z level=INFO msg="user moved" user=hikemu5757 from=asia to=europe
+time=2026-10-31T03:09:10.367Z level=INFO msg="user moved" user=teke.6048 from=asia to=america
+time=2026-10-31T03:09:10.397Z level=INFO msg="user moved" user=tesolnu6028 from=asia to=europe
+time=2026-10-31T03:09:12.634Z level=INFO msg="user moved" user=teke.6048 from=america to=europe
+time=2026-10-31T03:09:13.039Z level=INFO msg="america 3 日目: 35 人"
+time=2026-10-31T03:09:16.125Z level=INFO msg="asia 4 日目: 440 人"
+time=2026-10-31T03:09:19.142Z level=INFO msg="europe 4 日目: 109 人"
+time=2026-10-31T03:09:22.327Z level=INFO msg="america 4 日目: 62 人"
+time=2026-10-31T03:09:24.201Z level=INFO msg="user moved" user=hemax.6773 from=asia to=europe
+time=2026-10-31T03:09:25.186Z level=INFO msg="asia 5 日目: 535 人"
+time=2026-10-31T03:09:27.015Z level=INFO msg="user moved" user=teke.6048 from=europe to=america
+time=2026-10-31T03:09:28.194Z level=INFO msg="user moved" user=tesolnu6028 from=europe to=asia
+time=2026-10-31T03:09:28.696Z level=INFO msg="europe 5 日目: 108 人"
+time=2026-10-31T03:09:31.329Z level=INFO msg="america 5 日目: 63 人"
+time=2026-10-31T03:09:40.331Z level=INFO msg="europe 最終日（グランプリ）: 107 人"
+time=2026-10-31T03:09:40.712Z level=INFO msg="asia 最終日（グランプリ）: 535 人"
+time=2026-10-31T03:09:40.824Z level=INFO msg="america 最終日（グランプリ）: 63 人"
+time=2026-10-31T03:09:49.056Z level=INFO msg="グランプリ: アジア 8 人, ヨーロッパ 1 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 68346,
+  "messages": [
+    "anlia_5041: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）"
+  ]
+}
+
+--- stderr ---
+

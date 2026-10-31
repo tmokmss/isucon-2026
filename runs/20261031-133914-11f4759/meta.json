@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-133914-11f4759",
+  "startedAt": "2026-10-31T13:39:14+09:00",
+  "finishedAt": "2026-10-31T13:48:13+09:00",
+  "ref": "nginx-buffers-tcp",
+  "sha": "11f4759553c3daaa49b80077f50bdcf415e1a64a",
+  "score": 109728,
+  "status": "pass",
+  "note": "nginx-no-tempfile + tcp_slow_start_after_idle=0 on 7e687d9",
+  "benchJobId": "14163",
+  "prevRunId": "20261031-132303-5a138c8",
+  "bestRunId": "20261031-133914-11f4759"
+}

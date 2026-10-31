@@ -1,0 +1,49 @@
+File: isureal
+Build ID: 6316c911685873d5f177951a3169a2aeda130131
+Type: cpu
+Time: 2026-10-31 10:43:56 JST
+Duration: 60s, Total samples = 22.98s (38.30%)
+Showing nodes accounting for 18.66s, 81.20% of 22.98s total
+Dropped 831 nodes (cum <= 0.11s)
+Showing top 40 nodes out of 268
+      flat  flat%   sum%        cum   cum%
+     7.34s 31.94% 31.94%      7.35s 31.98%  crypto/internal/fips140/sha256.blockAVX2
+     1.29s  5.61% 37.55%      1.29s  5.61%  internal/runtime/syscall/linux.Syscall6
+     1.28s  5.57% 43.12%      1.91s  8.31%  image/jpeg.(*decoder).reconstructBlock
+     1.28s  5.57% 48.69%      1.28s  5.57%  runtime.memclrNoHeapPointers
+     1.19s  5.18% 53.87%      1.19s  5.18%  runtime.memmove
+     0.61s  2.65% 56.53%      3.63s 15.80%  image/jpeg.(*decoder).processSOS
+     0.60s  2.61% 59.14%      8.41s 36.60%  crypto/internal/fips140/sha256.(*Digest).Write
+     0.46s  2.00% 61.14%      0.72s  3.13%  image/jpeg.(*decoder).decodeHuffman
+     0.41s  1.78% 62.92%      8.41s 36.60%  crypto/internal/fips140/sha256.(*Digest).checkSum
+     0.33s  1.44% 64.36%      8.94s 38.90%  crypto/internal/fips140/sha256.(*Digest).Sum
+     0.30s  1.31% 65.67%      0.31s  1.35%  image/jpeg.(*decoder).receiveExtend
+     0.28s  1.22% 66.88%      5.23s 22.76%  crypto/internal/fips140/pbkdf2.Key[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }]
+     0.26s  1.13% 68.02%      0.30s  1.31%  image/jpeg.idctCols
+     0.26s  1.13% 69.15%      0.26s  1.13%  runtime.madvise
+     0.23s  1.00% 70.15%      9.77s 42.52%  crypto/internal/fips140/hmac.(*HMAC).Sum
+     0.23s  1.00% 71.15%      0.31s  1.35%  image/jpeg.idctRows
+     0.21s  0.91% 72.06%      0.21s  0.91%  runtime.procyieldAsm
+     0.20s  0.87% 72.93%      0.27s  1.17%  image/jpeg.(*decoder).ensureNBits
+     0.20s  0.87% 73.80%      0.33s  1.44%  runtime.tryDeferToSpanScan
+     0.19s  0.83% 74.63%      0.19s  0.83%  internal/byteorder.BEUint32 (inline)
+     0.17s  0.74% 75.37%      0.56s  2.44%  crypto/internal/fips140/hmac.(*HMAC).Reset
+     0.15s  0.65% 76.02%      0.66s  2.87%  crypto/internal/fips140/sha256.(*Digest).UnmarshalBinary
+     0.15s  0.65% 76.68%      0.15s  0.65%  runtime.futex
+     0.15s  0.65% 77.33%      0.32s  1.39%  runtime.scanObject
+     0.13s  0.57% 77.89%      0.13s  0.57%  runtime.nextFreeFast (inline)
+     0.11s  0.48% 78.37%      0.34s  1.48%  runtime.mallocgcSmallScanNoHeader
+     0.09s  0.39% 78.76%      7.44s 32.38%  crypto/internal/fips140/sha256.block
+     0.07s   0.3% 79.07%      0.26s  1.13%  crypto/internal/fips140deps/byteorder.BEUint32 (inline)
+     0.07s   0.3% 79.37%      1.11s  4.83%  runtime.mallocgc
+     0.06s  0.26% 79.63%      0.15s  0.65%  runtime.(*unwinder).resolveInternal
+     0.06s  0.26% 79.90%      0.32s  1.39%  runtime.newobject
+     0.05s  0.22% 80.11%      0.43s  1.87%  github.com/jackc/pgx/v5/stdlib.(*Rows).initValueFuncs.func14
+     0.05s  0.22% 80.33%      0.20s  0.87%  runtime.scanObjectsSmall
+     0.03s  0.13% 80.46%      0.16s   0.7%  crypto/internal/fips140/mlkem.kemKeyGen
+     0.03s  0.13% 80.59%      0.29s  1.26%  crypto/internal/fips140/sha256.consumeUint32 (inline)
+     0.03s  0.13% 80.72%      0.36s  1.57%  crypto/tls.(*atLeastReader).Read
+     0.03s  0.13% 80.85%      5.55s 24.15%  example.com/isureal-company/isureal.imageSignature
+     0.03s  0.13% 80.98%      0.80s  3.48%  github.com/jackc/pgx/v5/stdlib.(*Rows).Next
+     0.03s  0.13% 81.11%      0.23s  1.00%  github.com/jmoiron/sqlx.fieldsByTraversal
+     0.02s 0.087% 81.20%      5.41s 23.54%  github.com/jackc/pgx/v5/pgconn.(*PgConn).scramAuth

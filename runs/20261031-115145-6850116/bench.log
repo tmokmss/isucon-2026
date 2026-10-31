@@ -1,0 +1,57 @@
+{"id":"5865","status":"done","portalStatus":"finished","passed":true,"score":61412,"raw":61412,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:54:40.041Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:54:42.995Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:54:45.996Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:54:49.032Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T02:54:51.996Z level=INFO msg="europe 2 日目: 15 人"
+time=2026-10-31T02:54:54.996Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T02:54:58.033Z level=INFO msg="asia 3 日目: 138 人"
+time=2026-10-31T02:55:01.017Z level=INFO msg="europe 3 日目: 36 人"
+time=2026-10-31T02:55:03.672Z level=INFO msg="user moved" user=maxnoama_6136 from=asia to=europe
+time=2026-10-31T02:55:03.821Z level=INFO msg="user moved" user=nehe5713 from=asia to=america
+time=2026-10-31T02:55:04.008Z level=INFO msg="america 3 日目: 38 人"
+time=2026-10-31T02:55:06.407Z level=INFO msg="user moved" user=leozoeto_6051 from=europe to=america
+time=2026-10-31T02:55:07.035Z level=INFO msg="asia 4 日目: 378 人"
+time=2026-10-31T02:55:10.032Z level=INFO msg="europe 4 日目: 83 人"
+time=2026-10-31T02:55:12.921Z level=INFO msg="user moved" user=teshifu_6428 from=asia to=america
+time=2026-10-31T02:55:13.129Z level=INFO msg="america 4 日目: 78 人"
+time=2026-10-31T02:55:13.408Z level=INFO msg="user moved" user=masumia6475 from=asia to=america
+time=2026-10-31T02:55:16.139Z level=INFO msg="asia 5 日目: 376 人"
+time=2026-10-31T02:55:19.149Z level=INFO msg="europe 5 日目: 83 人"
+time=2026-10-31T02:55:21.774Z level=INFO msg="user moved" user=leozoeto_6051 from=america to=asia
+time=2026-10-31T02:55:22.025Z level=INFO msg="america 5 日目: 78 人"
+time=2026-10-31T02:55:31.127Z level=INFO msg="asia 最終日（グランプリ）: 229 人"
+time=2026-10-31T02:55:31.173Z level=INFO msg="america 最終日（グランプリ）: 75 人"
+time=2026-10-31T02:55:31.207Z level=INFO msg="europe 最終日（グランプリ）: 39 人"
+time=2026-10-31T02:55:40.000Z level=INFO msg="グランプリ: アジア 9 人, ヨーロッパ 0 人, アメリカ 5 人"
+{
+  "pass": true,
+  "score": 61412,
+  "messages": [
+    "kehiel-7067: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "miakutsu-7082: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "zoekior-7092: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "torleo_7095: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "waevasol.7111: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "shivinya.7117: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "liazoe_7124: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "tesa.7130: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "orse-7138: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "rimaxmu_7145: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "ratote_7150: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "yumiru-7158: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "elrume_7168: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "haorchi.7170: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "kene.7183: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "marsa.7189: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "tohohe_7192: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "miaor_7204: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "numar_7208: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "hire-7213: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

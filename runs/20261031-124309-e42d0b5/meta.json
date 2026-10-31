@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-124309-e42d0b5",
+  "startedAt": "2026-10-31T12:43:09+09:00",
+  "finishedAt": "2026-10-31T12:47:01+09:00",
+  "ref": "grandprix-post-fifo",
+  "sha": "e42d0b56cef82129d492f9b99faa9917bd0cf571",
+  "score": 82684,
+  "status": "pass",
+  "note": "PR73 merged with main 04641dc",
+  "benchJobId": "9486",
+  "prevRunId": "20261031-121235-e0e4cb3",
+  "bestRunId": "20261031-124309-e42d0b5"
+}

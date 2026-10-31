@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-113320-54afe51",
+  "startedAt": "2026-10-31T11:33:20+09:00",
+  "finishedAt": "2026-10-31T11:35:11+09:00",
+  "ref": "limiter-priority",
+  "sha": "54afe515e703a8a76aa1f1a8e85a6bab405079d3",
+  "score": 0,
+  "status": "fail",
+  "note": "limiter post4-8s heavy1 on main-4764fb5",
+  "benchJobId": "4443",
+  "prevRunId": "20261031-112932-d2d4b7d",
+  "bestRunId": "20261031-103811-cef5fe3"
+}

@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-130520-28e8717",
+  "startedAt": "2026-10-31T13:05:20+09:00",
+  "finishedAt": "2026-10-31T13:09:43+09:00",
+  "ref": "repl-replica",
+  "sha": "28e87177fb42d0f96c54c9631cccbc591378d629",
+  "score": 80118,
+  "status": "pass",
+  "note": "複製 第2段 local（フィード・投稿詳細・コメント/RealMoji 一覧を europe1・america1 が手元で返す）＋要約の照合",
+  "benchJobId": "11207",
+  "prevRunId": "20261031-125932-1dcbb5d",
+  "bestRunId": "20261031-130520-28e8717"
+}

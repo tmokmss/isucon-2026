@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-131142-53ad405",
+  "startedAt": "2026-10-31T13:11:42+09:00",
+  "finishedAt": "2026-10-31T13:15:50+09:00",
+  "ref": "HEAD",
+  "sha": "53ad405390e918ee0cb2516b90ad3c70dfd315bf",
+  "score": 108397,
+  "status": "pass",
+  "note": "tls-off-export-pk-sync-off-bodybuf",
+  "benchJobId": "11638",
+  "prevRunId": "20261031-130542-c75a0a9",
+  "bestRunId": "20261031-130542-c75a0a9"
+}

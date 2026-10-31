@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-100757-ff46021",
+  "startedAt": "2026-10-31T10:07:57+09:00",
+  "finishedAt": "2026-10-31T10:07:57+09:00",
+  "ref": "HEAD",
+  "sha": "ff46021c46a33b2a90c713b352636b7a04578507",
+  "score": 0,
+  "status": "error",
+  "note": "初期状態",
+  "benchJobId": "",
+  "prevRunId": null,
+  "bestRunId": null
+}

@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-125928-1deeabf",
+  "startedAt": "2026-10-31T12:59:28+09:00",
+  "finishedAt": "2026-10-31T13:01:40+09:00",
+  "ref": "tcp-slow-start-idle",
+  "sha": "1deeabf08fa9bf60e9689bf9a3fd5882a29105bf",
+  "score": 101157,
+  "status": "pass",
+  "note": "tcp_slow_start_after_idle=0 1回目",
+  "benchJobId": "10609",
+  "prevRunId": "20261031-121235-e0e4cb3",
+  "bestRunId": "20261031-125928-1deeabf"
+}

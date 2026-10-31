@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-105158-7f1b7c2",
+  "startedAt": "2026-10-31T10:51:58+09:00",
+  "finishedAt": "2026-10-31T10:56:33+09:00",
+  "ref": "jpeg-check-cache",
+  "sha": "7f1b7c2c9a2e26eb3e4daa18430c7cf74672d93e",
+  "score": 14462,
+  "status": "pass",
+  "note": "JPEGの検証結果をsha256でキャッシュ",
+  "benchJobId": "2007",
+  "prevRunId": "20261031-103811-cef5fe3",
+  "bestRunId": "20261031-103811-cef5fe3"
+}

@@ -1,0 +1,46 @@
+{"id":"4363","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"負荷走行を打ち切りました"}
+
+--- stdout ---
+time=2026-10-31T02:33:11.802Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:33:14.819Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:33:17.754Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:33:21.077Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T02:33:23.937Z level=INFO msg="europe 2 日目: 13 人"
+time=2026-10-31T02:33:27.401Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T02:33:30.816Z level=INFO msg="asia 3 日目: 48 人"
+time=2026-10-31T02:33:33.614Z level=INFO msg="europe 3 日目: 13 人"
+time=2026-10-31T02:33:38.191Z level=INFO msg="america 3 日目: 15 人"
+time=2026-10-31T02:33:43.054Z level=INFO msg="asia 4 日目: 48 人"
+time=2026-10-31T02:33:43.573Z level=INFO msg="europe 4 日目: 13 人"
+time=2026-10-31T02:33:48.320Z level=INFO msg="america 4 日目: 15 人"
+time=2026-10-31T02:34:01.753Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "負荷走行を打ち切りました: 45s〜50s のエラー率 131.4%（205/156 件）が上限 10.0% を超えました",
+    "teru_5134: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "hina_nakamura_38: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "satoran5062: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "sutor.5178: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "seoyeon_lee_63: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "fan_yang_65: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "kame.5217: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "mini_truthahn_vom_holzkohlegrill_4646: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "leoivy5107: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "kina-5411: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "namu-5212: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "bensushi_5446: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "mechi5325: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "mahihe.5359: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "jihun_park_57: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "hais-5025: 友達申請を承認できません: POST /api/friend-requests/1a8a2d8e-2660-4663-96c4-fbc9d220d77b/accept: 応答がタイムアウトしました",
+    "roto_5252: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "shiel5183: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "nean.5173: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "benkeleo.5464: 投稿できません: POST /api/posts: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

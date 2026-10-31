@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-131600-61b4ae5",
+  "startedAt": "2026-10-31T13:16:00+09:00",
+  "finishedAt": "2026-10-31T13:30:03+09:00",
+  "ref": "asia1-cpu-small",
+  "sha": "61b4ae59ef7f98a826f9aec42523373a36ba26d9",
+  "score": 0,
+  "status": "fail",
+  "note": "groupA-asia1-cpu-small",
+  "benchJobId": "12749",
+  "prevRunId": "20261031-121235-e0e4cb3",
+  "bestRunId": "20261031-121235-e0e4cb3"
+}

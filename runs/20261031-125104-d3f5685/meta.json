@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-125104-d3f5685",
+  "startedAt": "2026-10-31T12:51:04+09:00",
+  "finishedAt": "2026-10-31T12:55:03+09:00",
+  "ref": "grandprix-tcp-idle",
+  "sha": "d3f56854060426be7228ce55201abbdb72d21fb8",
+  "score": 87494,
+  "status": "pass",
+  "note": "PR73 + tcp_slow_start_after_idle=0",
+  "benchJobId": "10100",
+  "prevRunId": "20261031-124715-46aeaca",
+  "bestRunId": "20261031-124715-46aeaca"
+}

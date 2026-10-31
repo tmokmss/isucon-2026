@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-133224-e43e4ce",
+  "startedAt": "2026-10-31T13:32:24+09:00",
+  "finishedAt": "2026-10-31T13:39:45+09:00",
+  "ref": "repl-replica",
+  "sha": "e43e4ce69db88b3411434e123f6788fc12fa6d85",
+  "score": 104467,
+  "status": "pass",
+  "note": "複製 local・書き込みは返事を待たず読み取り側が時刻の印で待つ（main 860a676 を取り込み済み）",
+  "benchJobId": "13455",
+  "prevRunId": "20261031-131613-e2387b9",
+  "bestRunId": "20261031-133224-e43e4ce"
+}

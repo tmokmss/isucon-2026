@@ -1,0 +1,40 @@
+{"id":"9807","status":"done","portalStatus":"finished","passed":true,"score":100660,"raw":100660,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T03:49:23.556Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:49:26.520Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:49:29.519Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:49:32.542Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T03:49:35.521Z level=INFO msg="europe 2 日目: 16 人"
+time=2026-10-31T03:49:38.523Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T03:49:41.544Z level=INFO msg="asia 3 日目: 149 人"
+time=2026-10-31T03:49:43.958Z level=INFO msg="user moved" user=koshimu5842 from=asia to=europe
+time=2026-10-31T03:49:44.541Z level=INFO msg="europe 3 日目: 42 人"
+time=2026-10-31T03:49:47.521Z level=INFO msg="america 3 日目: 39 人"
+time=2026-10-31T03:49:50.558Z level=INFO msg="asia 4 日目: 416 人"
+time=2026-10-31T03:49:53.661Z level=INFO msg="europe 4 日目: 99 人"
+time=2026-10-31T03:49:54.879Z level=INFO msg="user moved" user=hayais6431 from=america to=asia
+time=2026-10-31T03:49:56.672Z level=INFO msg="america 4 日目: 72 人"
+time=2026-10-31T03:49:57.736Z level=INFO msg="user moved" user=solia7619 from=asia to=america
+time=2026-10-31T03:49:58.252Z level=INFO msg="user moved" user=toran8131 from=asia to=america
+time=2026-10-31T03:49:58.371Z level=INFO msg="user moved" user=hayais6431 from=asia to=europe
+time=2026-10-31T03:49:59.367Z level=INFO msg="user moved" user=tsurari_6894 from=asia to=america
+time=2026-10-31T03:49:59.652Z level=INFO msg="user moved" user=koshimu5842 from=europe to=asia
+time=2026-10-31T03:49:59.684Z level=INFO msg="asia 5 日目: 924 人"
+time=2026-10-31T03:49:59.942Z level=INFO msg="user moved" user=rovin.7275 from=asia to=america
+time=2026-10-31T03:50:02.667Z level=INFO msg="europe 5 日目: 99 人"
+time=2026-10-31T03:50:05.606Z level=INFO msg="america 5 日目: 76 人"
+time=2026-10-31T03:50:14.716Z level=INFO msg="asia 最終日（グランプリ）: 923 人"
+time=2026-10-31T03:50:14.791Z level=INFO msg="europe 最終日（グランプリ）: 98 人"
+time=2026-10-31T03:50:14.857Z level=INFO msg="america 最終日（グランプリ）: 76 人"
+time=2026-10-31T03:50:23.563Z level=INFO msg="グランプリ: アジア 361 人, ヨーロッパ 13 人, アメリカ 7 人"
+{
+  "pass": true,
+  "score": 100660,
+  "messages": [
+    "muma5025: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）"
+  ]
+}
+
+--- stderr ---
+

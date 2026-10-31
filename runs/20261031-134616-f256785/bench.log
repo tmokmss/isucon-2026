@@ -1,0 +1,46 @@
+{"id":"14337","status":"done","portalStatus":"finished","passed":true,"score":115400,"raw":115400,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:48:52.879Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:48:55.429Z level=INFO msg="user moved" user=shileowa_5023 from=asia to=america
+time=2026-10-31T04:48:55.850Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:48:58.849Z level=INFO msg="america 1 日目: 7 人"
+time=2026-10-31T04:49:01.871Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T04:49:04.849Z level=INFO msg="europe 2 日目: 20 人"
+time=2026-10-31T04:49:07.720Z level=INFO msg="user moved" user=evayamu5369 from=europe to=asia
+time=2026-10-31T04:49:07.860Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T04:49:10.869Z level=INFO msg="asia 3 日目: 140 人"
+time=2026-10-31T04:49:12.752Z level=INFO msg="user moved" user=shileowa_5023 from=america to=asia
+time=2026-10-31T04:49:12.826Z level=INFO msg="user moved" user=yabense.5756 from=asia to=europe
+time=2026-10-31T04:49:12.994Z level=INFO msg="user moved" user=evadan-5798 from=asia to=europe
+time=2026-10-31T04:49:13.094Z level=INFO msg="user moved" user=evayamu5369 from=asia to=europe
+time=2026-10-31T04:49:13.850Z level=INFO msg="europe 3 日目: 64 人"
+time=2026-10-31T04:49:16.856Z level=INFO msg="america 3 日目: 47 人"
+time=2026-10-31T04:49:19.876Z level=INFO msg="asia 4 日目: 400 人"
+time=2026-10-31T04:49:22.858Z level=INFO msg="europe 4 日目: 167 人"
+time=2026-10-31T04:49:23.395Z level=INFO msg="user moved" user=miarara6596 from=america to=asia
+time=2026-10-31T04:49:23.442Z level=INFO msg="user moved" user=shileowa_5023 from=asia to=america
+time=2026-10-31T04:49:23.493Z level=INFO msg="user moved" user=vinkovin_6860 from=asia to=europe
+time=2026-10-31T04:49:24.844Z level=INFO msg="user moved" user=miarara6596 from=asia to=europe
+time=2026-10-31T04:49:26.019Z level=INFO msg="america 4 日目: 113 人"
+time=2026-10-31T04:49:27.585Z level=INFO msg="user moved" user=evadan-5798 from=europe to=asia
+time=2026-10-31T04:49:28.271Z level=INFO msg="user moved" user=muri-6958 from=asia to=europe
+time=2026-10-31T04:49:28.422Z level=INFO msg="user moved" user=sumardan8082 from=asia to=europe
+time=2026-10-31T04:49:28.641Z level=INFO msg="user moved" user=danelri7581 from=asia to=europe
+time=2026-10-31T04:49:29.114Z level=INFO msg="asia 5 日目: 868 人"
+time=2026-10-31T04:49:31.909Z level=INFO msg="europe 5 日目: 171 人"
+time=2026-10-31T04:49:35.014Z level=INFO msg="america 5 日目: 113 人"
+time=2026-10-31T04:49:44.019Z level=INFO msg="america 最終日（グランプリ）: 113 人"
+time=2026-10-31T04:49:44.062Z level=INFO msg="europe 最終日（グランプリ）: 171 人"
+time=2026-10-31T04:49:44.234Z level=INFO msg="asia 最終日（グランプリ）: 867 人"
+time=2026-10-31T04:49:52.882Z level=INFO msg="グランプリ: アジア 343 人, ヨーロッパ 106 人, アメリカ 65 人"
+{
+  "pass": true,
+  "score": 115400,
+  "messages": [
+    "hiteke_6456: ログインし直せません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

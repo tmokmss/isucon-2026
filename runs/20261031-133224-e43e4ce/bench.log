@@ -1,0 +1,35 @@
+{"id":"13455","status":"done","portalStatus":"finished","passed":true,"score":104467,"raw":104467,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:38:07.558Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:38:10.523Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:38:13.522Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:38:16.554Z level=INFO msg="asia 2 日目: 47 人"
+time=2026-10-31T04:38:19.521Z level=INFO msg="europe 2 日目: 16 人"
+time=2026-10-31T04:38:22.521Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T04:38:25.543Z level=INFO msg="asia 3 日目: 136 人"
+time=2026-10-31T04:38:28.529Z level=INFO msg="europe 3 日目: 42 人"
+time=2026-10-31T04:38:28.694Z level=INFO msg="user moved" user=roneta5915 from=asia to=america
+time=2026-10-31T04:38:31.522Z level=INFO msg="america 3 日目: 40 人"
+time=2026-10-31T04:38:34.551Z level=INFO msg="asia 4 日目: 392 人"
+time=2026-10-31T04:38:37.654Z level=INFO msg="europe 4 日目: 115 人"
+time=2026-10-31T04:38:39.456Z level=INFO msg="user moved" user=tatsueva_7021 from=asia to=europe
+time=2026-10-31T04:38:40.568Z level=INFO msg="america 4 日目: 91 人"
+time=2026-10-31T04:38:43.515Z level=INFO msg="user moved" user=ivysu8416 from=europe to=asia
+time=2026-10-31T04:38:43.747Z level=INFO msg="asia 5 日目: 990 人"
+time=2026-10-31T04:38:46.776Z level=INFO msg="europe 5 日目: 115 人"
+time=2026-10-31T04:38:49.831Z level=INFO msg="america 5 日目: 91 人"
+time=2026-10-31T04:38:59.000Z level=INFO msg="europe 最終日（グランプリ）: 115 人"
+time=2026-10-31T04:38:59.495Z level=INFO msg="america 最終日（グランプリ）: 91 人"
+time=2026-10-31T04:38:59.734Z level=INFO msg="asia 最終日（グランプリ）: 990 人"
+time=2026-10-31T04:39:07.550Z level=INFO msg="グランプリ: アジア 247 人, ヨーロッパ 38 人, アメリカ 22 人"
+{
+  "pass": true,
+  "score": 104467,
+  "messages": [
+    "kasoel.5122: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）"
+  ]
+}
+
+--- stderr ---
+

@@ -1,0 +1,36 @@
+{"id":"8085","status":"done","portalStatus":"finished","passed":true,"score":79369,"raw":79369,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T03:26:31.633Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:26:34.597Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:26:37.596Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:26:40.630Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T03:26:41.485Z level=INFO msg="user moved" user=evamero_5191 from=asia to=europe
+time=2026-10-31T03:26:43.044Z level=INFO msg="user moved" user=yadanho5282 from=asia to=europe
+time=2026-10-31T03:26:43.597Z level=INFO msg="europe 2 日目: 20 人"
+time=2026-10-31T03:26:46.598Z level=INFO msg="america 2 日目: 13 人"
+time=2026-10-31T03:26:49.623Z level=INFO msg="asia 3 日目: 148 人"
+time=2026-10-31T03:26:52.649Z level=INFO msg="europe 3 日目: 45 人"
+time=2026-10-31T03:26:53.223Z level=INFO msg="user moved" user=andan-5995 from=asia to=america
+time=2026-10-31T03:26:55.600Z level=INFO msg="america 3 日目: 33 人"
+time=2026-10-31T03:26:58.750Z level=INFO msg="asia 4 日目: 416 人"
+time=2026-10-31T03:26:59.749Z level=INFO msg="user moved" user=yadanho5282 from=europe to=america
+time=2026-10-31T03:27:01.871Z level=INFO msg="europe 4 日目: 100 人"
+time=2026-10-31T03:27:04.890Z level=INFO msg="america 4 日目: 62 人"
+time=2026-10-31T03:27:05.826Z level=INFO msg="user moved" user=taku7178 from=asia to=europe
+time=2026-10-31T03:27:07.840Z level=INFO msg="asia 5 日目: 643 人"
+time=2026-10-31T03:27:08.419Z level=INFO msg="user moved" user=torkimax_7647 from=asia to=america
+time=2026-10-31T03:27:10.691Z level=INFO msg="europe 5 日目: 101 人"
+time=2026-10-31T03:27:13.778Z level=INFO msg="america 5 日目: 63 人"
+time=2026-10-31T03:27:22.901Z level=INFO msg="europe 最終日（グランプリ）: 101 人"
+time=2026-10-31T03:27:22.981Z level=INFO msg="america 最終日（グランプリ）: 63 人"
+time=2026-10-31T03:27:23.157Z level=INFO msg="asia 最終日（グランプリ）: 642 人"
+time=2026-10-31T03:27:31.620Z level=INFO msg="グランプリ: アジア 201 人, ヨーロッパ 18 人, アメリカ 16 人"
+{
+  "pass": true,
+  "score": 79369,
+  "messages": []
+}
+
+--- stderr ---
+

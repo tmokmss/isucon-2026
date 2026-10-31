@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-120912-249be25",
+  "startedAt": "2026-10-31T12:09:12+09:00",
+  "finishedAt": "2026-10-31T12:12:03+09:00",
+  "ref": "origin/main",
+  "sha": "249be2509f9627b7ed6307d439e5436ecd78bd61",
+  "score": 0,
+  "status": "fail",
+  "note": "main: +#71 JPEG の検証を europe1・america1 へ（再起動試験の後）",
+  "benchJobId": "6978",
+  "prevRunId": "20261031-115822-a8d9e7d",
+  "bestRunId": "20261031-115040-1c73ee4"
+}

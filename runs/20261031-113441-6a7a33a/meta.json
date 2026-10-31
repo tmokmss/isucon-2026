@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-113441-6a7a33a",
+  "startedAt": "2026-10-31T11:34:41+09:00",
+  "finishedAt": "2026-10-31T11:37:22+09:00",
+  "ref": "origin/main",
+  "sha": "6a7a33a922e977630d3a989ec56e090d84981f12",
+  "score": 17072,
+  "status": "pass",
+  "note": "main: 登録の並列化を戻した（#67 入り）",
+  "benchJobId": "4503",
+  "prevRunId": "20261031-113154-1376dd7",
+  "bestRunId": "20261031-103811-cef5fe3"
+}
