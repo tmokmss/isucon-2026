@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-171906-f36b328",
+  "startedAt": "2026-10-31T17:19:06+09:00",
+  "finishedAt": "2026-10-31T17:23:06+09:00",
+  "ref": "f36b328",
+  "sha": "f36b328b59a9341a89c53e816e4a631141ea9593",
+  "score": 198386,
+  "status": "pass",
+  "note": "memories to EU US replicas, export on asia1 (main ac5b09b)",
+  "benchJobId": "33734",
+  "prevRunId": "20261031-171105-5c44717",
+  "bestRunId": "20261031-164055-bdf05cd"
+}

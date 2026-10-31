@@ -135,3 +135,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-170001-a1cea2f	2026-10-31T17:00:01+09:00	a1cea2f11404a718f0c18a191d787ec7efbb5a55	sign-cache-to-asia1	223475	pass	asia2 が計算した署名を asia1 のキャッシュへ送る（main bdf05cd の上）
 20261031-171010-53bad13	2026-10-31T17:10:10+09:00	53bad13c4a4b8e9fd5011a7f6a548dc056295727	asia2-gogc	219729	pass	asia2 GOGC=400 GOMEMLIMIT=1400MiB MemoryMax=1800M
 20261031-171105-5c44717	2026-10-31T17:11:05+09:00	5c4471724b9b1451394ce33b79fbe7e88f056fef	5c44717	201585	pass	asia1 GET memories export to EU US replicas on 885b12c
+20261031-171906-f36b328	2026-10-31T17:19:06+09:00	f36b328b59a9341a89c53e816e4a631141ea9593	f36b328	198386	pass	memories to EU US replicas, export on asia1 (main ac5b09b)
