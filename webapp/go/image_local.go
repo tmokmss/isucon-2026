@@ -4,10 +4,12 @@ package isureal
 // - 画像の本体: images/init/（初期データ。setup/image-export.sh で書き出した分と、PostgreSQL から取った初期データの画像）、
 //   images/new/（PostgreSQL から取った新しい画像。initialize で消す）の順に探し、無ければ PostgreSQL から取って置く
 // - 取得してよいかの判定: PostgreSQL に 1 回問い合わせ、結果を依存キー（img:<画像 ID>、user:<利用者 ID>）付きで手元に持つ
-// - 無効化: asia1 が画像を取れなくしたときに、:8081 のストリームで img:/user: のキーを流す。受けた台は該当の判定を捨てる
+// - 無効化: asia1 が画像を取れなくしたときに、img:/user: のキーを各台の :8081 へ POST し、各台が判定を捨てた受領を待ってから応答する。
+//   受領が imageInvalidateTimeout 以内に来ない台は、その台へのストリームを切る（その台は切断かハートビートの途絶で判定を全部捨てる）。
+//   同じキーはストリームにも流す
 // - ストリームのハートビートが imageEventLease を超えて途絶えたら、手元の判定は使わず毎回 PostgreSQL で判定する。
 //   切れたときは判定を全部捨てる（届かなかった無効化があっても、手元の判定が残らない）
-// - initialize（asia1）は "*" を流し、受けた台は判定を全部捨てて images/new/ を消す
+// - initialize（asia1）は "*" を送り、受けた台は判定を全部捨てて images/new/ を消す
 
 import (
 	"bufio"
@@ -18,6 +20,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -37,10 +40,11 @@ import (
 )
 
 const (
-	imageEventAddr      = ":8081"
-	imageEventHeartbeat = 300 * time.Millisecond
-	imageEventLease     = 2 * time.Second
-	imageRootDir        = "/home/isucon/images"
+	imageEventAddr         = ":8081"
+	imageEventHeartbeat    = 300 * time.Millisecond
+	imageEventLease        = 2 * time.Second
+	imageInvalidateTimeout = time.Second
+	imageRootDir           = "/home/isucon/images"
 )
 
 var localImageIDPattern = regexp.MustCompile(`^[0-9A-Za-z_-]{1,64}$`)
@@ -49,10 +53,56 @@ var localImageIDPattern = regexp.MustCompile(`^[0-9A-Za-z_-]{1,64}$`)
 
 type imageEventHub struct {
 	mu   sync.Mutex
-	subs map[chan string]struct{}
+	subs map[chan string]string // 購読者の IP
 }
 
-var imageEvents = &imageEventHub{subs: map[chan string]struct{}{}}
+var imageEvents = &imageEventHub{subs: map[chan string]string{}}
+
+// dropPeer はその IP の台へのストリームを切る
+func (hub *imageEventHub) dropPeer(ip string) {
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+	for ch, subIP := range hub.subs {
+		if subIP == ip {
+			close(ch)
+			delete(hub.subs, ch)
+		}
+	}
+}
+
+var imageInvalidateClient = &http.Client{Timeout: imageInvalidateTimeout}
+
+// invalidateOnPeers は各台へキーを送り、受領を待つ。受領が来なかった台へのストリームは切る
+func invalidateOnPeers(peers []string, lines []string) {
+	imageEvents.publish(lines...)
+	body := strings.Join(lines, "\n")
+	var wg sync.WaitGroup
+	for _, peer := range peers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			resp, err := imageInvalidateClient.Post("http://"+peer+"/_internal/invalidate", "text/plain", strings.NewReader(body))
+			if err == nil {
+				resp.Body.Close()
+				if resp.StatusCode != http.StatusNoContent {
+					err = fmt.Errorf("status %d", resp.StatusCode)
+				}
+			}
+			if err != nil {
+				log.Printf("image invalidation to %s failed: %v", peer, err)
+				host, _, _ := net.SplitHostPort(peer)
+				imageEvents.dropPeer(host)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func privateRemote(r *http.Request) (string, bool) {
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ip := net.ParseIP(host)
+	return host, ip != nil && ip.IsPrivate()
+}
 
 func (hub *imageEventHub) publish(lines ...string) {
 	hub.mu.Lock()
@@ -78,8 +128,8 @@ func sendAll(ch chan string, lines []string) bool {
 }
 
 func (hub *imageEventHub) serveHTTP(w http.ResponseWriter, r *http.Request) {
-	host, _, _ := net.SplitHostPort(r.RemoteAddr)
-	if ip := net.ParseIP(host); ip == nil || !ip.IsPrivate() {
+	host, ok := privateRemote(r)
+	if !ok {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -89,7 +139,7 @@ func (hub *imageEventHub) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ch := make(chan string, 4096)
 	hub.mu.Lock()
-	hub.subs[ch] = struct{}{}
+	hub.subs[ch] = host
 	hub.mu.Unlock()
 	defer func() {
 		hub.mu.Lock()
@@ -132,29 +182,46 @@ func (hub *imageEventHub) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// StartImageEventPublisher は asia1 で呼ぶ。画像が取れなくなる箇所の呼び出し口を、ストリームへ流す処理につなぐ
+// StartImageEventPublisher は asia1 で呼ぶ。画像が取れなくなる箇所の呼び出し口を、各台へ知らせて受領を待つ処理につなぐ。
+// 送り先は ISUREAL_IMAGE_PEERS（europe1・america1 の :8081）
 func StartImageEventPublisher() {
+	peers := envPeers("ISUREAL_IMAGE_PEERS")
 	imagesInvalidated = func(imageIDs ...string) {
 		lines := make([]string, len(imageIDs))
 		for i, id := range imageIDs {
 			lines[i] = "img:" + id
 		}
-		imageEvents.publish(lines...)
+		invalidateOnPeers(peers, lines)
 	}
-	userImagesInvalidated = func(userID string) { imageEvents.publish("user:" + userID) }
+	userImagesInvalidated = func(userID string) { invalidateOnPeers(peers, []string{"user:" + userID}) }
+	imagesReset = func() { invalidateOnPeers(peers, []string{"*"}) }
 	mux := http.NewServeMux()
 	mux.HandleFunc("/_internal/image-events", imageEvents.serveHTTP)
+	serveInternal(mux)
+}
+
+func serveInternal(mux *http.ServeMux) {
 	go func() {
 		for {
 			err := http.ListenAndServe(imageEventAddr, mux)
-			log.Printf("image event server stopped: %v", err)
+			log.Printf("image internal server stopped: %v", err)
 			time.Sleep(time.Second)
 		}
 	}()
 }
 
+func envPeers(name string) []string {
+	var peers []string
+	for _, p := range strings.Split(os.Getenv(name), ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			peers = append(peers, p)
+		}
+	}
+	return peers
+}
+
 // imagesReset は initialize の後に呼ぶ
-func imagesReset() { imageEvents.publish("*") }
+var imagesReset = func() {}
 
 // ---- europe1・america1: 受けて画像を返す側 ----
 
@@ -286,12 +353,8 @@ func (st *localImageState) readStream(client *http.Client, peer string) error {
 	for sc.Scan() {
 		line := sc.Text()
 		st.mu.Lock()
-		switch {
-		case line == "*":
-			st.flushLocked()
-			go resetNewImages()
-		case line != ".":
-			st.invalidateLocked(line)
+		if line != "." {
+			st.applyLocked(line)
 		}
 		st.lastSeen[peer] = time.Now()
 		st.mu.Unlock()
@@ -300,6 +363,35 @@ func (st *localImageState) readStream(client *http.Client, peer string) error {
 		return sc.Err()
 	}
 	return errors.New("closed")
+}
+
+func (st *localImageState) applyLocked(line string) {
+	if line == "*" {
+		st.flushLocked()
+		go resetNewImages()
+		return
+	}
+	st.invalidateLocked(line)
+}
+
+// serveInvalidate は asia1 からの無効化を当ててから 204 を返す（asia1 はこの受領を待って応答する）
+func (st *localImageState) serveInvalidate(w http.ResponseWriter, r *http.Request) {
+	if _, ok := privateRemote(r); !ok || r.Method != http.MethodPost {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return
+	}
+	st.mu.Lock()
+	for _, line := range strings.Split(string(body), "\n") {
+		if line != "" {
+			st.applyLocked(line)
+		}
+	}
+	st.mu.Unlock()
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func resetNewImages() {
@@ -474,16 +566,14 @@ func NewImageServer(config *Config) *echo.Echo {
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = APIErrorHandler
 
-	var peers []string
-	for _, p := range strings.Split(os.Getenv("ISUREAL_IMAGE_EVENT_PEERS"), ",") {
-		if p = strings.TrimSpace(p); p != "" {
-			peers = append(peers, p)
-		}
-	}
+	peers := envPeers("ISUREAL_IMAGE_EVENT_PEERS")
 	s := &imageServer{state: newLocalImageState(peers)}
 	for _, p := range peers {
 		go s.state.subscribe(p)
 	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/_internal/invalidate", s.state.serveInvalidate)
+	serveInternal(mux)
 	bans := &IPBanList{}
 	ready := make(chan struct{})
 	go func() {
