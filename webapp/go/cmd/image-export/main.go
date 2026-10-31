@@ -5,21 +5,20 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
 
 func main() {
-	dsn := flag.String("dsn", "postgres://isureal:isureal@127.0.0.1:5433/isureal", "")
-	dir := flag.String("dir", "/home/isucon/images/init", "")
-	flag.Parse()
+	const dsn = "postgres://isureal:isureal@127.0.0.1:5433/isureal"
+	const dir = "/home/isucon/images/init"
 
 	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, *dsn)
+	conn, err := pgx.Connect(ctx, dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,6 +26,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// 他のベンチとディスクを取り合わないよう、読み出しを毎秒 20MB までに抑える
+	const bytesPerSecond = 20 << 20
+	start := time.Now()
+	total := 0
 	seen, written := 0, 0
 	for rows.Next() {
 		var id string
@@ -35,10 +38,14 @@ func main() {
 			log.Fatal(err)
 		}
 		seen++
+		total += len(data)
+		if ahead := time.Duration(float64(total)/bytesPerSecond*float64(time.Second)) - time.Since(start); ahead > 0 {
+			time.Sleep(ahead)
+		}
 		if seen%100000 == 0 {
 			log.Printf("%d seen, %d written", seen, written)
 		}
-		sub := filepath.Join(*dir, id[:2])
+		sub := filepath.Join(dir, id[:2])
 		path := filepath.Join(sub, id)
 		if _, err := os.Stat(path); err == nil {
 			continue
