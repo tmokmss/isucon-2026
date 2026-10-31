@@ -199,7 +199,7 @@ func (d *decoder) processSOS(n int) error {
 						if zig == 0 {
 							zig++
 							// Decode the DC coefficient, as specified in section F.2.2.1.
-							value, err := d.decodeHuffman(&d.huff[dcTable][scan[i].td])
+							value, err := d.decodeHuffmanFast(&d.huff[dcTable][scan[i].td])
 							if err != nil {
 								return err
 							}
@@ -219,39 +219,43 @@ func (d *decoder) processSOS(n int) error {
 						} else {
 							// Decode the AC coefficients, as specified in section F.2.2.2.
 							huff := &d.huff[acTable][scan[i].ta]
-							for ; zig <= zigEnd; zig++ {
-								value, err := d.decodeHuffman(huff)
-								if err != nil {
+							if !d.progressive {
+								if err := d.skipAC(huff, zig, zigEnd); err != nil {
 									return err
 								}
-								val0 := value >> 4
-								val1 := value & 0x0f
-								if val1 != 0 {
-									zig += int32(val0)
-									if zig > zigEnd {
-										break
-									}
-									ac, err := d.receiveExtend(val1)
+							} else {
+								for ; zig <= zigEnd; zig++ {
+									value, err := d.decodeHuffman(huff)
 									if err != nil {
 										return err
 									}
-									if d.progressive {
-										b[unzig[zig]] = ac << al
-									}
-								} else {
-									if val0 != 0x0f {
-										d.eobRun = uint16(1 << val0)
-										if val0 != 0 {
-											bits, err := d.decodeBits(int32(val0))
-											if err != nil {
-												return err
-											}
-											d.eobRun |= uint16(bits)
+									val0 := value >> 4
+									val1 := value & 0x0f
+									if val1 != 0 {
+										zig += int32(val0)
+										if zig > zigEnd {
+											break
 										}
-										d.eobRun--
-										break
+										ac, err := d.receiveExtend(val1)
+										if err != nil {
+											return err
+										}
+										b[unzig[zig]] = ac << al
+									} else {
+										if val0 != 0x0f {
+											d.eobRun = uint16(1 << val0)
+											if val0 != 0 {
+												bits, err := d.decodeBits(int32(val0))
+												if err != nil {
+													return err
+												}
+												d.eobRun |= uint16(bits)
+											}
+											d.eobRun--
+											break
+										}
+										zig += 0x0f
 									}
-									zig += 0x0f
 								}
 							}
 						}
@@ -300,6 +304,73 @@ func (d *decoder) processSOS(n int) error {
 		} // for mx
 	} // for my
 
+	return nil
+}
+
+// skipAC は逐次の JPEG の 1 ブロックの AC 係数を読み飛ばす。読むビット・eobRun・エラーは元の AC 係数の復号と同じで、
+// 係数の値は使わないので作らない。ビットの状態はメソッドを呼ぶ前後だけ d.bits と行き来させ、それ以外はローカル変数で持つ
+func (d *decoder) skipAC(huff *huffman, zig, zigEnd int32) error {
+	a, n, m := d.bits.a, d.bits.n, d.bits.m
+	for ; zig <= zigEnd; zig++ {
+		if n < fastBits {
+			d.bits.a, d.bits.n, d.bits.m = a, n, m
+			d.prefetch()
+			a, n, m = d.bits.a, d.bits.n, d.bits.m
+		}
+		var value uint8
+		v := uint16(0)
+		if n >= fastBits {
+			v = huff.fast[(a>>uint32(n-fastBits))&(1<<fastBits-1)]
+		}
+		if v != 0 {
+			c := int32(v&0xff) - 1
+			n -= c
+			m >>= uint32(c)
+			value = uint8(v >> 8)
+		} else {
+			d.bits.a, d.bits.n, d.bits.m = a, n, m
+			var err error
+			value, err = d.decodeHuffman(huff)
+			if err != nil {
+				return err
+			}
+			a, n, m = d.bits.a, d.bits.n, d.bits.m
+		}
+		val0 := value >> 4
+		val1 := value & 0x0f
+		if val1 != 0 {
+			zig += int32(val0)
+			if zig > zigEnd {
+				break
+			}
+			if n >= int32(val1) {
+				n -= int32(val1)
+				m >>= val1
+				continue
+			}
+			d.bits.a, d.bits.n, d.bits.m = a, n, m
+			if _, err := d.receiveExtend(val1); err != nil {
+				return err
+			}
+			a, n, m = d.bits.a, d.bits.n, d.bits.m
+		} else {
+			if val0 != 0x0f {
+				d.bits.a, d.bits.n, d.bits.m = a, n, m
+				d.eobRun = uint16(1 << val0)
+				if val0 != 0 {
+					bits, err := d.decodeBits(int32(val0))
+					if err != nil {
+						return err
+					}
+					d.eobRun |= uint16(bits)
+				}
+				d.eobRun--
+				return nil
+			}
+			zig += 0x0f
+		}
+	}
+	d.bits.a, d.bits.n, d.bits.m = a, n, m
 	return nil
 }
 

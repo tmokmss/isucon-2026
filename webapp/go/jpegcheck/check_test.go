@@ -128,3 +128,19 @@ func TestDiff(t *testing.T) {
 	})
 	t.Logf("files=%d ok=%d mutants=%d okMutants=%d stdPanics=%d mismatches=%d dims=%v", files, okFiles, mutants, okMutants, panics, mismatches, dims)
 }
+
+func BenchmarkCheck(b *testing.B) {
+	path := os.Getenv("JPEG_BENCH_FILE")
+	if path == "" {
+		b.Skip()
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		b.Fatal(err)
+	}
+	for b.Loop() {
+		if _, _, err := Check(bytes.NewReader(data)); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

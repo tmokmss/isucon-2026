@@ -1,0 +1,51 @@
+{"id":"28881","status":"done","portalStatus":"finished","passed":true,"score":223742,"raw":223742,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T07:33:30.359Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:33:33.350Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:33:36.345Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:33:39.389Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T07:33:40.786Z level=INFO msg="user moved" user=muyo-5183 from=asia to=europe
+time=2026-10-31T07:33:41.542Z level=INFO msg="user moved" user=muyo-5183 from=europe to=asia
+time=2026-10-31T07:33:42.346Z level=INFO msg="europe 2 日目: 23 人"
+time=2026-10-31T07:33:45.346Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T07:33:48.370Z level=INFO msg="asia 3 日目: 149 人"
+time=2026-10-31T07:33:50.131Z level=INFO msg="user moved" user=muyo-5183 from=asia to=europe
+time=2026-10-31T07:33:51.345Z level=INFO msg="europe 3 日目: 70 人"
+time=2026-10-31T07:33:52.908Z level=INFO msg="user moved" user=sokime_5895 from=asia to=europe
+time=2026-10-31T07:33:53.323Z level=INFO msg="user moved" user=runuke.5627 from=asia to=america
+time=2026-10-31T07:33:53.863Z level=INFO msg="user moved" user=iszoeku5547 from=america to=asia
+time=2026-10-31T07:33:54.347Z level=INFO msg="america 3 日目: 56 人"
+time=2026-10-31T07:33:55.094Z level=INFO msg="user moved" user=sukueva_6303 from=europe to=america
+time=2026-10-31T07:33:55.762Z level=INFO msg="user moved" user=fudan6391 from=europe to=america
+time=2026-10-31T07:33:57.388Z level=INFO msg="asia 4 日目: 418 人"
+time=2026-10-31T07:34:00.386Z level=INFO msg="europe 4 日目: 202 人"
+time=2026-10-31T07:34:03.342Z level=INFO msg="user moved" user=toor8719 from=europe to=america
+time=2026-10-31T07:34:03.392Z level=INFO msg="america 4 日目: 168 人"
+time=2026-10-31T07:34:04.038Z level=INFO msg="user moved" user=muyo-5183 from=europe to=asia
+time=2026-10-31T07:34:05.365Z level=INFO msg="user moved" user=heta-7793 from=asia to=america
+time=2026-10-31T07:34:05.592Z level=INFO msg="user moved" user=ornofu_8477 from=asia to=america
+time=2026-10-31T07:34:06.480Z level=INFO msg="asia 5 日目: 658 人"
+time=2026-10-31T07:34:06.834Z level=INFO msg="user moved" user=sokime_5895 from=europe to=asia
+time=2026-10-31T07:34:09.414Z level=INFO msg="europe 5 日目: 564 人"
+time=2026-10-31T07:34:10.163Z level=INFO msg="user moved" user=sukueva_6303 from=america to=asia
+time=2026-10-31T07:34:12.416Z level=INFO msg="america 5 日目: 435 人"
+time=2026-10-31T07:34:21.367Z level=INFO msg="america 最終日（グランプリ）: 434 人"
+time=2026-10-31T07:34:21.386Z level=INFO msg="europe 最終日（グランプリ）: 563 人"
+time=2026-10-31T07:34:21.424Z level=INFO msg="asia 最終日（グランプリ）: 659 人"
+time=2026-10-31T07:34:30.397Z level=INFO msg="グランプリ: アジア 442 人, ヨーロッパ 249 人, アメリカ 413 人"
+{
+  "pass": true,
+  "score": 223742,
+  "messages": [
+    "mihaki-5102: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "mashiri_12082: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sare_7004: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "useon_jinjeoeil_4956: ログアウトできません: POST /api/auth/logout: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/logout\": EOF",
+    "miaro_10722: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sesuma_6494: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": EOF"
+  ]
+}
+
+--- stderr ---
+

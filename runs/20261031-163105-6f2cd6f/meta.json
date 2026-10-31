@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-163105-6f2cd6f",
+  "startedAt": "2026-10-31T16:31:05+09:00",
+  "finishedAt": "2026-10-31T16:35:33+09:00",
+  "ref": "jpegcheck-fast-ac",
+  "sha": "6f2cd6fea333f9b19a6ebf585b0ebb3a499cd1c5",
+  "score": 223742,
+  "status": "pass",
+  "note": "jpegcheck の AC を 10 ビット表で読み飛ばす（main 73b6aff の上）",
+  "benchJobId": "28881",
+  "prevRunId": "20261031-160409-40e65ef",
+  "bestRunId": "20261031-163105-6f2cd6f"
+}
