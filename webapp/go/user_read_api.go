@@ -1,10 +1,8 @@
 package isureal
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
-	"slices"
+	"sort"
 	"strings"
 
 	"github.com/labstack/echo/v5"
@@ -39,35 +37,42 @@ func searchUsersHandler(h *HandlerContext) echo.HandlerFunc {
 		if (input.BeforeUsername == "") != (input.BeforeID == "") {
 			return NewAPIError(http.StatusBadRequest, "invalid_pagination")
 		}
-		ctx := c.Request().Context()
 		viewer := GetSession(c).UserID
-		var users []User
-		if err := h.DB.SelectContext(ctx, &users, `SELECT `+strings.Join(userColumns, ", ")+` FROM users WHERE status='active' AND id<>$1 AND ($2='' OR (username,id)>($2,$3)) ORDER BY username, id`, viewer, input.BeforeUsername, input.BeforeID); err != nil {
-			return err
-		}
-		blocked, err := getBlockedUserIDs(ctx, h.DB, viewer)
-		if err != nil {
-			return err
-		}
 		query := normalizeSearchText(input.Q)
-		items := make([]relationshipUserResponse, 0)
+		s := h.Store
+		users := make([]User, 0, 51)
+		s.mu.RLock()
+		list := s.usersSorted
+		start := 0
+		if input.BeforeUsername != "" {
+			start = sort.Search(len(list), func(i int) bool {
+				u := list[i]
+				return u.Username > input.BeforeUsername || (u.Username == input.BeforeUsername && u.ID > input.BeforeID)
+			})
+		}
+		v := s.users[viewer]
+		for _, u := range list[start:] {
+			if !u.active() || u.ID == viewer {
+				continue
+			}
+			if !strings.Contains(u.normUsername, query) && !strings.Contains(u.normDisplayName, query) {
+				continue
+			}
+			if v != nil && (v.blockOut[u.ID] != nil || v.blockIn[u.ID] != nil) {
+				continue
+			}
+			users = append(users, u.User)
+			if len(users) == 51 {
+				break
+			}
+		}
+		s.mu.RUnlock()
+		items := make([]relationshipUserResponse, 0, len(users))
 		for _, user := range users {
-			if !strings.Contains(normalizeSearchText(user.Username), query) && !strings.Contains(normalizeSearchText(user.DisplayName), query) {
-				continue
-			}
-			if blocked[user.ID] {
-				continue
-			}
-			if err := user.setImageKey(); err != nil {
-				return err
-			}
 			if user.AccountType != "certified_public" {
 				user.Bio = ""
 			}
 			items = append(items, newRelationshipUserResponse(user))
-			if len(items) == 51 {
-				break
-			}
 		}
 		hasMore := len(items) > 50
 		if hasMore {
@@ -89,27 +94,25 @@ func getUserHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := c.Bind(&input); err != nil {
 			return err
 		}
-		ctx := c.Request().Context()
 		viewer := GetSession(c).UserID
-		user, err := getUser(ctx, h.DB, input.UserID)
-		if errors.Is(err, sql.ErrNoRows) {
+		s := h.Store
+		s.mu.RLock()
+		u := s.activeUser(input.UserID)
+		if u == nil {
+			s.mu.RUnlock()
 			return NewAPIError(http.StatusNotFound, "relationship_not_found")
 		}
-		if err != nil {
-			return err
+		user := u.User
+		blocked := s.isBlocked(viewer, user.ID)
+		isFriend := false
+		if v := s.users[viewer]; v != nil {
+			isFriend = v.friends[user.ID] != nil
 		}
-		blocked, err := isBlocked(ctx, h.DB, viewer, user.ID)
-		if err != nil {
-			return err
-		}
+		s.mu.RUnlock()
 		if blocked {
 			return NewAPIError(http.StatusNotFound, "relationship_not_found")
 		}
-		friends, err := getFriendIDs(ctx, h.DB, viewer)
-		if err != nil {
-			return err
-		}
-		if user.AccountType != "certified_public" && !slices.Contains(friends, user.ID) {
+		if user.AccountType != "certified_public" && !isFriend {
 			user.Bio = ""
 		}
 		return c.JSON(http.StatusOK, getUserResponse(newRelationshipUserResponse(user)))
@@ -117,5 +120,5 @@ func getUserHandler(h *HandlerContext) echo.HandlerFunc {
 }
 
 func newRelationshipUserResponse(user User) relationshipUserResponse {
-	return relationshipUserResponse{ID: user.ID, Username: user.Username, DisplayName: user.DisplayName, ProfileImageURL: newGetMeResponse(user).ProfileImageURL, Bio: user.Bio, AccountType: user.AccountType}
+	return relationshipUserResponse{ID: user.ID, Username: user.Username, DisplayName: user.DisplayName, ProfileImageURL: profileImageURL(user), Bio: user.Bio, AccountType: user.AccountType}
 }

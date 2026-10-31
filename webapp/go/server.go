@@ -1,7 +1,11 @@
 package isureal
 
 import (
+	"context"
+	"log"
 	"os"
+	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v5"
@@ -14,6 +18,24 @@ type HandlerContext struct {
 	DB     *sqlx.DB
 	Config *Config
 	IPBans *IPBanList
+	Store  *Store
+	// initialize の間は他の処理を止める（SSE は除く）
+	InitMu sync.RWMutex
+}
+
+func openDatabase(config *Config) *sqlx.DB {
+	for {
+		db, err := sqlx.Open("pgx", config.DatabaseDSN())
+		if err == nil {
+			err = db.Ping()
+			if err == nil {
+				return db
+			}
+			db.Close()
+		}
+		log.Printf("waiting for database: %v", err)
+		time.Sleep(time.Second)
+	}
 }
 
 func NewServer(config *Config) *echo.Echo {
@@ -27,22 +49,52 @@ func NewServer(config *Config) *echo.Echo {
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = APIErrorHandler
 
-	db, err := sqlx.Open("pgx", config.DatabaseDSN())
-	if err != nil {
-		panic("failed to open database: " + err.Error())
-	}
-	db.SetMaxOpenConns(30)
-	err = db.Ping()
-	if err != nil {
-		panic("failed to ping database: " + err.Error())
-	}
-
 	handlerContext := &HandlerContext{
-		DB:     db,
 		Config: config,
 		IPBans: &IPBanList{},
+		Store:  NewStore(),
 	}
+	// 先に listen し、DB への接続と読み込みが終わるまでリクエストを待たせる（起動直後の initialize が 502 にならないように）
+	ready := make(chan struct{})
+	go func() {
+		db := openDatabase(config)
+		db.SetMaxOpenConns(40)
+		db.SetMaxIdleConns(40)
+		for {
+			start := time.Now()
+			err := handlerContext.Store.LoadAll(context.Background(), db)
+			if err == nil {
+				log.Printf("loaded store in %s", time.Since(start))
+				break
+			}
+			log.Printf("failed to load store: %v", err)
+			time.Sleep(time.Second)
+		}
+		handlerContext.DB = db
+		close(ready)
+	}()
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			select {
+			case <-ready:
+			case <-c.Request().Context().Done():
+				return c.Request().Context().Err()
+			}
+			return next(c)
+		}
+	})
 	e.Use(IPBanMiddleware(handlerContext))
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			p := c.Request().URL.Path
+			if p == "/api/notifications" || p == "/api/initialize" {
+				return next(c)
+			}
+			handlerContext.InitMu.RLock()
+			defer handlerContext.InitMu.RUnlock()
+			return next(c)
+		}
+	})
 
 	e.POST("/api/initialize", initializeHandler(handlerContext))
 	e.POST("/api/auth/register", registerHandler(handlerContext))
