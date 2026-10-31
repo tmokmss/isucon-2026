@@ -1,0 +1,50 @@
+{"id":"28453","status":"done","portalStatus":"finished","passed":true,"score":198345,"raw":198345,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T07:29:07.832Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:29:10.822Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:29:13.822Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:29:16.837Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T07:29:19.823Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T07:29:22.822Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T07:29:25.834Z level=INFO msg="asia 3 日目: 150 人"
+time=2026-10-31T07:29:28.627Z level=INFO msg="user moved" user=kamuyo.5725 from=asia to=europe
+time=2026-10-31T07:29:28.822Z level=INFO msg="europe 3 日目: 56 人"
+time=2026-10-31T07:29:28.835Z level=INFO msg="user moved" user=shiisna-5909 from=asia to=america
+time=2026-10-31T07:29:28.958Z level=INFO msg="user moved" user=fuhote.5730 from=asia to=america
+time=2026-10-31T07:29:29.795Z level=INFO msg="user moved" user=shiisna-5909 from=america to=asia
+time=2026-10-31T07:29:30.081Z level=INFO msg="user moved" user=seel_6283 from=asia to=america
+time=2026-10-31T07:29:30.968Z level=INFO msg="user moved" user=seel_6283 from=america to=asia
+time=2026-10-31T07:29:31.853Z level=INFO msg="america 3 日目: 61 人"
+time=2026-10-31T07:29:33.399Z level=INFO msg="user moved" user=yaleodan_6456 from=europe to=america
+time=2026-10-31T07:29:34.861Z level=INFO msg="asia 4 日目: 426 人"
+time=2026-10-31T07:29:37.833Z level=INFO msg="europe 4 日目: 161 人"
+time=2026-10-31T07:29:38.774Z level=INFO msg="user moved" user=seel_6283 from=asia to=america
+time=2026-10-31T07:29:39.328Z level=INFO msg="user moved" user=tsuri6585 from=america to=asia
+time=2026-10-31T07:29:39.554Z level=INFO msg="user moved" user=mechi_6822 from=asia to=america
+time=2026-10-31T07:29:39.900Z level=INFO msg="user moved" user=evamoivy-7247 from=asia to=america
+time=2026-10-31T07:29:40.844Z level=INFO msg="america 4 日目: 178 人"
+time=2026-10-31T07:29:41.102Z level=INFO msg="user moved" user=shiisna-5909 from=asia to=america
+time=2026-10-31T07:29:42.483Z level=INFO msg="user moved" user=suleo-8709 from=europe to=america
+time=2026-10-31T07:29:43.614Z level=INFO msg="user moved" user=yaleodan_6456 from=america to=europe
+time=2026-10-31T07:29:43.866Z level=INFO msg="asia 5 日目: 792 人"
+time=2026-10-31T07:29:44.360Z level=INFO msg="user moved" user=bensonu.9412 from=europe to=america
+time=2026-10-31T07:29:46.846Z level=INFO msg="europe 5 日目: 428 人"
+time=2026-10-31T07:29:49.697Z level=INFO msg="user moved" user=noteel_9929 from=america to=europe
+time=2026-10-31T07:29:50.018Z level=INFO msg="america 5 日目: 423 人"
+time=2026-10-31T07:29:58.868Z level=INFO msg="europe 最終日（グランプリ）: 428 人"
+time=2026-10-31T07:29:58.898Z level=INFO msg="asia 最終日（グランプリ）: 791 人"
+time=2026-10-31T07:29:58.987Z level=INFO msg="america 最終日（グランプリ）: 422 人"
+time=2026-10-31T07:30:07.923Z level=INFO msg="グランプリ: アジア 315 人, ヨーロッパ 387 人, アメリカ 186 人"
+{
+  "pass": true,
+  "score": 198345,
+  "messages": [
+    "hesa-5030: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "yota.9433: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "tohoke-5083: 友達申請を承認できません: POST /api/friend-requests/3da52371-3062-40fc-abed-7e9f71fc4e10/accept: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests/3da52371-3062-40fc-abed-7e9f71fc4e10/accept\": EOF"
+  ]
+}
+
+--- stderr ---
+
