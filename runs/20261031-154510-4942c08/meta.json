@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-154510-4942c08",
+  "startedAt": "2026-10-31T15:45:10+09:00",
+  "finishedAt": "2026-10-31T15:47:57+09:00",
+  "ref": "eu-us-wait",
+  "sha": "4942c089b9e018ee46633cb584cd69ae7e3fc3e7",
+  "score": 0,
+  "status": "fail",
+  "note": "eu/us: 画像取得の同時要求を1本に・接続の使い回し（main b3440cf を取り込んだ版）",
+  "benchJobId": "24416",
+  "prevRunId": "20261031-153729-0ce5dec",
+  "bestRunId": "20261031-151339-5a230a4"
+}

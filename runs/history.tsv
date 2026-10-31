@@ -122,3 +122,6 @@ run_id	started_at	sha	ref	score	status	note
 20261031-151835-2fe5b6e	2026-10-31T15:18:35+09:00	2fe5b6ea68ff6bfdf40bb66091bd66c68cd67179	2fe5b6e	183184	pass	RealMoji の画像も受けた台に置く（main 5a230a4 の上）
 20261031-152137-8c13252	2026-10-31T15:21:37+09:00	8c13252c30647a9d6e7624eff3fe75f10e8118b4	8c13252	183331	pass	RealMoji の画像も受けた台に置く（main 5fcd3e6 の上）2回目
 20261031-153156-b9b8df6	2026-10-31T15:31:56+09:00	b9b8df630aa8e388fec62a3f52ee94324e91452b	eu-us-wait	180192	pass	eu/us: 画像取得の同時要求を1本に・接続の使い回し・BBR
+20261031-153729-0ce5dec	2026-10-31T15:37:29+09:00	0ce5dec63a9bb906ab021cc5a6ea8394f474f44b	eu-us-wait	186373	pass	eu/us: 画像取得の同時要求を1本に・接続の使い回し（BBRなし、cubicに戻す）
+20261031-154510-4942c08	2026-10-31T15:45:10+09:00	4942c089b9e018ee46633cb584cd69ae7e3fc3e7	eu-us-wait	0	fail	eu/us: 画像取得の同時要求を1本に・接続の使い回し（main b3440cf を取り込んだ版）
+20261031-154840-4942c08	2026-10-31T15:48:40+09:00	4942c089b9e018ee46633cb584cd69ae7e3fc3e7	eu-us-wait	183742	pass	eu/us: 画像取得の同時要求を1本に・接続の使い回し（main b3440cf 取り込み版、asia1 の OOM で fail した後の再計測）
