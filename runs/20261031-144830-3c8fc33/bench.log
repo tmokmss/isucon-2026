@@ -1,0 +1,61 @@
+{"id":"19400","status":"done","portalStatus":"finished","passed":true,"score":136044,"raw":136044,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T05:49:58.047Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T05:50:01.051Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T05:50:04.035Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T05:50:07.045Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T05:50:09.189Z level=INFO msg="user moved" user=miasana.5278 from=asia to=america
+time=2026-10-31T05:50:10.036Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T05:50:10.319Z level=INFO msg="user moved" user=miasana.5278 from=america to=europe
+time=2026-10-31T05:50:13.036Z level=INFO msg="america 2 日目: 19 人"
+time=2026-10-31T05:50:16.046Z level=INFO msg="asia 3 日目: 149 人"
+time=2026-10-31T05:50:18.443Z level=INFO msg="user moved" user=benheha_5890 from=asia to=america
+time=2026-10-31T05:50:19.035Z level=INFO msg="europe 3 日目: 53 人"
+time=2026-10-31T05:50:20.214Z level=INFO msg="user moved" user=yumi6030 from=asia to=america
+time=2026-10-31T05:50:21.507Z level=INFO msg="user moved" user=miasana.5278 from=europe to=asia
+time=2026-10-31T05:50:22.036Z level=INFO msg="america 3 日目: 62 人"
+time=2026-10-31T05:50:25.051Z level=INFO msg="asia 4 日目: 433 人"
+time=2026-10-31T05:50:27.062Z level=INFO msg="user moved" user=watomu_5452 from=europe to=america
+time=2026-10-31T05:50:27.570Z level=INFO msg="user moved" user=miasana.5278 from=asia to=america
+time=2026-10-31T05:50:28.766Z level=INFO msg="europe 4 日目: 151 人"
+time=2026-10-31T05:50:29.092Z level=INFO msg="user moved" user=ulhahi-7261 from=asia to=europe
+time=2026-10-31T05:50:29.401Z level=INFO msg="user moved" user=ivyse-7394 from=asia to=america
+time=2026-10-31T05:50:31.297Z level=INFO msg="america 4 日目: 169 人"
+time=2026-10-31T05:50:32.220Z level=INFO msg="user moved" user=torta_8619 from=asia to=europe
+time=2026-10-31T05:50:34.120Z level=INFO msg="asia 5 日目: 1032 人"
+time=2026-10-31T05:50:38.243Z level=INFO msg="europe 5 日目: 245 人"
+time=2026-10-31T05:50:41.757Z level=INFO msg="america 5 日目: 169 人"
+time=2026-10-31T05:50:50.194Z level=INFO msg="asia 最終日（グランプリ）: 1032 人"
+time=2026-10-31T05:50:50.609Z level=INFO msg="europe 最終日（グランプリ）: 244 人"
+time=2026-10-31T05:50:50.632Z level=INFO msg="america 最終日（グランプリ）: 169 人"
+time=2026-10-31T05:50:58.091Z level=INFO msg="グランプリ: アジア 414 人, ヨーロッパ 120 人, アメリカ 87 人"
+{
+  "pass": true,
+  "score": 136044,
+  "messages": [
+    "kochi.7418: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "kohe-5181: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "andanmo-7563: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "chisoeva_5594: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "vinno_5906: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "koleose10384: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "zoeissol_7663: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "seivyshi7547: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "kael6041: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "namais8592: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "sesemar-8615: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "mean.7306: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "maxzoe.5819: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "solnetsu.5326: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "fumi-5726: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "sume-7025: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "yufu-8500: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "maryano-8017: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "solan_5648: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "toyu8042: 投稿できません: POST /api/posts: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

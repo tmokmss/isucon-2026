@@ -32,7 +32,6 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusBadRequest, "invalid_profile_image")
 		}
 
-		ctx := c.Request().Context()
 		userID := GetSession(c).UserID
 		s := h.Store
 		unlock := lockUsers(userID)
@@ -40,12 +39,8 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		s.mu.RLock()
 		u := s.users[userID]
 		var oldID *string
-		var oldCreatedAt any
 		if u != nil {
 			oldID = u.ProfileImageID
-			if u.ProfileImageCreatedAt != nil {
-				oldCreatedAt = *u.ProfileImageCreatedAt
-			}
 		}
 		s.mu.RUnlock()
 		if u == nil {
@@ -54,29 +49,6 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		imageID := uuid.NewString()
 		createdAt := now()
 		if err := storeNewImage(imageID, data); err != nil {
-			return err
-		}
-		tx, err := h.DB.BeginTxx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects(id,owner_user_id,data,media_type,created_at) VALUES ($1,$2,''::bytea,'image/jpeg',$3)`, imageID, userID, createdAt); err != nil {
-			return err
-		}
-		if _, err := tx.ExecContext(ctx, `UPDATE users SET profile_image_id=$2,updated_at=$3 WHERE id=$1`, userID, imageID, createdAt); err != nil {
-			return err
-		}
-		if oldID != nil {
-			if oldCreatedAt != nil {
-				if _, err := tx.ExecContext(ctx, `DELETE FROM image_objects WHERE id=$1 AND created_at=$2`, *oldID, oldCreatedAt); err != nil {
-					return err
-				}
-			} else if _, err := tx.ExecContext(ctx, `DELETE FROM image_objects WHERE id=$1`, *oldID); err != nil {
-				return err
-			}
-		}
-		if err := tx.Commit(); err != nil {
 			return err
 		}
 		s.mu.Lock()
@@ -93,7 +65,6 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 
 func deleteProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
-		ctx := c.Request().Context()
 		userID := GetSession(c).UserID
 		s := h.Store
 		unlock := lockUsers(userID)
@@ -101,34 +72,12 @@ func deleteProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		s.mu.RLock()
 		u := s.users[userID]
 		var imageID *string
-		var createdAt any
 		if u != nil {
 			imageID = u.ProfileImageID
-			if u.ProfileImageCreatedAt != nil {
-				createdAt = *u.ProfileImageCreatedAt
-			}
 		}
 		s.mu.RUnlock()
 		if u == nil || imageID == nil {
 			return NewAPIError(http.StatusNotFound, "account_not_found")
-		}
-		tx, err := h.DB.BeginTxx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		if _, err := tx.ExecContext(ctx, `UPDATE users SET profile_image_id=NULL,updated_at=$2 WHERE id=$1`, userID, now()); err != nil {
-			return err
-		}
-		if createdAt != nil {
-			if _, err := tx.ExecContext(ctx, `DELETE FROM image_objects WHERE id=$1 AND created_at=$2`, *imageID, createdAt); err != nil {
-				return err
-			}
-		} else if _, err := tx.ExecContext(ctx, `DELETE FROM image_objects WHERE id=$1`, *imageID); err != nil {
-			return err
-		}
-		if err := tx.Commit(); err != nil {
-			return err
 		}
 		s.mu.Lock()
 		rw := s.commitLocked(&opProfileImage{UserID: u.ID})

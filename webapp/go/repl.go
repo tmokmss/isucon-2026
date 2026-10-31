@@ -238,6 +238,7 @@ func (o *opPostAdd) apply(s *Store) {
 		l.Locality = new(string)
 	}
 	s.addPostLocked(o.P)
+	s.markPostLocked(o.P)
 }
 
 type opPostUpdate struct {
@@ -256,6 +257,7 @@ func (o *opPostUpdate) apply(s *Store) {
 	if o.Visibility.Set {
 		p.Visibility = o.Visibility.V
 	}
+	s.markPostLocked(p)
 }
 
 type opPostDelete struct {
@@ -267,6 +269,7 @@ func (o *opPostDelete) apply(s *Store) {
 	if p := s.posts[o.ID]; p != nil {
 		t := o.At
 		p.DeletedAt = &t
+		s.markPostLocked(p)
 	}
 }
 
@@ -277,6 +280,7 @@ func (o *opCommentAdd) apply(s *Store) {
 		return
 	}
 	s.addCommentLocked(o.C)
+	s.markCommentLocked(o.C)
 }
 
 type opCommentDelete struct {
@@ -289,6 +293,7 @@ func (o *opCommentDelete) apply(s *Store) {
 		t := o.At
 		cm.DeletedAt = &t
 		delete(s.comments, o.ID)
+		s.markCommentLocked(cm)
 	}
 }
 
@@ -302,12 +307,14 @@ func (o *opRealMojiAdd) apply(s *Store) {
 		if old := s.realmojis[id]; old != nil {
 			t := o.R.CreatedAt
 			old.ReplacedAt = &t
+			s.markRealMojiLocked(old)
 		}
 	}
 	if s.realmojis[o.R.ID] != nil || s.posts[o.R.PostID] == nil {
 		return
 	}
 	s.addRealMojiLocked(o.R)
+	s.markRealMojiLocked(o.R)
 }
 
 type opRealMojiDelete struct {
@@ -319,6 +326,7 @@ func (o *opRealMojiDelete) apply(s *Store) {
 	if r := s.realmojis[o.ID]; r != nil {
 		t := o.At
 		r.DeletedAt = &t
+		s.markRealMojiLocked(r)
 	}
 }
 
@@ -490,6 +498,7 @@ type replWait struct {
 // commitLocked は op をこのストアに当て、各台へ流す。s.mu の書きロックを持って呼び、ロックを外した後に返り値の wait を呼ぶ
 func (s *Store) commitLocked(op replOp) replWait {
 	op.apply(s)
+	opLog.appendLocked(op)
 	return repl.publish(op, 0)
 }
 
@@ -768,7 +777,6 @@ func (r *replica) run() {
 	for {
 		err := r.safeSession(&loaded)
 		r.live.Store(false)
-		loaded = false
 		log.Printf("repl: stream from %s lost: %v", r.upstream, err)
 		time.Sleep(time.Second)
 	}
@@ -828,11 +836,24 @@ func (r *replica) session(loaded *bool) error {
 	}()
 	if !*loaded {
 		start := time.Now()
-		if err := r.s.LoadAll(context.Background(), r.db); err != nil {
+		if err := r.s.LoadAll(context.Background(), r.db, func() (*snapshotData, error) { return waitOriginSnapshot(r.upstream) }); err != nil {
 			return err
 		}
 		*loaded = true
 		log.Printf("repl: loaded store in %s (backlog %d)", time.Since(start), len(in))
+	} else {
+		// つなぎ直したときは PostgreSQL を読み直さない。境界より後の行と小さい表は、asia1 のスナップショットで置き換える
+		start := time.Now()
+		d, err := waitOriginSnapshot(r.upstream)
+		if err != nil {
+			return err
+		}
+		r.s.mu.Lock()
+		r.s.pruneAfterBoundary()
+		r.s.applySnapshotLocked(d)
+		r.s.rebuildIndexes()
+		r.s.mu.Unlock()
+		log.Printf("repl: resynced store in %s (backlog %d)", time.Since(start), len(in))
 	}
 	readySent := false
 	var lastSeq uint64
