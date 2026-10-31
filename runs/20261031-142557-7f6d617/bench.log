@@ -1,0 +1,59 @@
+{"id":"17391","status":"done","portalStatus":"finished","passed":true,"score":137881,"raw":137881,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T05:26:25.329Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T05:26:28.294Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T05:26:31.292Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T05:26:34.320Z level=INFO msg="asia 2 日目: 49 人"
+time=2026-10-31T05:26:37.292Z level=INFO msg="europe 2 日目: 20 人"
+time=2026-10-31T05:26:40.292Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T05:26:43.319Z level=INFO msg="asia 3 日目: 142 人"
+time=2026-10-31T05:26:44.288Z level=INFO msg="user moved" user=torsa-5629 from=asia to=america
+time=2026-10-31T05:26:44.614Z level=INFO msg="user moved" user=mizoe5650 from=asia to=america
+time=2026-10-31T05:26:45.190Z level=INFO msg="user moved" user=wadan-5807 from=asia to=europe
+time=2026-10-31T05:26:45.684Z level=INFO msg="user moved" user=torsa-5629 from=america to=europe
+time=2026-10-31T05:26:46.088Z level=INFO msg="user moved" user=wadan-5807 from=europe to=asia
+time=2026-10-31T05:26:46.183Z level=INFO msg="user moved" user=solbenni.5726 from=asia to=europe
+time=2026-10-31T05:26:46.291Z level=INFO msg="europe 3 日目: 63 人"
+time=2026-10-31T05:26:46.543Z level=INFO msg="user moved" user=nelia-6082 from=asia to=america
+time=2026-10-31T05:26:47.669Z level=INFO msg="user moved" user=nelia-6082 from=america to=asia
+time=2026-10-31T05:26:48.809Z level=INFO msg="user moved" user=mizoe5650 from=america to=europe
+time=2026-10-31T05:26:49.292Z level=INFO msg="america 3 日目: 49 人"
+time=2026-10-31T05:26:50.839Z level=INFO msg="user moved" user=tofumo6373 from=europe to=america
+time=2026-10-31T05:26:52.324Z level=INFO msg="asia 4 日目: 412 人"
+time=2026-10-31T05:26:54.212Z level=INFO msg="user moved" user=nelia-6082 from=asia to=america
+time=2026-10-31T05:26:55.437Z level=INFO msg="europe 4 日目: 175 人"
+time=2026-10-31T05:26:56.157Z level=INFO msg="user moved" user=wadan-5807 from=asia to=europe
+time=2026-10-31T05:26:56.201Z level=INFO msg="user moved" user=tasare7070 from=asia to=america
+time=2026-10-31T05:26:56.434Z level=INFO msg="user moved" user=hefuchi.7231 from=asia to=america
+time=2026-10-31T05:26:56.914Z level=INFO msg="user moved" user=semahe.7561 from=asia to=america
+time=2026-10-31T05:26:58.248Z level=INFO msg="user moved" user=hetorke8140 from=asia to=america
+time=2026-10-31T05:26:58.315Z level=INFO msg="user moved" user=ivyeva_8493 from=asia to=america
+time=2026-10-31T05:26:58.396Z level=INFO msg="america 4 日目: 137 人"
+time=2026-10-31T05:26:59.274Z level=INFO msg="user moved" user=yaru-8266 from=asia to=europe
+time=2026-10-31T05:27:00.629Z level=INFO msg="user moved" user=torsa-5629 from=europe to=america
+time=2026-10-31T05:27:01.575Z level=INFO msg="asia 5 日目: 1081 人"
+time=2026-10-31T05:27:04.339Z level=INFO msg="user moved" user=tofumo6373 from=america to=europe
+time=2026-10-31T05:27:04.347Z level=INFO msg="europe 5 日目: 282 人"
+time=2026-10-31T05:27:07.498Z level=INFO msg="america 5 日目: 137 人"
+time=2026-10-31T05:27:16.720Z level=INFO msg="europe 最終日（グランプリ）: 282 人"
+time=2026-10-31T05:27:17.302Z level=INFO msg="asia 最終日（グランプリ）: 1080 人"
+time=2026-10-31T05:27:17.540Z level=INFO msg="america 最終日（グランプリ）: 137 人"
+time=2026-10-31T05:27:25.337Z level=INFO msg="グランプリ: アジア 324 人, ヨーロッパ 149 人, アメリカ 65 人"
+{
+  "pass": true,
+  "score": 137881,
+  "messages": [
+    "mitaho.5060: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "sari.13360: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/posts\": EOF",
+    "vinmi6942: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "croquette_sodachi_2784: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "hemawa_7051: 友達申請を承認できません: POST /api/friend-requests/93b8a7a9-e608-41bd-bd42-1c36376a6afd/accept: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests/93b8a7a9-e608-41bd-bd42-1c36376a6afd/accept\": EOF",
+    "wase7342: 友達申請を承認できません: POST /api/friend-requests/c48d005b-31f8-4ebe-a5bb-9fb3a68cf21b/accept: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests/c48d005b-31f8-4ebe-a5bb-9fb3a68cf21b/accept\": EOF",
+    "hamoni15213: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "miivyzoe_14765: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
+
+--- stderr ---
+

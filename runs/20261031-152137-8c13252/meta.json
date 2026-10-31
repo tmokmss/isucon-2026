@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-152137-8c13252",
+  "startedAt": "2026-10-31T15:21:37+09:00",
+  "finishedAt": "2026-10-31T15:23:42+09:00",
+  "ref": "8c13252",
+  "sha": "8c13252c30647a9d6e7624eff3fe75f10e8118b4",
+  "score": 183331,
+  "status": "pass",
+  "note": "RealMoji の画像も受けた台に置く（main 5fcd3e6 の上）2回目",
+  "benchJobId": "22166",
+  "prevRunId": "20261031-151835-2fe5b6e",
+  "bestRunId": "20261031-151339-5a230a4"
+}
