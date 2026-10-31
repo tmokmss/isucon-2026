@@ -185,10 +185,9 @@ func (d *decoder) processSOS(n int) error {
 					}
 
 					// Load the previous partially decoded coefficients, if applicable.
+					// 逐次の JPEG では係数を使わない（reconstructBlock は何もしない）ので、ゼロで埋め直さない
 					if d.progressive {
 						b = d.progCoeffs[compIndex][by*mxx*hi+bx]
-					} else {
-						b = block{}
 					}
 
 					if ah != 0 {
@@ -236,7 +235,9 @@ func (d *decoder) processSOS(n int) error {
 									if err != nil {
 										return err
 									}
-									b[unzig[zig]] = ac << al
+									if d.progressive {
+										b[unzig[zig]] = ac << al
+									}
 								} else {
 									if val0 != 0x0f {
 										d.eobRun = uint16(1 << val0)

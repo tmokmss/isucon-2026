@@ -1,5 +1,8 @@
 \ir 002-indexes.sql
 
+-- JPEG は圧縮できず、pglz が試してあきらめるだけで INSERT が約 3 倍遅くなるので、圧縮を試さず TOAST に置く（全パーティションに効く）
+ALTER TABLE image_objects ALTER COLUMN data SET STORAGE EXTERNAL;
+
 SET session_replication_role = replica;
 
 BEGIN;
