@@ -261,7 +261,7 @@ const reloadsFor = (
   const hits = new Map<string, "reload" | "restart">();
   for (const path of remotePaths) {
     if (path.startsWith("/etc/nginx/")) hits.set(cfg.middleware.nginxService, "reload");
-    else if (path.startsWith("/etc/mysql/") || path === "/etc/my.cnf")
+    else if (path.startsWith("/etc/mysql/") || path === "/etc/my.cnf" || path.startsWith("/etc/postgresql/"))
       hits.set(cfg.middleware.dbService, "restart");
   }
   return [...hits].map(([service, action]) => ({ service, action }));
