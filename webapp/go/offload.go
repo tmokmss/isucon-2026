@@ -215,6 +215,9 @@ func prefetchImageSignatures(targets []signTarget) {
 		imageSignatureCache[k] = res[i*32 : (i+1)*32 : (i+1)*32]
 	}
 	imageSignatureCacheMu.Unlock()
+	for i, k := range keys {
+		shareSignature(k, res[i*32:(i+1)*32:(i+1)*32])
+	}
 }
 
 // 1 件 = 鍵の長さ(1) 鍵 exp(8) 画像 ID の長さ(2) 画像 ID
@@ -270,6 +273,7 @@ func offloadHandler() http.Handler {
 		}
 		w.Write(res)
 	})
+	mux.HandleFunc("POST /signcache", signShareHandler)
 	mux.HandleFunc("POST /sign", func(w http.ResponseWriter, r *http.Request) {
 		data, err := io.ReadAll(r.Body)
 		if err != nil {

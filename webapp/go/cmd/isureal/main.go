@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"os"
 
@@ -23,6 +24,8 @@ func main() {
 	if os.Getenv("ISUREAL_PASSIVE") != "1" {
 		server = isureal.NewServer
 		isureal.StartImageEventPublisher()
+		// 他の台が計算した署名を受け取る（sign_share.go）
+		go func() { log.Print(isureal.ServeOffload()) }()
 	} else {
 		go func() { panic(isureal.ServeOffload()) }()
 	}

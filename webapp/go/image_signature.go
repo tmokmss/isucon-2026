@@ -49,6 +49,7 @@ func imageSignature(key []byte, imageID string, exp int64) []byte {
 	}
 	imageSignatureCache[cacheKey] = value
 	imageSignatureCacheMu.Unlock()
+	shareSignature(cacheKey, value)
 	return value
 }
 
