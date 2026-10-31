@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-153156-b9b8df6",
+  "startedAt": "2026-10-31T15:31:56+09:00",
+  "finishedAt": "2026-10-31T15:36:59+09:00",
+  "ref": "eu-us-wait",
+  "sha": "b9b8df630aa8e388fec62a3f52ee94324e91452b",
+  "score": 180192,
+  "status": "pass",
+  "note": "eu/us: 画像取得の同時要求を1本に・接続の使い回し・BBR",
+  "benchJobId": "23300",
+  "prevRunId": "20261031-152137-8c13252",
+  "bestRunId": "20261031-151339-5a230a4"
+}
