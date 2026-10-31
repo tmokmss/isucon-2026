@@ -456,6 +456,7 @@ func init() {
 		&opWindowOpen{}, &opPostAdd{}, &opPostUpdate{}, &opPostDelete{}, &opCommentAdd{}, &opCommentDelete{},
 		&opRealMojiAdd{}, &opRealMojiDelete{}, &opFriendRequestAdd{}, &opRequestStatus{}, &opFriendshipRemove{},
 		&opFollowAdd{}, &opFollowRemove{}, &opBlockAdd{}, &opBlockRemove{}, &opReset{}, &opHeartbeat{}, &opLive{},
+		&opAdminLogin{}, &opAdminLogout{},
 	} {
 		gob.Register(op)
 	}

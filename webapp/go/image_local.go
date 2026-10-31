@@ -13,7 +13,6 @@ package isureal
 
 import (
 	"bufio"
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"database/sql"
@@ -31,10 +30,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
@@ -456,7 +453,6 @@ type remoteImageCheck struct {
 var imageCheck = fetchImageCheck
 
 type imageServer struct {
-	db     atomic.Pointer[sqlx.DB]
 	state  *localImageState
 	origin string // asia1 の :8081。手元に無い画像の本体はここから取る
 }
@@ -526,7 +522,7 @@ func (s *imageServer) handler(c *echo.Context) error {
 		return NewAPIError(http.StatusForbidden, "image_forbidden")
 	}
 	if !haveData {
-		fetched, ok, err := fetchHeldImage(ctx, id)
+		fetched, ok, err := fetchHeldImage(ctx, id, imageHolderOf(id))
 		if err != nil {
 			return err
 		}
@@ -543,6 +539,22 @@ func (s *imageServer) handler(c *echo.Context) error {
 
 // NewImageServer は ISUREAL_PASSIVE=1 の台で動かす。/api/images/:imageId を返し、/api/posts は画像を検証して asia1 へ送る（post_forward.go）。ほかの /api/ は nginx が asia1 へ送る
 func NewImageServer(config *Config) *echo.Echo {
+	bans := &IPBanList{}
+	ready := make(chan struct{})
+	go func() {
+		db := openDatabase(config)
+		db.SetMaxOpenConns(40)
+		db.SetMaxIdleConns(40)
+		// ip_bans は裏で読み直し、リクエストでは DB を待たない
+		bans.loadFirst(db)
+		close(ready)
+		bans.reloadForever(db)
+	}()
+	return newImageServer(config, bans, ready)
+}
+
+// newImageServer は ready が閉じるまでリクエストを待たせ、bans で弾く
+func newImageServer(config *Config, bans *IPBanList, ready <-chan struct{}) *echo.Echo {
 	e := echo.New()
 	e.IPExtractor = extractClientIP
 	e.Use(ActionLogMiddleware(config.LogLevel, os.Stdout))
@@ -561,24 +573,6 @@ func NewImageServer(config *Config) *echo.Echo {
 	mux.HandleFunc("/_internal/invalidate", s.state.serveInvalidate)
 	mux.HandleFunc("/_internal/image", serveHeldImage)
 	serveInternal(mux)
-	bans := &IPBanList{}
-	ready := make(chan struct{})
-	go func() {
-		db := openDatabase(config)
-		db.SetMaxOpenConns(40)
-		db.SetMaxIdleConns(40)
-		s.db.Store(db)
-		// ip_bans は裏で読み直し、リクエストでは DB を待たない
-		for bans.snapshot.Load() == nil {
-			if loaded, err := loadIPBans(context.Background(), db); err == nil {
-				bans.snapshot.Store(loaded)
-			} else {
-				time.Sleep(time.Second)
-			}
-		}
-		close(ready)
-		bans.reloadForever(db)
-	}()
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
 			select {
@@ -591,10 +585,8 @@ func NewImageServer(config *Config) *echo.Echo {
 	})
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
-			if snapshot := bans.snapshot.Load(); snapshot != nil {
-				if until, ok := snapshot.bans[c.RealIP()]; ok && time.Now().Before(until) {
-					return NewAPIError(http.StatusForbidden, "ip_banned")
-				}
+			if bans.Banned(c.RealIP()) {
+				return NewAPIError(http.StatusForbidden, "ip_banned")
 			}
 			return next(c)
 		}
