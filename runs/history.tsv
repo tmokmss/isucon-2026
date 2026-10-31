@@ -109,3 +109,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-144734-fd0f88e	2026-10-31T14:47:34+09:00	fd0f88e6dbc8e6f56f4ff0b04d6c6a5661bc61a5	fd0f88e	174034	pass	画像をリージョン内で完結（image-local、inmemory-persist f7ca385 の上、repl-lag の計測入り）
 20261031-144830-3c8fc33	2026-10-31T14:48:30+09:00	3c8fc3341aa7e5ea7c324d286d062f9517d08b92	3c8fc33	136044	pass	DB外し5: 追記でfsyncしない
 20261031-145346-4535807	2026-10-31T14:53:46+09:00	45358075366fe5105b7cde99b8d4aec2e0e1364a	4535807	133663	pass	JPEG の検証を asia2 にも逃がす（main 6ad2e36 の上）
+20261031-145831-da3beca	2026-10-31T14:58:31+09:00	da3beca0229ff6835384389f4a78cf39984f0b37	da3beca	172831	pass	画像をリージョン内で完結（image-local、main 6ad2e36 の上）

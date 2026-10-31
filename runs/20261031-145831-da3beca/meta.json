@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-145831-da3beca",
+  "startedAt": "2026-10-31T14:58:31+09:00",
+  "finishedAt": "2026-10-31T15:00:39+09:00",
+  "ref": "da3beca",
+  "sha": "da3beca0229ff6835384389f4a78cf39984f0b37",
+  "score": 172831,
+  "status": "pass",
+  "note": "画像をリージョン内で完結（image-local、main 6ad2e36 の上）",
+  "benchJobId": "20155",
+  "prevRunId": "20261031-144830-3c8fc33",
+  "bestRunId": "20261031-144734-fd0f88e"
+}
