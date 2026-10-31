@@ -3,7 +3,7 @@ package isureal
 // まとめて返す画像の署名（Memories・エクスポート）と、受け取った JPEG の検証を、CPU の空いている台へ逃がす。
 // JPEG の判定は手元と同じ jpegcheck.Check で行う。
 // 逃がし先は、署名が ISUREAL_OFFLOAD_PEERS、JPEG が ISUREAL_OFFLOAD_JPEG_PEERS（頼む順、カンマ区切りの host:port）。
-// 署名は europe1・america1（SHA-NI があり asia の 2 台より速い）だけに頼む。asia2 の PostgreSQL は書き込みを受けなくなったので、JPEG は asia2 にも頼む。失敗した逃がし先は数秒外し、
+// 署名は europe1・america1 を先に使う。asia2 の PostgreSQL は書き込みを受けなくなったので、JPEG は asia2 にも頼む。失敗した逃がし先は数秒外し、
 // 署名は、どの逃がし先も同時に頼める数（offloadPeerSlots）まで埋まっている・失敗した・遅いときは手元で計算する。
 // JPEG は、逃がし先 1 台につき 32 件（往復を待つ間も逃がし先の CPU を埋める）まで同時に検証し、あふれた分は先着順に待たせる
 // （一斉の投稿で全件を同時に計算すると、どの投稿も揃って遅れる）。手元の CPU は他の API に残し、逃がし先が外れたときだけ CPU 数の件数まで検証する。逃がし先は鍵を受け取るので、
@@ -65,6 +65,7 @@ func offloadPeersFromEnv(key string) []*offloadPeer {
 var (
 	offloadPeers     = offloadPeersFromEnv("ISUREAL_OFFLOAD_PEERS")
 	offloadJPEGPeers = offloadPeersFromEnv("ISUREAL_OFFLOAD_JPEG_PEERS")
+	presignPeers     = offloadPeersFromEnv("ISUREAL_PRESIGN_PEERS")
 )
 
 var offloadClient = &http.Client{Transport: &http.Transport{
@@ -315,10 +316,10 @@ const presignBatch = 1000
 
 func init() { go presignNextMinuteForever() }
 
-// 毎分 30 秒を過ぎたら、今の exp で署名した画像を次の exp でも逃がし先に署名させておく。
+// 毎分 30 秒を過ぎたら、今の exp で署名した画像を次の exp でも ISUREAL_PRESIGN_PEERS（SHA-NI のある europe1・america1）に署名させておく。
 // exp が切り替わった直後に、それまで見えていた画像の署名を手元で一斉に計算し直さないため
 func presignNextMinuteForever() {
-	if len(offloadPeers) == 0 {
+	if len(presignPeers) == 0 {
 		return
 	}
 	var done int64
@@ -356,7 +357,7 @@ func presignImageSignatures(targets []signTarget, exp int64) {
 		keys = append(keys, imageSignatureCacheKey(t.key, t.imageID, exp))
 		body = appendSignRequest(body, t.key, t.imageID, exp)
 	}
-	res, err := offloadCall(offloadPeers, "/sign", body, 5*time.Second)
+	res, err := offloadCall(presignPeers, "/sign", body, 5*time.Second)
 	if err != nil || len(res) != len(keys)*32 {
 		return
 	}
