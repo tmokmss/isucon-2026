@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-135709-3bc4182",
+  "startedAt": "2026-10-31T13:57:09+09:00",
+  "finishedAt": "2026-10-31T14:03:35+09:00",
+  "ref": "jpeg-peer-asia2",
+  "sha": "3bc4182721735b3dd6fb8e3a75eda33e51b2742e",
+  "score": 114092,
+  "status": "pass",
+  "note": "JPEG の検証を asia2 にも逃がす（jpegcheck-fast の上）",
+  "benchJobId": "15370",
+  "prevRunId": "20261031-135233-2d10aad",
+  "bestRunId": "20261031-135233-2d10aad"
+}
