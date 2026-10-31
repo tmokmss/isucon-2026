@@ -498,7 +498,7 @@ type replWait struct {
 // commitLocked は op をこのストアに当て、各台へ流す。s.mu の書きロックを持って呼び、ロックを外した後に返り値の wait を呼ぶ
 func (s *Store) commitLocked(op replOp) replWait {
 	op.apply(s)
-	s.dirty.Store(true)
+	opLog.appendLocked(op)
 	return repl.publish(op, 0)
 }
 
@@ -782,7 +782,6 @@ func (r *replica) run() {
 	for {
 		err := r.safeSession(&loaded)
 		r.live.Store(false)
-		loaded = false
 		log.Printf("repl: stream from %s lost: %v", r.upstream, err)
 		time.Sleep(time.Second)
 	}
@@ -847,11 +846,24 @@ func (r *replica) session(loaded *bool) error {
 	}()
 	if !*loaded {
 		start := time.Now()
-		if err := r.s.LoadAll(context.Background(), r.db, func() (*snapshotData, error) { return fetchOriginSnapshot(r.upstream) }); err != nil {
+		if err := r.s.LoadAll(context.Background(), r.db, func() (*snapshotData, error) { return waitOriginSnapshot(r.upstream) }); err != nil {
 			return err
 		}
 		*loaded = true
 		log.Printf("repl: loaded store in %s (backlog %d)", time.Since(start), len(in))
+	} else {
+		// つなぎ直したときは PostgreSQL を読み直さない。境界より後の行と小さい表は、asia1 のスナップショットで置き換える
+		start := time.Now()
+		d, err := waitOriginSnapshot(r.upstream)
+		if err != nil {
+			return err
+		}
+		r.s.mu.Lock()
+		r.s.pruneAfterBoundary()
+		r.s.applySnapshotLocked(d)
+		r.s.rebuildIndexes()
+		r.s.mu.Unlock()
+		log.Printf("repl: resynced store in %s (backlog %d)", time.Since(start), len(in))
 	}
 	readySent := false
 	var lastSeq uint64

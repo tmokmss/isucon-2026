@@ -11,6 +11,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -41,6 +42,18 @@ func serveOriginSnapshot(w http.ResponseWriter, r *http.Request) {
 }
 
 var originSnapshotClient = &http.Client{Timeout: 60 * time.Second}
+
+// waitOriginSnapshot は asia1 が読み込みを終えて返せるようになるまで待つ（複製の台が先に起動したとき）
+func waitOriginSnapshot(origin string) (*snapshotData, error) {
+	for {
+		d, err := fetchOriginSnapshot(origin)
+		if err == nil {
+			return d, nil
+		}
+		log.Printf("repl: waiting for the origin snapshot: %v", err)
+		time.Sleep(time.Second)
+	}
+}
 
 func fetchOriginSnapshot(origin string) (*snapshotData, error) {
 	resp, err := originSnapshotClient.Get("http://" + origin + "/_internal/snapshot")

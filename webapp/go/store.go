@@ -186,8 +186,8 @@ type Store struct {
 
 	notifyCh chan struct{}
 
-	// 永続化（persist.go）。dirty は前回のスナップショットより後に書き込みがあったか
-	dirty            atomic.Bool
+	// 永続化（persist.go）。needFull は変更の記録に載らない書き込み（管理者のセッション）があったか
+	needFull         atomic.Bool
 	changedPosts     map[string]*PostRow
 	changedRealMojis map[string]*RealMojiRow
 	changedComments  map[string]*CommentRow

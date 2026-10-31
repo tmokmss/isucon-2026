@@ -63,7 +63,7 @@ func NewServer(config *Config) *echo.Echo {
 		db.SetMaxIdleConns(40)
 		for {
 			start := time.Now()
-			err := handlerContext.Store.LoadAll(context.Background(), db, readSnapshot)
+			err := handlerContext.Store.LoadAll(context.Background(), db, readSnapshotAndLog)
 			if err == nil {
 				log.Printf("loaded store in %s", time.Since(start))
 				break
