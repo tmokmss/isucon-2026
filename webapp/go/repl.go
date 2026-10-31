@@ -1,9 +1,11 @@
 package isureal
 
 // asia1 のストアへの書き込みを europe1・america1 の複製へ流す。
-// - asia1 は s.mu の書きロックの中で書き込みを 1 件の変更（replOp）として当て、同じロックの中で通し番号を振って各台へ送る。
-//   応答の前に、追いついている台（live）すべての反映の返事を待つ。replAckTimeout 以内に返事が無い台は切り、
-//   その台が手元の判定をやめる期限（切った時刻 + replLease + replLeaseMargin）まで、以後の書き込みの応答も待たせる
+// - asia1 は s.mu の書きロックの中で書き込みを 1 件の変更（replOp）として当て、同じロックの中で通し番号と asia1 の時刻 T を振って各台へ送る。
+//   書き込みの応答は複製の返事を待たない。代わりに replHeartbeat ごとに時刻だけの印を流す
+// - 複製側は、読み取りを受けた時刻（+ replClockMargin）以上の T の印まで当て終えてから手元で返す（replica.waitCaughtUp）。
+//   書き込みの応答は、その変更を流した後に asia1 を出る。読み取りはその後に複製の台へ着くので、着いた時刻より後の T の印より前に、その変更は流れている。
+//   台の時計は Amazon Time Sync に合っている（chronyc tracking で 1ms 未満）。replReadWait 以内に追いつかなければ asia1 へ転送する
 // - 複製側は購読を先に始めて変更を貯め、PostgreSQL から全部を読んだ後に当て直す（変更は ID で上書きするので、読み込みに入っていても同じ結果になる）。
 //   貯めた分を当て終えたら ready を送り、asia1 が流れの中に置く live の印を受けた後から手元で返す
 // - 複製側は replLease を超えて何も受けなければ手元で返さない（asia1 は replHeartbeat ごとに送る）。切れたら全部読み直す
@@ -29,7 +31,9 @@ import (
 )
 
 const (
-	replHeartbeat    = 200 * time.Millisecond
+	replHeartbeat    = 5 * time.Millisecond
+	replClockMargin  = 2 * time.Millisecond
+	replReadWait     = 300 * time.Millisecond
 	replLease        = time.Second
 	replLeaseMargin  = 500 * time.Millisecond
 	replAckTimeout   = 3 * time.Second // リージョン間の帯域が画像の転送で埋まると返事が 1 秒を超える
@@ -41,6 +45,7 @@ type replOp interface{ apply(s *Store) }
 
 type replMsg struct {
 	Seq uint64
+	T   int64 // asia1 で流した時刻（UnixNano）。これより前に asia1 を出た書き込みの応答の変更は、すべてこれより前に流れている
 	Op  replOp
 }
 
@@ -483,16 +488,20 @@ type replWait struct {
 // commitLocked は op をこのストアに当て、各台へ流す。s.mu の書きロックを持って呼び、ロックを外した後に返り値の wait を呼ぶ
 func (s *Store) commitLocked(op replOp) replWait {
 	op.apply(s)
-	return repl.publish(op, replAckTimeout)
+	return repl.publish(op, 0)
 }
 
 func (hub *replHub) publish(op replOp, timeout time.Duration) replWait {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 	hub.seq++
-	w := replWait{seq: hub.seq, notBefore: hub.quietUntil, timeout: timeout}
+	w := replWait{seq: hub.seq, timeout: timeout}
+	if timeout > 0 {
+		w.notBefore = hub.quietUntil
+	}
+	m := replMsg{Seq: hub.seq, T: time.Now().UnixNano(), Op: op}
 	for sub := range hub.subs {
-		if sub.send(replMsg{Seq: hub.seq, Op: op}) && sub.live {
+		if sub.send(m) && sub.live && timeout > 0 {
 			w.subs = append(w.subs, sub)
 		}
 	}
@@ -669,7 +678,7 @@ func (sub *replSub) readLoop(br *bufio.Reader) {
 			sub.mu.Unlock()
 		case line == "ready":
 			repl.mu.Lock()
-			if sub.send(replMsg{Seq: repl.seq, Op: &opLive{}}) {
+			if sub.send(replMsg{Seq: repl.seq, T: time.Now().UnixNano(), Op: &opLive{}}) {
 				sub.mu.Lock()
 				sub.live = true
 				sub.mu.Unlock()
@@ -686,7 +695,7 @@ func (hub *replHub) heartbeatLoop() {
 	for range t.C {
 		hub.mu.Lock()
 		for sub := range hub.subs {
-			sub.send(replMsg{Seq: hub.seq, Op: &opHeartbeat{}})
+			sub.send(replMsg{Seq: hub.seq, T: time.Now().UnixNano(), Op: &opHeartbeat{}})
 		}
 		hub.mu.Unlock()
 		if time.Since(last) > 10*time.Second {
@@ -717,6 +726,31 @@ type replica struct {
 	upstream string
 	live     atomic.Bool
 	lastRecv atomic.Int64
+	appliedT atomic.Int64
+	advanced atomic.Pointer[chan struct{}]
+}
+
+// waitCaughtUp は、時刻 t 以降に流れた印まで当て終えるのを待つ。間に合わなければ false
+func (r *replica) waitCaughtUp(t int64) bool {
+	var timer *time.Timer
+	for {
+		if !r.fresh() {
+			return false
+		}
+		ch := r.advanced.Load()
+		if r.appliedT.Load() >= t {
+			return true
+		}
+		if timer == nil {
+			timer = time.NewTimer(replReadWait)
+			defer timer.Stop()
+		}
+		select {
+		case <-*ch:
+		case <-timer.C:
+			return false
+		}
+	}
 }
 
 // fresh は手元の読み取りを返してよいとき true
@@ -835,6 +869,16 @@ func (r *replica) safeSession(loaded *bool) (err error) {
 func (r *replica) applyBatch(batch []replIn, lastSeq *uint64) error {
 	r.s.mu.Lock()
 	defer r.s.mu.Unlock()
+	var lastT int64
+	defer func() {
+		if lastT > 0 {
+			r.appliedT.Store(lastT)
+			next := make(chan struct{})
+			if old := r.advanced.Swap(&next); old != nil {
+				close(*old)
+			}
+		}
+	}()
 	for _, b := range batch {
 		if b.err != nil {
 			return b.err
@@ -856,6 +900,7 @@ func (r *replica) applyBatch(batch []replIn, lastSeq *uint64) error {
 			op.apply(r.s)
 		}
 		*lastSeq = b.m.Seq
+		lastT = b.m.T
 	}
 	return nil
 }

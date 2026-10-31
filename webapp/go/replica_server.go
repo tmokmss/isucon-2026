@@ -61,6 +61,9 @@ type replicaFront struct {
 	routeMu     sync.Mutex
 	routeCounts map[string]*[3]int64 // 比べた数・食い違い・届く順の差
 	localTotal  atomic.Int64
+	// 追いつくのを待った時間の合計と、待ちきれずに転送した数
+	waitedTotal   atomic.Int64
+	fallbackTotal atomic.Int64
 }
 
 func NewReplicaServer(config *Config) http.Handler {
@@ -76,6 +79,8 @@ func NewReplicaServer(config *Config) http.Handler {
 
 	h := &HandlerContext{Config: config, IPBans: &IPBanList{}, Store: NewStore()}
 	rep := &replica{s: h.Store, upstream: os.Getenv("ISUREAL_REPLICA_STREAM")}
+	advanced := make(chan struct{})
+	rep.advanced.Store(&advanced)
 	go func() {
 		db := openDatabase(config)
 		db.SetMaxOpenConns(20)
@@ -121,15 +126,21 @@ func (f *replicaFront) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		f.images.ServeHTTP(w, r)
 		return
 	}
-	if r.Method == http.MethodGet && replicaLocalRoute(r.URL.Path) && f.rep.fresh() {
-		switch f.mode {
-		case "local":
-			f.localTotal.Add(1)
-			f.local.ServeHTTP(w, r)
-			return
-		case "shadow":
-			f.shadow(w, r)
-			return
+	if r.Method == http.MethodGet && replicaLocalRoute(r.URL.Path) && f.rep.live.Load() {
+		start := time.Now()
+		if f.rep.waitCaughtUp(start.Add(replClockMargin).UnixNano()) {
+			f.waitedTotal.Add(int64(time.Since(start)))
+			switch f.mode {
+			case "local":
+				f.localTotal.Add(1)
+				f.local.ServeHTTP(w, r)
+				return
+			case "shadow":
+				f.shadow(w, r)
+				return
+			}
+		} else {
+			f.fallbackTotal.Add(1)
 		}
 	}
 	f.proxy.ServeHTTP(w, r)
@@ -220,7 +231,12 @@ func (f *replicaFront) countRoute(route string, i int) {
 
 func (f *replicaFront) statsLoop() {
 	for range time.Tick(10 * time.Second) {
-		log.Printf("repl-stats fresh=%v shadow=%d diff=%d late=%d local=%d", f.rep.fresh(), f.shadowTotal.Load(), f.shadowDiff.Load(), f.shadowLate.Load(), f.localTotal.Load())
+		n := f.localTotal.Load() + f.shadowTotal.Load()
+		var avgWait time.Duration
+		if n > 0 {
+			avgWait = time.Duration(f.waitedTotal.Load() / n)
+		}
+		log.Printf("repl-stats fresh=%v shadow=%d diff=%d late=%d local=%d fallback=%d avg_wait=%s", f.rep.fresh(), f.shadowTotal.Load(), f.shadowDiff.Load(), f.shadowLate.Load(), f.localTotal.Load(), f.fallbackTotal.Load(), avgWait)
 		f.routeMu.Lock()
 		var b strings.Builder
 		for k, c := range f.routeCounts {
