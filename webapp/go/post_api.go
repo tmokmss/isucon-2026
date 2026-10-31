@@ -70,9 +70,13 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		if !location.valid() {
 			return NewAPIError(http.StatusBadRequest, "invalid_post")
 		}
-		width, height, err := checkPostJPEG(c.Request(), imageData)
-		if err != nil {
-			return NewAPIError(http.StatusBadRequest, "invalid_post")
+		// europe1・america1 が画像を手元に置いたときは、画像の ID と持ち主の台だけが来る（image_held.go）
+		heldID, holder, width, height, held := parseHeldImageHeader(c.Request())
+		if !held {
+			width, height, err = checkPostJPEG(c.Request(), imageData)
+			if err != nil {
+				return NewAPIError(http.StatusBadRequest, "invalid_post")
+			}
 		}
 		if width > 4096 || height > 4096 {
 			return NewAPIError(http.StatusBadRequest, "invalid_post")
@@ -103,14 +107,18 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		imageID := uuid.NewString()
 		postID := uuid.NewString()
-		if err := storeNewImage(imageID, imageData); err != nil {
+		if held {
+			imageID = heldID
+		} else if err := storeNewImage(imageID, imageData); err != nil {
 			return err
 		}
 		p := &PostRow{
 			ID: postID, AuthorID: userID, WindowID: windowID, ImageID: imageID, Caption: input.Caption,
-			Visibility: input.Visibility, Location: location, PostedAt: postedAt, CreatedAt: postedAt,
+			Visibility: input.Visibility, Location: location, PostedAt: postedAt, CreatedAt: postedAt, Holder: holder,
 		}
-		imageCache.put(imageID, imageData, "image/jpeg")
+		if !held {
+			imageCache.put(imageID, imageData, "image/jpeg")
+		}
 		s.mu.Lock()
 		rw := s.commitLocked(newOpPostAdd(p))
 		post := p.post()

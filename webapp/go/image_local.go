@@ -372,7 +372,8 @@ func (st *localImageState) readStream(client *http.Client, peer string) error {
 func (st *localImageState) applyLocked(line string) {
 	if line == "*" {
 		st.flushLocked()
-		go resetNewImages()
+		// 消し終えてから受領を返す。直後の投稿の画像（この台が持ち主）を消さないため
+		resetNewImages()
 		return
 	}
 	st.invalidateLocked(line)
@@ -405,7 +406,7 @@ func resetNewImages() {
 		log.Printf("failed to reset new images: %v", err)
 		return
 	}
-	_ = os.RemoveAll(old)
+	go os.RemoveAll(old)
 }
 
 func readLocalImage(id string) ([]byte, bool) {
@@ -451,6 +452,9 @@ type remoteImageCheck struct {
 	RealMoji      sql.NullString
 }
 
+// imageCheck は手元の判定が無いときの問い合わせ。複製の台は手元の複製で答える（replica_server.go）
+var imageCheck = fetchImageCheck
+
 type imageServer struct {
 	db     atomic.Pointer[sqlx.DB]
 	state  *localImageState
@@ -489,7 +493,7 @@ func (s *imageServer) handler(c *echo.Context) error {
 	entry, startSeq, trusted := s.state.lookup(id)
 	valid := entry != nil
 	if entry == nil {
-		row, err := fetchImageCheck(c.Request(), s.origin, id)
+		row, err := imageCheck(c.Request(), s.origin, id)
 		if errors.Is(err, sql.ErrNoRows) {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}
@@ -522,15 +526,14 @@ func (s *imageServer) handler(c *echo.Context) error {
 		return NewAPIError(http.StatusForbidden, "image_forbidden")
 	}
 	if !haveData {
-		fetched, initial, err := fetchOriginImage(ctx, s.origin, id)
-		if errors.Is(err, sql.ErrNoRows) {
-			return NewAPIError(http.StatusForbidden, "image_forbidden")
-		}
+		fetched, ok, err := fetchHeldImage(ctx, id)
 		if err != nil {
 			return err
 		}
+		if !ok {
+			return NewAPIError(http.StatusForbidden, "image_forbidden")
+		}
 		data = fetched
-		writeLocalImage(id, data, initial)
 	}
 	if exp <= time.Now().Unix() {
 		return NewAPIError(http.StatusForbidden, "image_forbidden")
@@ -556,6 +559,7 @@ func NewImageServer(config *Config) *echo.Echo {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/_internal/invalidate", s.state.serveInvalidate)
+	mux.HandleFunc("/_internal/image", serveHeldImage)
 	serveInternal(mux)
 	bans := &IPBanList{}
 	ready := make(chan struct{})
