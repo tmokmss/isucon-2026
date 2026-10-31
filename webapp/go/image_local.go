@@ -456,7 +456,7 @@ SELECT u.secret_key_hash, u.id AS owner_id, i.media_type,
   (SELECT p.author_id || ' ' || p.image_id FROM realmojis r
      JOIN posts p ON p.id = r.post_id AND p.deleted_at IS NULL
      JOIN users author ON author.id = p.author_id AND author.status = 'active'
-     WHERE r.image_id = i.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL LIMIT 1) AS realmoji,
+     WHERE r.image_id = i.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL LIMIT 1) AS realmoji
 FROM image_objects i JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'
 WHERE i.id = $1`
 
