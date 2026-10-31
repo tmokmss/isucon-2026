@@ -104,12 +104,15 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		imageID := uuid.NewString()
 		postID := uuid.NewString()
+		if err := storeNewImage(imageID, imageData); err != nil {
+			return err
+		}
 		tx, err := h.DB.BeginTxx(ctx, nil)
 		if err != nil {
 			return err
 		}
 		defer tx.Rollback()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects (id, owner_user_id, data, media_type, created_at) VALUES ($1, $2, $3, 'image/jpeg', $4)`, imageID, userID, imageData, postedAt); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects (id, owner_user_id, data, media_type, created_at) VALUES ($1, $2, ''::bytea, 'image/jpeg', $3)`, imageID, userID, postedAt); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `

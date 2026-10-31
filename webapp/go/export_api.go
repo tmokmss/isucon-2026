@@ -3,10 +3,11 @@ package isureal
 import (
 	"archive/zip"
 	"bytes"
+	"database/sql"
+	"errors"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/labstack/echo/v5"
 )
@@ -37,59 +38,20 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 		s.mu.RUnlock()
 
 		images := make(map[string][]byte, len(posts))
-		var missingIDs []string
-		var missingAt []time.Time
 		for _, p := range posts {
 			if data, _, ok := imageCache.get(p.ImageID); ok {
 				images[p.ImageID] = data
-			} else {
-				missingIDs = append(missingIDs, p.ImageID)
-				missingAt = append(missingAt, p.PostedAt)
+				continue
 			}
-		}
-		if len(missingIDs) > 0 {
-			rows, err := h.DB.QueryContext(ctx, `SELECT id, data FROM image_objects WHERE id = ANY($1) AND created_at = ANY($2)`, missingIDs, missingAt)
+			postedAt := p.PostedAt
+			data, _, err := loadImage(ctx, h.DB, p.ImageID, &postedAt)
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
 			if err != nil {
 				return err
 			}
-			for rows.Next() {
-				var id string
-				var data []byte
-				if err := rows.Scan(&id, &data); err != nil {
-					rows.Close()
-					return err
-				}
-				images[id] = data
-			}
-			rows.Close()
-			if err := rows.Err(); err != nil {
-				return err
-			}
-			var stillMissing []string
-			for _, id := range missingIDs {
-				if _, ok := images[id]; !ok {
-					stillMissing = append(stillMissing, id)
-				}
-			}
-			if len(stillMissing) > 0 {
-				rows, err := h.DB.QueryContext(ctx, `SELECT id, data FROM image_objects WHERE id = ANY($1)`, stillMissing)
-				if err != nil {
-					return err
-				}
-				for rows.Next() {
-					var id string
-					var data []byte
-					if err := rows.Scan(&id, &data); err != nil {
-						rows.Close()
-						return err
-					}
-					images[id] = data
-				}
-				rows.Close()
-				if err := rows.Err(); err != nil {
-					return err
-				}
-			}
+			images[p.ImageID] = data
 		}
 
 		targets := make([]signTarget, 0, len(posts)+1)
