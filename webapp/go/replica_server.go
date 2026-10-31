@@ -95,6 +95,7 @@ func NewReplicaServer(config *Config) http.Handler {
 	e.Use(ActionLogMiddleware(config.LogLevel, os.Stdout))
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = APIErrorHandler
+	e.Use(SlowMiddleware(h))
 	e.Use(IPBanMiddleware(h))
 	e.GET("/api/posts/:postId", getPostHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
 	e.GET("/api/feeds/:feed", getFeedHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
