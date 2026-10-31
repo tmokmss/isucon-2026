@@ -56,6 +56,7 @@ func (d *decoder) ensureNBits(n int32) error {
 		}
 		d.bits.a = d.bits.a<<8 | uint32(c)
 		d.bits.n += 8
+		d.bits.s = d.bits.s<<1 | uint32(d.bytes.nUnreadable>>1)
 		if d.bits.m == 0 {
 			d.bits.m = 1 << 7
 		} else {
@@ -65,6 +66,27 @@ func (d *decoder) ensureNBits(n int32) error {
 			break
 		}
 	}
+	// 呼び出しを減らすため、バッファに残っている分を 24 ビットを超えるまで先読みする。マーカー（0xff の後が 0x00 でない）と
+	// バッファの終わりの手前で止めるので、先読みが無い場合と同じバイトを同じ順に読み、エラーになる位置も変わらない
+	buf := d.bytes.buf[:d.bytes.j]
+	i := d.bytes.i
+	for d.bits.n <= 24 && i+2 <= len(buf) {
+		x := buf[i]
+		stuffed := uint32(0)
+		if x == 0xff {
+			if buf[i+1] != 0x00 {
+				break
+			}
+			stuffed = 1
+		}
+		i += 1 + int(stuffed)
+		d.bytes.nUnreadable = 1 + int(stuffed)
+		d.bits.a = d.bits.a<<8 | uint32(x)
+		d.bits.n += 8
+		d.bits.s = d.bits.s<<1 | stuffed
+		d.bits.m = 1 << uint32(d.bits.n-1)
+	}
+	d.bytes.i = i
 	return nil
 }
 
@@ -80,9 +102,8 @@ func (d *decoder) receiveExtend(t uint8) (int32, error) {
 	d.bits.m >>= t
 	s := int32(1) << t
 	x := int32(d.bits.a>>uint8(d.bits.n)) & (s - 1)
-	if x < s>>1 {
-		x += ((-1) << t) + 1
-	}
+	// x < s/2 のときだけ ((-1) << t) + 1 を足す（分岐の予測が外れやすいので算術シフトの符号で選ぶ）
+	x += ((x - s>>1) >> 31) & (((-1) << t) + 1)
 	return x, nil
 }
 
