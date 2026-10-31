@@ -95,5 +95,7 @@ run_id	started_at	sha	ref	score	status	note
 20261031-135423-25c2db4	2026-10-31T13:54:23+09:00	25c2db44de6311345df6915ef385642c92b2a22d	image-files	82880	pass	image files, no per-file fsync (sync every 1s) + main c6abd65
 20261031-135709-3bc4182	2026-10-31T13:57:09+09:00	3bc4182721735b3dd6fb8e3a75eda33e51b2742e	jpeg-peer-asia2	114092	pass	JPEG の検証を asia2 にも逃がす（jpegcheck-fast の上）
 20261031-135832-1338f93	2026-10-31T13:58:32+09:00	1338f938d5631cbd118caf0caf26466c1fa8412a	lane2-tune	112525	pass	pool 100 + GOGC 400 on c6abd65
+20261031-140017-04990e1	2026-10-31T14:00:17+09:00	04990e175c3ebdd5cc52753fc47b97bcab325270	image-files	134480	pass	hybrid: new images in asia1 files, initial from DB + main c6abd65
 20261031-140544-247167c	2026-10-31T14:05:44+09:00	247167c3ec73b18ed02639f598c50a9c64999fbd	image-storage-external	123551	pass	画像の列で圧縮を試さない（main 14640b7 の上）
 20261031-140924-a0e6742	2026-10-31T14:09:24+09:00	a0e674282db2faf1aa480ff05027aa88794e8596	lane2-tune	127403	pass	reset: VACUUM (TRUNCATE false) image_objects on c6abd65
+20261031-141508-a8128f2	2026-10-31T14:15:08+09:00	a8128f2ba3081f3ab26670e53751109ad694982d	image-files	134342	pass	image-files (no fsync/sync) on main e42c64c

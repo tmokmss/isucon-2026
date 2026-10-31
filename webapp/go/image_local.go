@@ -1,8 +1,8 @@
 package isureal
 
 // europe1・america1（ISUREAL_PASSIVE=1）で GET /api/images/:imageId だけを返す。
-// - 画像の本体: images/init/（初期データ。setup/image-export.sh で書き出した分と、PostgreSQL から取った初期データの画像）、
-//   images/new/（PostgreSQL から取った新しい画像。initialize で消す）の順に探し、無ければ PostgreSQL から取って置く
+// - 画像の本体: images/init/（初期データ。setup/image-export.sh で書き出した分と、asia1 から取った初期データの画像）、
+//   images/new/（asia1 から取った新しい画像。initialize で消す）の順に探し、無ければ asia1 の /_internal/image から取って置く
 // - 取得してよいかの判定: PostgreSQL に 1 回問い合わせ、結果を依存キー（img:<画像 ID>、user:<利用者 ID>）付きで手元に持つ
 // - 無効化: asia1 が画像を取れなくしたときに、img:/user: のキーを各台の :8081 へ POST し、各台が判定を捨てた受領を待ってから応答する。
 //   受領が imageInvalidateTimeout 以内に来ない台は、その台へのストリームを切る（その台は切断かハートビートの途絶で判定を全部捨てる）。
@@ -197,6 +197,7 @@ func StartImageEventPublisher() {
 	imagesReset = func() { invalidateOnPeers(peers, []string{"*"}) }
 	mux := http.NewServeMux()
 	mux.HandleFunc("/_internal/image-events", imageEvents.serveHTTP)
+	mux.HandleFunc("/_internal/image", serveOriginImage)
 	serveInternal(mux)
 }
 
@@ -445,8 +446,6 @@ type remoteImageCheck struct {
 	IsProfile     bool           `db:"is_profile"`
 	HasPost       bool           `db:"has_post"`
 	RealMoji      sql.NullString `db:"realmoji"`
-	Initial       bool           `db:"initial"`
-	Data          []byte         `db:"data"`
 }
 
 // 判定の SQL は image_api.go の元の判定と同じ条件。RealMoji のときは、投稿者と投稿の画像 ID も返す（その無効化で判定を捨てるため）
@@ -457,15 +456,14 @@ SELECT u.secret_key_hash, u.id AS owner_id, i.media_type,
   (SELECT p.author_id || ' ' || p.image_id FROM realmojis r
      JOIN posts p ON p.id = r.post_id AND p.deleted_at IS NULL
      JOIN users author ON author.id = p.author_id AND author.status = 'active'
-     WHERE r.image_id = i.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL LIMIT 1) AS realmoji,
-  i.created_at <= (SELECT created_at FROM initial_data_boundary) AS initial,
-  CASE WHEN $2 THEN i.data END AS data
+     WHERE r.image_id = i.id AND r.reactor_id = u.id AND r.replaced_at IS NULL AND r.deleted_at IS NULL LIMIT 1) AS realmoji
 FROM image_objects i JOIN users u ON u.id = i.owner_user_id AND u.status = 'active'
 WHERE i.id = $1`
 
 type imageServer struct {
-	db    atomic.Pointer[sqlx.DB]
-	state *localImageState
+	db     atomic.Pointer[sqlx.DB]
+	state  *localImageState
+	origin string // asia1 の :8081。手元に無い画像の本体はここから取る
 }
 
 func (s *imageServer) handler(c *echo.Context) error {
@@ -502,7 +500,7 @@ func (s *imageServer) handler(c *echo.Context) error {
 	valid := entry != nil
 	if entry == nil {
 		var row remoteImageCheck
-		err := db.GetContext(ctx, &row, remoteImageCheckQuery, id, !haveData)
+		err := db.GetContext(ctx, &row, remoteImageCheckQuery, id)
 		if errors.Is(err, sql.ErrNoRows) {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}
@@ -523,10 +521,6 @@ func (s *imageServer) handler(c *echo.Context) error {
 			author, postImage, _ := strings.Cut(row.RealMoji.String, " ")
 			entry.deps = []string{"img:" + id, "user:" + row.OwnerID, "user:" + author, "img:" + postImage}
 		}
-		if valid && !haveData && row.Data != nil {
-			data, haveData = row.Data, true
-			writeLocalImage(id, data, row.Initial)
-		}
 		if valid && trusted {
 			s.state.insert(id, entry, startSeq)
 		}
@@ -539,18 +533,15 @@ func (s *imageServer) handler(c *echo.Context) error {
 		return NewAPIError(http.StatusForbidden, "image_forbidden")
 	}
 	if !haveData {
-		var object struct {
-			Data    []byte `db:"data"`
-			Initial bool   `db:"initial"`
+		fetched, initial, err := fetchOriginImage(ctx, s.origin, id)
+		if errors.Is(err, sql.ErrNoRows) {
+			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}
-		if err := db.GetContext(ctx, &object, `SELECT data, created_at <= (SELECT created_at FROM initial_data_boundary) AS initial FROM image_objects WHERE id = $1`, id); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return NewAPIError(http.StatusForbidden, "image_forbidden")
-			}
+		if err != nil {
 			return err
 		}
-		data = object.Data
-		writeLocalImage(id, data, object.Initial)
+		data = fetched
+		writeLocalImage(id, data, initial)
 	}
 	if exp <= time.Now().Unix() {
 		return NewAPIError(http.StatusForbidden, "image_forbidden")
@@ -568,6 +559,9 @@ func NewImageServer(config *Config) *echo.Echo {
 
 	peers := envPeers("ISUREAL_IMAGE_EVENT_PEERS")
 	s := &imageServer{state: newLocalImageState(peers)}
+	if len(peers) > 0 {
+		s.origin = peers[0]
+	}
 	for _, p := range peers {
 		go s.state.subscribe(p)
 	}
