@@ -2,7 +2,7 @@ package isureal
 
 // JPEG の検証と画像の署名を、CPU の空いている台へ逃がす。
 // 逃がし先は ISUREAL_OFFLOAD_PEERS（近い順、カンマ区切りの host:port）。失敗した逃がし先は数秒外し、
-// 使える逃がし先が無い・失敗した・遅いときは手元で計算する。逃がし先は鍵を受け取るので、
+// どの逃がし先も同時に頼める数（offloadPeerSlots）まで埋まっている・失敗した・遅いときは手元で計算する。逃がし先は鍵を受け取るので、
 // 受け付けはプライベートネットワーク（192.168.0.0/16）からだけにし、nginx には出さない。
 
 import (
@@ -29,18 +29,20 @@ const (
 	offloadJPEGTimeout = 2 * time.Second
 	offloadSignTimeout = 2 * time.Second
 	offloadPeerBackoff = 5 * time.Second
+	offloadPeerSlots   = 8
 )
 
 type offloadPeer struct {
 	url       string
 	downUntil atomic.Int64
+	slots     chan struct{}
 }
 
 var offloadPeers = func() []*offloadPeer {
 	var peers []*offloadPeer
 	for _, addr := range strings.Split(os.Getenv("ISUREAL_OFFLOAD_PEERS"), ",") {
 		if addr = strings.TrimSpace(addr); addr != "" {
-			peers = append(peers, &offloadPeer{url: "http://" + addr})
+			peers = append(peers, &offloadPeer{url: "http://" + addr, slots: make(chan struct{}, offloadPeerSlots)})
 		}
 	}
 	return peers
@@ -53,14 +55,20 @@ var offloadClient = &http.Client{Transport: &http.Transport{
 	IdleConnTimeout:     90 * time.Second,
 }}
 
-// 逃がし先へ順に頼む。つながらなければ次へ、時間切れなら手元で計算させる
+// 空きのある逃がし先へ近い順に頼む。つながらなければ次へ、時間切れなら手元で計算させる
 func offloadCall(path string, body []byte, timeout time.Duration) ([]byte, error) {
 	now := time.Now().UnixNano()
 	for _, peer := range offloadPeers {
 		if peer.downUntil.Load() > now {
 			continue
 		}
+		select {
+		case peer.slots <- struct{}{}:
+		default:
+			continue
+		}
 		res, err := offloadPost(peer.url+path, body, timeout)
+		<-peer.slots
 		if err == nil {
 			return res, nil
 		}
