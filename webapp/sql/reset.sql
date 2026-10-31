@@ -46,7 +46,3 @@ INSERT INTO block_relations (id, blocker_id, blocked_id, created_at)
 SELECT id, blocker_id, blocked_id, created_at FROM initial_block_relations;
 
 COMMIT;
-
--- ベンチで足された画像の行を消した領域を空き領域として登録し、次のベンチの INSERT が使い回すようにする。
--- 末尾を切り詰めると次のベンチの INSERT が TOAST の拡張のロックに並び、asia1 の DB の接続を埋めるので切り詰めない
-VACUUM (TRUNCATE false) image_objects;
