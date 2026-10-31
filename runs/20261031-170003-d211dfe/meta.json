@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-170003-d211dfe",
+  "startedAt": "2026-10-31T17:00:03+09:00",
+  "finishedAt": "2026-10-31T17:07:00+09:00",
+  "ref": "HEAD",
+  "sha": "d211dfee0e2c867a75346bedc257964b99f207a1",
+  "score": 219108,
+  "status": "pass",
+  "note": "asia2: Memories・エクスポートの画像の次の分の署名を EU/US に先回り",
+  "benchJobId": "32034",
+  "prevRunId": "20261031-163606-15a1e6c",
+  "bestRunId": "20261031-163105-6f2cd6f"
+}

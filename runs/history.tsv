@@ -129,3 +129,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-162835-6155bdc	2026-10-31T16:28:35+09:00	6155bdc01658b73b48e2c47789e72cd98c3cece9	jpeg-peers-asia2-last	198345	pass	asia1 JPEG offload peers: europe1/america1 only (drop asia2)
 20261031-163017-8a13cd2	2026-10-31T16:30:17+09:00	8a13cd28132d375bb0a6ecb4e149953de04ebb3f	skip-abandoned-writes	206779	pass	skip commits when client gave up during JPEG check
 20261031-163606-15a1e6c	2026-10-31T16:36:06+09:00	15a1e6cee1bdc5f380cced3371c52c96c9412ede	jpegcheck-fast-ac	220540	pass	jpegcheck の AC を 10 ビット表で読み飛ばす（main c001e38 を取り込み）
+20261031-170003-d211dfe	2026-10-31T17:00:03+09:00	d211dfee0e2c867a75346bedc257964b99f207a1	HEAD	219108	pass	asia2: Memories・エクスポートの画像の次の分の署名を EU/US に先回り
