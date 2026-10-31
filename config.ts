@@ -12,10 +12,11 @@ import type { Config } from "./src/config.js";
 export const config: Config = {
   // ホストの値は ~/.ssh/config 上のホスト別名。setup が生成する。
   hosts: {
-    all: ["isu1", "isu2", "isu3"],
-    app: ["isu1"],
-    nginx: ["isu1"],
-    db: "isu2",
+    // isu1 = asia1, isu2 = europe1, isu3 = america1, isu4 = asia2（共有 PostgreSQL）
+    all: ["isu1", "isu2", "isu3", "isu4"],
+    app: ["isu1", "isu2", "isu3"],
+    nginx: ["isu1", "isu2", "isu3"],
+    db: "isu4",
     primary: "isu1",
     user: "isucon",
   },
@@ -27,11 +28,11 @@ export const config: Config = {
     localDir: "webapp",
     dir: "/home/isucon/webapp",
     langDir: "go",
-    binary: "isuports",
-    service: "isuports.go.service",
-    buildCommand: "GOOS=linux GOARCH=amd64 go build -o isuports ./cmd/isuports",
-    baseUrl: "http://isu1",
-    initializePath: "/initialize",
+    binary: "isureal",
+    service: "isureal-go.service",
+    buildCommand: "GOOS=linux GOARCH=amd64 go build -o isureal ./cmd/isureal",
+    baseUrl: "http://52.69.202.109:8080",
+    initializePath: "/api/initialize",
   },
 
   middleware: {
@@ -88,9 +89,10 @@ export const config: Config = {
   setup: {
     // 当日 CloudFormation の出力（またはポータル）から埋める。hosts.all の全員ぶん。
     addresses: {
-      isu1: { public: "", private: "" },
-      isu2: { public: "", private: "" },
-      isu3: { public: "", private: "" },
+      isu1: { public: "54.168.167.77", private: "192.168.1.10" },
+      isu2: { public: "3.114.215.4", private: "192.168.2.10" },
+      isu3: { public: "13.230.146.72", private: "192.168.3.10" },
+      isu4: { public: "13.196.229.153", private: "192.168.4.10" },
     },
     // ポータルに公開鍵を登録した鍵。サーバの isucon ユーザにはこの鍵で入れる。
     identityFile: `${process.env["HOME"]}/.ssh/id_ed25519`,

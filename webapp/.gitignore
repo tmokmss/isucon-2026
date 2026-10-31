@@ -1,5 +1,5 @@
 # isuh setup apprepo が生成
-/go/isuports
+/go/isureal
 *.isuh-new
 node_modules/
 target/
