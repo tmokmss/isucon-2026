@@ -1,11 +1,14 @@
 package isureal
 
 import (
+	"context"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v5"
 )
 
@@ -24,6 +27,28 @@ type openPostingWindowResponse struct {
 }
 
 var postingWindowMu sync.Mutex
+
+// 投稿期間の開始は、利用者のリクエストで共有のプールが埋まっていても待たされないよう、専用の接続で書く。
+// 期間の終了・開始・通知の 3 文は 1 回の往復で送る（pgx の batch は 1 つの暗黙のトランザクションになる）
+var postingWindowPool struct {
+	once sync.Once
+	pool *pgxpool.Pool
+	err  error
+}
+
+func postingWindowDB(config *Config) (*pgxpool.Pool, error) {
+	p := &postingWindowPool
+	p.once.Do(func() {
+		pc, err := pgxpool.ParseConfig(config.DatabaseDSN())
+		if err != nil {
+			p.err = err
+			return
+		}
+		pc.MaxConns = 2
+		p.pool, p.err = pgxpool.NewWithConfig(context.Background(), pc)
+	})
+	return p.pool, p.err
+}
 
 func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
@@ -77,29 +102,23 @@ func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 			notificationIDs[i] = uuid.NewString()
 			w.notified[id] = notificationRow{ID: notificationIDs[i], CreatedAt: startsAt}
 		}
-		tx, err := h.DB.BeginTxx(ctx, nil)
+		pool, err := postingWindowDB(h.Config)
 		if err != nil {
 			return err
 		}
-		defer tx.Rollback()
-		if _, err := tx.ExecContext(ctx, `UPDATE posting_windows SET ended_at = $2 WHERE region = $1 AND ended_at IS NULL`, region, startsAt); err != nil {
-			return err
-		}
-		if _, err := tx.ExecContext(ctx, `
+		batch := &pgx.Batch{}
+		batch.Queue(`UPDATE posting_windows SET ended_at = $2 WHERE region = $1 AND ended_at IS NULL`, region, startsAt)
+		batch.Queue(`
    INSERT INTO posting_windows (id, region, local_date, starts_at, on_time_deadline, created_at)
    VALUES ($1, $2, $3, $4, $5, $4)
-  `, w.ID, region, localDate, startsAt, w.OnTimeDeadline); err != nil {
-			return err
-		}
+  `, w.ID, region, localDate, startsAt, w.OnTimeDeadline)
 		if len(userIDs) > 0 {
-			if _, err := tx.ExecContext(ctx, `
+			batch.Queue(`
    INSERT INTO notifications (id, user_id, posting_window_id, created_at)
    SELECT unnest($1::text[]), unnest($2::text[]), $3, $4
-  `, notificationIDs, userIDs, w.ID, startsAt); err != nil {
-				return err
-			}
+  `, notificationIDs, userIDs, w.ID, startsAt)
 		}
-		if err := tx.Commit(); err != nil {
+		if err := pool.SendBatch(ctx, batch).Close(); err != nil {
 			return err
 		}
 		s.mu.Lock()
