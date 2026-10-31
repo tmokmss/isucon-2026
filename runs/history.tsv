@@ -17,3 +17,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-113154-1376dd7	2026-10-31T11:31:54+09:00	1376dd789552b1634f4e335fcd133bb65803b8d4	origin/main	0	fail	main: +#67 無効化の受領待ち +登録のロックを予約だけに
 20261031-113441-6a7a33a	2026-10-31T11:34:41+09:00	6a7a33a922e977630d3a989ec56e090d84981f12	origin/main	17072	pass	main: 登録の並列化を戻した（#67 入り）
 20261031-114127-f782d77	2026-10-31T11:41:27+09:00	f782d770714528dc8b1a4a73e8df50d779ce6ebe	origin/main	33567	pass	main: +#68 検証だけの JPEG デコーダ
+20261031-115040-1c73ee4	2026-10-31T11:50:40+09:00	1c73ee49c821a0f13b37ea579afd51caa733e97b	origin/main	60201	pass	main: +#66 署名を asia2 へ +#69 メモリ削減
