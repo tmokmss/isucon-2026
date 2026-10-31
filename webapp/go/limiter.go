@@ -15,8 +15,9 @@ type limiter struct {
 }
 
 var (
-	postLimiter  = &limiter{slots: make(chan struct{}, 4), maxWait: 8 * time.Second}
-	heavyLimiter = &limiter{slots: make(chan struct{}, 1), maxWait: 4 * time.Second}
+	postLimiter     = &limiter{slots: make(chan struct{}, 4), maxWait: 8 * time.Second}
+	memoriesLimiter = &limiter{slots: make(chan struct{}, 2), maxWait: 8 * time.Second}
+	heavyLimiter    = &limiter{slots: make(chan struct{}, 1), maxWait: 8 * time.Second}
 )
 
 func (l *limiter) Middleware(next echo.HandlerFunc) echo.HandlerFunc {
