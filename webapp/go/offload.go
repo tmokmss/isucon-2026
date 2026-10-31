@@ -182,11 +182,7 @@ func prefetchImageSignatures(targets []signTarget) {
 	if len(offloadPeers) == 0 {
 		return
 	}
-	offloadImageSignatures(targets, imageURLExp(), offloadSignTimeout)
-}
-
-// まだ持っていない署名だけを逃がし先に頼み、キャッシュに入れる
-func offloadImageSignatures(targets []signTarget, exp int64, timeout time.Duration) {
+	exp := imageURLExp()
 	var body []byte
 	var keys []imageSigKey
 	seen := make(map[imageSigKey]bool, len(targets))
@@ -208,7 +204,7 @@ func offloadImageSignatures(targets []signTarget, exp int64, timeout time.Durati
 	if len(keys) == 0 {
 		return
 	}
-	res, err := offloadCall(offloadPeers, "/sign", body, timeout)
+	res, err := offloadCall(offloadPeers, "/sign", body, offloadSignTimeout)
 	if err != nil || len(res) != len(keys)*32 {
 		return
 	}
@@ -307,37 +303,4 @@ func offloadHandler() http.Handler {
 // 逃がし先として受け付ける（戻らない）
 func ServeOffload() error {
 	return http.ListenAndServe(offloadPort, offloadHandler())
-}
-
-const presignBatch = 1000
-
-// 毎分 30 秒を過ぎたら、今の exp で署名した画像を次の exp でも逃がし先に署名させておく。
-// exp が切り替わった直後に、それまで見えていた画像の署名を手元で一斉に計算し直さないため
-func presignNextMinuteForever() {
-	if len(offloadPeers) == 0 {
-		return
-	}
-	var done int64
-	for range time.Tick(time.Second) {
-		if time.Now().Second() < 30 {
-			continue
-		}
-		exp := imageURLExp()
-		next := exp + 60
-		if done == next {
-			continue
-		}
-		done = next
-		var targets []signTarget
-		imageSignatureCacheMu.RLock()
-		for k := range imageSignatureCache[exp] {
-			targets = append(targets, signTarget{bytes.Clone(k.key[:]), string(k.id[:])})
-		}
-		imageSignatureCacheMu.RUnlock()
-		for len(targets) > 0 {
-			n := min(presignBatch, len(targets))
-			offloadImageSignatures(targets[:n], next, 5*time.Second)
-			targets = targets[n:]
-		}
-	}
 }

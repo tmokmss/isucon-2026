@@ -15,7 +15,7 @@ import (
 const imageURLLifetime = 24 * time.Hour
 const imageSignatureIterations = 1000
 
-// 署名を exp（1 分単位に切り上げ）ごとの世代に分けて使い回す。直前の分・今の分・先に計算した次の分だけを持ち、古い世代は丸ごと捨てる。
+// 署名を exp（1 分単位に切り上げ）ごとの世代に分けて使い回す。直前の分と今の分だけを持ち、古い世代は丸ごと捨てる。
 // キーと値はポインタを含まない固定長にし、GC が走査しないようにする。画像 ID が UUID の長さでなければ使い回さない
 const imageIDLen = 36
 
