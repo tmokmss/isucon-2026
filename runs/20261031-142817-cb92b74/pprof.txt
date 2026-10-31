@@ -1,0 +1,49 @@
+File: isureal
+Build ID: 901a65ca747086356950e4a11a8e9c0b5b292f22
+Type: cpu
+Time: 2026-10-31 14:28:26 JST
+Duration: 60.02s, Total samples = 52.41s (87.32%)
+Showing nodes accounting for 37.96s, 72.43% of 52.41s total
+Dropped 1117 nodes (cum <= 0.26s)
+Showing top 40 nodes out of 273
+      flat  flat%   sum%        cum   cum%
+     5.26s 10.04% 10.04%      5.27s 10.06%  crypto/internal/fips140/sha256.blockAVX2
+     4.54s  8.66% 18.70%      4.54s  8.66%  internal/runtime/syscall/linux.Syscall6
+     3.42s  6.53% 25.22%      3.42s  6.53%  runtime.memmove
+     2.37s  4.52% 29.75%      3.12s  5.95%  runtime.findObject
+     2.26s  4.31% 34.06%      9.26s 17.67%  runtime.scanObject
+     2.24s  4.27% 38.33%      3.57s  6.81%  runtime.tryDeferToSpanScan
+     1.78s  3.40% 41.73%      1.78s  3.40%  runtime.memclrNoHeapPointers
+     1.55s  2.96% 44.69%      5.66s 10.80%  example.com/isureal-company/isureal.(*Store).rebuildIndexes
+     1.53s  2.92% 47.61%      1.53s  2.92%  internal/runtime/maps.ctrlGroup.matchH2 (inline)
+     1.21s  2.31% 49.91%      3.55s  6.77%  example.com/isureal-company/isureal/jpegcheck.(*decoder).processSOS
+     1.18s  2.25% 52.17%      1.18s  2.25%  aeshashbody
+     1.14s  2.18% 54.34%      1.62s  3.09%  example.com/isureal-company/isureal/jpegcheck.(*decoder).decodeHuffman
+     0.92s  1.76% 56.10%      0.92s  1.76%  runtime.spanClass.sizeclass (inline)
+     0.69s  1.32% 57.41%      0.72s  1.37%  example.com/isureal-company/isureal/jpegcheck.(*decoder).receiveExtend
+     0.58s  1.11% 58.52%      0.58s  1.11%  memeqbody
+     0.55s  1.05% 59.57%      2.14s  4.08%  runtime.mapaccess1_faststr
+     0.51s  0.97% 60.54%      0.51s  0.97%  runtime.nextFreeFast (inline)
+     0.43s  0.82% 61.36%      0.51s  0.97%  example.com/isureal-company/isureal/jpegcheck.(*decoder).ensureNBits
+     0.41s  0.78% 62.14%      0.45s  0.86%  runtime.typePointers.next
+     0.40s  0.76% 62.91%      0.76s  1.45%  runtime.greyobject
+     0.38s  0.73% 63.63%      0.64s  1.22%  example.com/isureal-company/isureal.(*Store).snapshotLocked
+     0.35s  0.67% 64.30%      0.85s  1.62%  database/sql.convertAssignRows
+     0.35s  0.67% 64.97%      0.55s  1.05%  example.com/isureal-company/isureal.postLess
+     0.31s  0.59% 65.56%      0.38s  0.73%  runtime.spanOf (inline)
+     0.30s  0.57% 66.13%      5.81s 11.09%  crypto/internal/fips140/sha256.(*Digest).Write
+     0.30s  0.57% 66.70%      5.81s 11.09%  runtime.mallocgc
+     0.29s  0.55% 67.26%      5.25s 10.02%  crypto/internal/fips140/sha256.(*Digest).checkSum
+     0.29s  0.55% 67.81%      1.44s  2.75%  runtime.mallocgcSmallScanNoHeader
+     0.27s  0.52% 68.33%      0.36s  0.69%  runtime.(*mspan).markBitsForIndex (inline)
+     0.27s  0.52% 68.84%      0.27s  0.52%  runtime.typePointers.nextFast (inline)
+     0.25s  0.48% 69.32%      1.97s  3.76%  runtime.mapassign_faststr
+     0.22s  0.42% 69.74%      0.41s  0.78%  internal/runtime/maps.(*Iter).Next
+     0.21s   0.4% 70.14%      0.63s  1.20%  runtime.scanObjectsSmall
+     0.20s  0.38% 70.52%      0.32s  0.61%  runtime.heapArenaOf (inline)
+     0.19s  0.36% 70.88%      5.40s 10.30%  encoding/gob.(*Encoder).encodeStruct
+     0.18s  0.34% 71.23%      0.39s  0.74%  compress/flate.(*compressor).deflate
+     0.18s  0.34% 71.57%      1.15s  2.19%  runtime.scanSpan
+     0.16s  0.31% 71.88%      0.31s  0.59%  runtime.scanObjectSmall
+     0.15s  0.29% 72.16%      5.50s 10.49%  crypto/internal/fips140/sha256.(*Digest).Sum
+     0.14s  0.27% 72.43%      1.09s  2.08%  github.com/jackc/pgx/v5/stdlib.(*Rows).initValueFuncs.func14

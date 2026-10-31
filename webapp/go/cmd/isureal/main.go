@@ -29,4 +29,6 @@ func main() {
 	if err := server(config).Start(":8080"); err != nil {
 		panic("failed to start server: " + err.Error())
 	}
+	// echo は SIGINT・SIGTERM で受け付けを止めて戻る。スナップショットを書き終えるまで終わらない
+	isureal.WaitStopSnapshot()
 }

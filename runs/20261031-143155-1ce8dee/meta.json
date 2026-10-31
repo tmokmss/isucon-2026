@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-143155-1ce8dee",
+  "startedAt": "2026-10-31T14:31:55+09:00",
+  "finishedAt": "2026-10-31T14:33:59+09:00",
+  "ref": "1ce8dee",
+  "sha": "1ce8deed43a8b860b27659d27ed4b3afd2c48de6",
+  "score": 124239,
+  "status": "pass",
+  "note": "DB外し2: 複製の再接続はスナップショットで",
+  "benchJobId": "17894",
+  "prevRunId": "20261031-142817-cb92b74",
+  "bestRunId": "20261031-141027-bd0fe45"
+}

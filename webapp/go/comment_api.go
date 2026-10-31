@@ -33,7 +33,6 @@ func createCommentHandler(h *HandlerContext) echo.HandlerFunc {
 		if !validUserText(input.Body, 1, 1000) {
 			return NewAPIError(http.StatusBadRequest, "invalid_interaction")
 		}
-		ctx := c.Request().Context()
 		actor := GetSession(c).UserID
 		s := h.Store
 		s.mu.RLock()
@@ -59,9 +58,6 @@ func createCommentHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusInternalServerError, "user_not_found")
 		}
 		cm := &CommentRow{Comment: Comment{ID: uuid.NewString(), PostID: p.ID, AuthorID: actor, Body: input.Body, CreatedAt: now()}}
-		if _, err := h.DB.ExecContext(ctx, `INSERT INTO comments(id,post_id,author_id,body,created_at) VALUES($1,$2,$3,$4,$5)`, cm.ID, cm.PostID, actor, cm.Body, cm.CreatedAt); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		rw := s.commitLocked(&opCommentAdd{C: cm})
 		s.mu.Unlock()
@@ -147,7 +143,6 @@ func deleteCommentHandler(h *HandlerContext) echo.HandlerFunc {
 		if err := c.Bind(&input); err != nil {
 			return err
 		}
-		ctx := c.Request().Context()
 		actor := GetSession(c).UserID
 		s := h.Store
 		unlock := lockUsers(actor)
@@ -166,9 +161,6 @@ func deleteCommentHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
 		deletedAt := now()
-		if _, err := h.DB.ExecContext(ctx, `UPDATE comments SET deleted_at=$2 WHERE id=$1`, cm.ID, deletedAt); err != nil {
-			return err
-		}
 		s.mu.Lock()
 		rw := s.commitLocked(&opCommentDelete{ID: cm.ID, At: deletedAt})
 		s.mu.Unlock()
