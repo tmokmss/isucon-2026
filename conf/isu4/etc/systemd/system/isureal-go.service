@@ -3,16 +3,15 @@ Description=isureal-go
 After=network-online.target
 Wants=network-online.target
 
-# asia2 では署名の計算だけを受け付ける（ISUREAL_OFFLOAD_WORKER=1）。全データを読み込むと PostgreSQL のメモリを潰すので、
-# env.sh は読まず、逃がし先のモードを知らない古いバイナリが起動しても DB につながらないよう DB の宛先を閉じたポートにし、
-# メモリも MemoryMax で抑える。PostgreSQL を優先するため Nice を上げる
+# asia2 は asia の読み取りを返す複製（asia1 の nginx が GET を送る、replica_server.go）と、署名の計算の逃がし先（:8090）を 1 プロセスで兼ねる。
+# PostgreSQL のメモリを潰さないよう MemoryMax で抑える。落ちている間は asia1 の nginx が asia1 へ送る
 [Service]
 User=isucon
 Group=isucon
 WorkingDirectory=/home/isucon/webapp/go
-Environment=ISUREAL_OFFLOAD_WORKER=1 GOMEMLIMIT=300MiB ISUREAL_DB_HOST=127.0.0.1 ISUREAL_DB_PORT=1
-Nice=10
-MemoryMax=512M
+EnvironmentFile=/home/isucon/env.sh
+Environment=GOMEMLIMIT=1200MiB
+MemoryMax=1600M
 ExecStart=/home/isucon/webapp/go/isureal
 Restart=on-failure
 RestartSec=5

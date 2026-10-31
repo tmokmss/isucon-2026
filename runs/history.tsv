@@ -128,4 +128,5 @@ run_id	started_at	sha	ref	score	status	note
 20261031-155036-b19d232	2026-10-31T15:50:36+09:00	b19d23279da5d21aee21c181678548f94059487c	presign-next-minute	170564	pass	on b3440cf: sig cache + presign + JPEG prefers asia2
 20261031-155429-b3440cf	2026-10-31T15:54:29+09:00	b3440cf1f4d9a29ef93a5620ea94dcca545cf899	b3440cf	184830	pass	main b3440cf baseline (presign lane)
 20261031-160039-1f0e740	2026-10-31T16:00:39+09:00	1f0e74082a6fd3d839689339ecc9f72d246a32f6	presign-next-minute	181170	pass	on b3440cf: sig cache by exp generation + presign (JPEG unchanged), heap capture
+20261031-160409-40e65ef	2026-10-31T16:04:09+09:00	40e65ef68604ca176cec4a58cd8fadbd953fbcb3	asia2-replica	201497	pass	asia2 as asia read replica, asia1 nginx sends GET to asia2
 20261031-160719-1f0e740	2026-10-31T16:07:19+09:00	1f0e74082a6fd3d839689339ecc9f72d246a32f6	presign-next-minute	175643	pass	sig cache + presign, rerun with heap capture
