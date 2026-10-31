@@ -74,7 +74,7 @@ func parseHeldImageHeader(req *http.Request) (id, holder string, width, height i
 // readHeldLocal はこの台の手元のファイルを読む。europe1・america1 は init/ と new/、asia1 は new/ だけ（初期データは PostgreSQL）
 var readHeldLocal = readNewImage
 
-// fetchHeldImage は、手元に無い画像の本体を持ち主の台から取り、手元の new/ に置く。持ち主が無い・この台なら false
+// fetchHeldImage は、手元に無い画像の本体を持ち主の台（imageHolderOf の値）から取り、手元の new/ に置く。持ち主が無い・この台なら false
 // 同じ画像を同時に取りに行く要求は、先に出た 1 本の結果を待つ（リージョン間の帯域を同じ本体で重ねて使わない）
 type heldFetch struct {
 	done chan struct{}
@@ -88,7 +88,7 @@ var (
 	heldFetches = map[string]*heldFetch{}
 )
 
-func fetchHeldImage(ctx context.Context, id string) ([]byte, bool, error) {
+func fetchHeldImage(ctx context.Context, id, holder string) ([]byte, bool, error) {
 	heldFetchMu.Lock()
 	if f := heldFetches[id]; f != nil {
 		heldFetchMu.Unlock()
@@ -102,7 +102,7 @@ func fetchHeldImage(ctx context.Context, id string) ([]byte, bool, error) {
 	f := &heldFetch{done: make(chan struct{})}
 	heldFetches[id] = f
 	heldFetchMu.Unlock()
-	f.data, f.ok, f.err = fetchHeldImageOnce(context.WithoutCancel(ctx), id)
+	f.data, f.ok, f.err = fetchHeldImageOnce(context.WithoutCancel(ctx), id, holder)
 	heldFetchMu.Lock()
 	delete(heldFetches, id)
 	heldFetchMu.Unlock()
@@ -110,8 +110,7 @@ func fetchHeldImage(ctx context.Context, id string) ([]byte, bool, error) {
 	return f.data, f.ok, f.err
 }
 
-func fetchHeldImageOnce(ctx context.Context, id string) ([]byte, bool, error) {
-	holder := imageHolderOf(id)
+func fetchHeldImageOnce(ctx context.Context, id, holder string) ([]byte, bool, error) {
 	if holder == "" {
 		holder = asiaInternal
 	}

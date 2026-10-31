@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-153710-2b412e2",
+  "startedAt": "2026-10-31T15:37:10+09:00",
+  "finishedAt": "2026-10-31T15:42:47+09:00",
+  "ref": "2b412e2",
+  "sha": "2b412e2e146ce77a67ea317baccd8700b8e374a2",
+  "score": 196792,
+  "status": "pass",
+  "note": "dedupe: image lookup once, shared ip_bans, admin session in oplog",
+  "benchJobId": "23819",
+  "prevRunId": "20261031-152137-8c13252",
+  "bestRunId": "20261031-153710-2b412e2"
+}

@@ -79,11 +79,14 @@ func NewReplicaServer(config *Config) http.Handler {
 	rep := &replica{s: h.Store, upstream: os.Getenv("ISUREAL_REPLICA_STREAM")}
 	advanced := make(chan struct{})
 	rep.advanced.Store(&advanced)
+	bansReady := make(chan struct{})
 	go func() {
 		db := openDatabase(config)
 		db.SetMaxOpenConns(20)
 		db.SetMaxIdleConns(20)
 		h.DB = db
+		h.IPBans.loadFirst(db)
+		close(bansReady)
 		go h.IPBans.reloadForever(db)
 		rep.db = db
 		rep.run()
@@ -127,7 +130,7 @@ func NewReplicaServer(config *Config) http.Handler {
 		return res.remote(), nil
 	}
 
-	f := &replicaFront{mode: os.Getenv("ISUREAL_REPLICA_MODE"), rep: rep, images: NewImageServer(config), local: e, proxy: proxy}
+	f := &replicaFront{mode: os.Getenv("ISUREAL_REPLICA_MODE"), rep: rep, images: newImageServer(config, h.IPBans, bansReady), local: e, proxy: proxy}
 	go f.statsLoop()
 	return f
 }
