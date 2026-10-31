@@ -1,6 +1,8 @@
 package isureal
 
 import (
+	"context"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -91,16 +93,19 @@ func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
   `, w.ID, region, localDate, startsAt, w.OnTimeDeadline); err != nil {
 			return err
 		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+		// 通知は SSE が接続後に作られたものだけをメモリから読むので、DB へは応答を待たせずに書く
 		if len(userIDs) > 0 {
-			if _, err := tx.ExecContext(ctx, `
+			go func() {
+				if _, err := h.DB.ExecContext(context.Background(), `
    INSERT INTO notifications (id, user_id, posting_window_id, created_at)
    SELECT unnest($1::text[]), unnest($2::text[]), $3, $4
   `, notificationIDs, userIDs, w.ID, startsAt); err != nil {
-				return err
-			}
-		}
-		if err := tx.Commit(); err != nil {
-			return err
+					log.Printf("failed to insert notifications: %v", err)
+				}
+			}()
 		}
 		s.mu.Lock()
 		if oldWindow != nil && oldWindow.EndedAt == nil {
