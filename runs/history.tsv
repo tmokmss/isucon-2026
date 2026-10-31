@@ -5,3 +5,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-103328-02acb51	2026-10-31T10:33:28+09:00	02acb51f3856899156a5b69327664636ee657fdb	HEAD	7675	pass	画像の署名: hmac の使い回し・キャッシュ・exp を 1 分単位に
 20261031-103751-ddc4d70	2026-10-31T10:37:51+09:00	ddc4d701940c0ff30e7fb0d0c92d328a011b9261	HEAD	8141	pass	main: 署名の修正 + インデックスと PostgreSQL の設定（#60）
 20261031-103811-cef5fe3	2026-10-31T10:38:11+09:00	cef5fe35a9fe83009c8c12e8fe431c154574f889	HEAD	24801	pass	インメモリ化（asia1に集約、他2台はnginxで転送）
+20261031-104710-4350e7f	2026-10-31T10:47:10+09:00	4350e7f0be163b67b5b1f95dab923e1d785bc107	HEAD	17610	pass	main: インメモリ化（#61）を入れた
