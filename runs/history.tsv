@@ -122,3 +122,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-151835-2fe5b6e	2026-10-31T15:18:35+09:00	2fe5b6ea68ff6bfdf40bb66091bd66c68cd67179	2fe5b6e	183184	pass	RealMoji の画像も受けた台に置く（main 5a230a4 の上）
 20261031-152137-8c13252	2026-10-31T15:21:37+09:00	8c13252c30647a9d6e7624eff3fe75f10e8118b4	8c13252	183331	pass	RealMoji の画像も受けた台に置く（main 5fcd3e6 の上）2回目
 20261031-160409-40e65ef	2026-10-31T16:04:09+09:00	40e65ef68604ca176cec4a58cd8fadbd953fbcb3	asia2-replica	201497	pass	asia2 as asia read replica, asia1 nginx sends GET to asia2
+20261031-163105-6f2cd6f	2026-10-31T16:31:05+09:00	6f2cd6fea333f9b19a6ebf585b0ebb3a499cd1c5	jpegcheck-fast-ac	223742	pass	jpegcheck の AC を 10 ビット表で読み飛ばす（main 73b6aff の上）
