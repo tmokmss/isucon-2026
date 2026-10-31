@@ -42,6 +42,7 @@ func deleteAccountHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		u.sessions = map[string]*LoginSessionRow{}
 		s.mu.Unlock()
+		userImagesInvalidated(userID)
 		return c.NoContent(http.StatusNoContent)
 	}
 }

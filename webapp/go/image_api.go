@@ -127,3 +127,9 @@ func (h *HandlerContext) fetchImage(c *echo.Context, imageID string, createdAt *
 	imageCache.put(imageID, object.Data, object.MediaType)
 	return object.Data, object.MediaType, nil
 }
+
+// 画像が取得できなくなったときに呼ぶ。他の台へ無効化を知らせる処理はここに差し込む
+var imagesInvalidated = func(imageIDs ...string) {}
+
+// 退会で、その利用者のすべての画像が取得できなくなったときに呼ぶ
+var userImagesInvalidated = func(userID string) {}

@@ -319,6 +319,7 @@ func deletePostHandler(h *HandlerContext) echo.HandlerFunc {
 		s.mu.Lock()
 		p.DeletedAt = &deletedAt
 		s.mu.Unlock()
+		imagesInvalidated(p.ImageID)
 		return c.NoContent(http.StatusNoContent)
 	}
 }

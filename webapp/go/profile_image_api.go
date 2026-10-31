@@ -83,6 +83,9 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		u.ProfileImageCreatedAt = &createdAt
 		s.profileByImage[imageID] = u
 		s.mu.Unlock()
+		if oldID != nil {
+			imagesInvalidated(*oldID)
+		}
 		imageCache.put(imageID, data, "image/jpeg")
 		return c.NoContent(http.StatusNoContent)
 	}
@@ -132,6 +135,7 @@ func deleteProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		u.ProfileImageID = nil
 		u.ProfileImageCreatedAt = nil
 		s.mu.Unlock()
+		imagesInvalidated(*imageID)
 		return c.NoContent(http.StatusNoContent)
 	}
 }

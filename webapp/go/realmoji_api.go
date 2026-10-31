@@ -122,6 +122,9 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		s.addRealMojiLocked(r)
 		s.mu.Unlock()
+		for _, old := range replaced {
+			imagesInvalidated(old.ImageID)
+		}
 		return c.JSON(http.StatusCreated, newRealMojiResponse(r.RealMoji, user))
 	}
 }
@@ -201,6 +204,7 @@ func deleteRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 		s.mu.Lock()
 		r.DeletedAt = &deletedAt
 		s.mu.Unlock()
+		imagesInvalidated(r.ImageID)
 		return c.NoContent(http.StatusNoContent)
 	}
 }
