@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -63,6 +64,7 @@ func offloadPeersFromEnv(key string) []*offloadPeer {
 var (
 	offloadPeers     = offloadPeersFromEnv("ISUREAL_OFFLOAD_PEERS")
 	offloadJPEGPeers = offloadPeersFromEnv("ISUREAL_OFFLOAD_JPEG_PEERS")
+	presignPeers     = offloadPeersFromEnv("ISUREAL_PRESIGN_PEERS")
 )
 
 var offloadClient = &http.Client{Transport: &http.Transport{
@@ -179,6 +181,9 @@ type signTarget struct {
 // まとめて返す画像の署名を逃がし先で計算し、署名のキャッシュに入れておく。
 // 失敗したら何もしない（signedImageURL が手元で計算する）
 func prefetchImageSignatures(targets []signTarget) {
+	if len(presignPeers) > 0 {
+		recordPresignTargets(targets)
+	}
 	if len(offloadPeers) == 0 {
 		return
 	}
@@ -307,4 +312,136 @@ func offloadHandler() http.Handler {
 // 逃がし先として受け付ける（戻らない）
 func ServeOffload() error {
 	return http.ListenAndServe(offloadPort, offloadHandler())
+}
+
+// Memories・エクスポートで署名した画像を覚えておき、毎分 30 秒を過ぎたら次の exp の署名を
+// ISUREAL_PRESIGN_PEERS（SHA-NI のある europe1・america1）に計算させてキャッシュに入れる。
+// 同じ利用者がまた見に来たときに、分が変わった直後でも手元で計算し直さないため。直近 presignWindow に出した画像だけを対象にする
+const (
+	presignWindow   = 3 * time.Minute
+	presignMax      = 100_000
+	presignBatch    = 1000
+	presignParallel = 4
+	presignTimeout  = 5 * time.Second
+)
+
+var (
+	presignMu      sync.Mutex
+	presignTargets = map[string]presignTarget{}
+	// 先回りで入れたキャッシュのキーと、その exp
+	presignedKeys = map[string]int64{}
+
+	presignHit   atomic.Int64
+	presignCache atomic.Int64
+	presignLocal atomic.Int64
+)
+
+type presignTarget struct {
+	signTarget
+	lastSeen int64
+}
+
+func init() {
+	if len(presignPeers) > 0 {
+		go presignNextMinuteForever()
+	}
+}
+
+func recordPresignTargets(targets []signTarget) {
+	now := time.Now().Unix()
+	exp := imageURLExp()
+	presignMu.Lock()
+	imageSignatureCacheMu.RLock()
+	for _, t := range targets {
+		id := string(t.key) + t.imageID
+		if _, ok := presignTargets[id]; ok || len(presignTargets) < presignMax {
+			presignTargets[id] = presignTarget{t, now}
+		}
+		cacheKey := imageSignatureCacheKey(t.key, t.imageID, exp)
+		if _, ok := imageSignatureCache[cacheKey]; !ok {
+			presignLocal.Add(1)
+		} else if _, ok := presignedKeys[cacheKey]; ok {
+			presignHit.Add(1)
+		} else {
+			presignCache.Add(1)
+		}
+	}
+	imageSignatureCacheMu.RUnlock()
+	presignMu.Unlock()
+}
+
+func presignNextMinuteForever() {
+	var done int64
+	for range time.Tick(time.Second) {
+		if time.Now().Second() < 30 {
+			continue
+		}
+		exp := imageURLExp()
+		next := exp + 60
+		if done == next {
+			continue
+		}
+		done = next
+
+		cutoff := time.Now().Add(-presignWindow).Unix()
+		var targets []signTarget
+		presignMu.Lock()
+		for id, t := range presignTargets {
+			if t.lastSeen < cutoff {
+				delete(presignTargets, id)
+				continue
+			}
+			targets = append(targets, t.signTarget)
+		}
+		for k, e := range presignedKeys {
+			if e < exp {
+				delete(presignedKeys, k)
+			}
+		}
+		presignMu.Unlock()
+
+		start := time.Now()
+		var ok atomic.Int64
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, presignParallel)
+		for len(targets) > 0 {
+			n := min(presignBatch, len(targets))
+			batch := targets[:n]
+			targets = targets[n:]
+			sem <- struct{}{}
+			wg.Go(func() {
+				defer func() { <-sem }()
+				ok.Add(int64(presignImageSignatures(batch, next)))
+			})
+		}
+		wg.Wait()
+		log.Printf("presign exp=%d signed=%d in %s; memories/export images in the last minute: presign_hit=%d cache_hit=%d local=%d",
+			next, ok.Load(), time.Since(start).Round(time.Millisecond), presignHit.Swap(0), presignCache.Swap(0), presignLocal.Swap(0))
+	}
+}
+
+// 計算させた件数を返す。失敗したら何もしない（応答の経路が手元で計算する）
+func presignImageSignatures(targets []signTarget, exp int64) int {
+	var body []byte
+	keys := make([]string, 0, len(targets))
+	for _, t := range targets {
+		keys = append(keys, imageSignatureCacheKey(t.key, t.imageID, exp))
+		body = appendSignRequest(body, t.key, t.imageID, exp)
+	}
+	res, err := offloadCall(presignPeers, "/sign", body, presignTimeout)
+	if err != nil || len(res) != len(keys)*32 {
+		return 0
+	}
+	presignMu.Lock()
+	imageSignatureCacheMu.Lock()
+	if len(imageSignatureCache)+len(keys) > imageSignatureCacheMax {
+		imageSignatureCache = make(map[string][]byte)
+	}
+	for i, k := range keys {
+		imageSignatureCache[k] = res[i*32 : (i+1)*32 : (i+1)*32]
+		presignedKeys[k] = exp
+	}
+	imageSignatureCacheMu.Unlock()
+	presignMu.Unlock()
+	return len(keys)
 }
