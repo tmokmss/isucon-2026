@@ -49,28 +49,40 @@ func NewServer(config *Config) *echo.Echo {
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = APIErrorHandler
 
-	db := openDatabase(config)
-	db.SetMaxOpenConns(40)
-	db.SetMaxIdleConns(40)
-
-	store := NewStore()
-	for {
-		start := time.Now()
-		err := store.LoadAll(context.Background(), db)
-		if err == nil {
-			log.Printf("loaded store in %s", time.Since(start))
-			break
-		}
-		log.Printf("failed to load store: %v", err)
-		time.Sleep(time.Second)
-	}
-
 	handlerContext := &HandlerContext{
-		DB:     db,
 		Config: config,
 		IPBans: &IPBanList{},
-		Store:  store,
+		Store:  NewStore(),
 	}
+	// 先に listen し、DB への接続と読み込みが終わるまでリクエストを待たせる（起動直後の initialize が 502 にならないように）
+	ready := make(chan struct{})
+	go func() {
+		db := openDatabase(config)
+		db.SetMaxOpenConns(40)
+		db.SetMaxIdleConns(40)
+		for {
+			start := time.Now()
+			err := handlerContext.Store.LoadAll(context.Background(), db)
+			if err == nil {
+				log.Printf("loaded store in %s", time.Since(start))
+				break
+			}
+			log.Printf("failed to load store: %v", err)
+			time.Sleep(time.Second)
+		}
+		handlerContext.DB = db
+		close(ready)
+	}()
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			select {
+			case <-ready:
+			case <-c.Request().Context().Done():
+				return c.Request().Context().Err()
+			}
+			return next(c)
+		}
+	})
 	e.Use(IPBanMiddleware(handlerContext))
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
