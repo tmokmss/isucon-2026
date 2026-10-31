@@ -1,7 +1,7 @@
 package isureal
 
 // 画像の本体はファイルに置き、PostgreSQL の image_objects.data には新しい画像では空のバイト列を入れる（行は判定と初期化のために残す）。
-// - asia1: 書き込みは new/ に一時ファイル → fsync → rename → ディレクトリの fsync をしてから DB を commit する。
+// - asia1: 書き込みは new/ に一時ファイル → rename をしてから DB を commit する（ディスクへの同期は裏で 1 秒ごと）。
 //   読み出しは init/ → new/ の順にファイルを探し、無ければ PostgreSQL の data（初期データの画像だけが中身を持つ）を読んで init/ に置く
 // - europe1・america1: 手元に無い画像は asia1 の :8081 /_internal/image から取る（PostgreSQL の data は読まない）
 // - initialize で asia1 の new/ も消す
@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -23,41 +24,31 @@ import (
 
 var originImageDB atomic.Pointer[sqlx.DB]
 
-func syncDir(dir string) error {
-	d, err := os.Open(dir)
-	if err != nil {
-		return err
-	}
-	err = d.Sync()
-	if cerr := d.Close(); err == nil {
-		err = cerr
-	}
-	return err
+var newImagesDirty atomic.Bool
+
+// 書き込みの経路では fsync しない。fsync を投稿ごとに待つと、最終日の一斉の投稿で asia1 のディスクが詰まり、
+// nginx のログの書き込みまで止まる。代わりに裏で 1 秒ごとに sync する（PostgreSQL の synchronous_commit=off と同じ程度の幅）
+func init() {
+	go func() {
+		for range time.Tick(time.Second) {
+			if newImagesDirty.Swap(false) {
+				syscall.Sync()
+			}
+		}
+	}()
 }
 
-// storeNewImage は再起動後も読めるように new/ へ書く。DB の commit より前に呼ぶ
+// storeNewImage は new/ へ一時ファイルを書いてから rename する。DB の commit より前に呼ぶ
 func storeNewImage(id string, data []byte) error {
-	newDir := filepath.Join(imageRootDir, "new")
-	sub := filepath.Join(newDir, id[:2])
-	if _, err := os.Stat(sub); err != nil {
-		if err := os.MkdirAll(sub, 0o755); err != nil {
-			return err
-		}
-		if err := syncDir(newDir); err != nil {
-			return err
-		}
-		if err := syncDir(imageRootDir); err != nil {
-			return err
-		}
+	sub := filepath.Join(imageRootDir, "new", id[:2])
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		return err
 	}
 	f, err := os.CreateTemp(sub, "."+id+".tmp*")
 	if err != nil {
 		return err
 	}
 	_, err = f.Write(data)
-	if err == nil {
-		err = f.Sync()
-	}
 	if cerr := f.Close(); err == nil {
 		err = cerr
 	}
@@ -68,7 +59,8 @@ func storeNewImage(id string, data []byte) error {
 		_ = os.Remove(f.Name())
 		return err
 	}
-	return syncDir(sub)
+	newImagesDirty.Store(true)
+	return nil
 }
 
 // loadImage は asia1 で画像の本体を返す。initial は初期データの画像か（init/ か PostgreSQL から読んだか）
