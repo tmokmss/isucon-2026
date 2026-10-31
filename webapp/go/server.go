@@ -61,6 +61,7 @@ func NewServer(config *Config) *echo.Echo {
 		db := openDatabase(config)
 		db.SetMaxOpenConns(40)
 		db.SetMaxIdleConns(40)
+		go handlerContext.IPBans.reloadForever(db)
 		for {
 			start := time.Now()
 			err := handlerContext.Store.LoadAll(context.Background(), db, readSnapshotAndLog)

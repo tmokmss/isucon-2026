@@ -3,7 +3,6 @@ package isureal
 import (
 	"context"
 	"net/http"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -13,9 +12,9 @@ import (
 
 const ipBanReloadInterval = 200 * time.Millisecond
 
+// ip_bans は裏で読み直し、リクエストでは DB を待たない
 type IPBanList struct {
-	reloading sync.Mutex
-	snapshot  atomic.Pointer[ipBanSnapshot]
+	snapshot atomic.Pointer[ipBanSnapshot]
 }
 
 type ipBanSnapshot struct {
@@ -28,22 +27,22 @@ type ipBan struct {
 	BannedUntil time.Time `db:"banned_until"`
 }
 
-func (l *IPBanList) Banned(ctx context.Context, db *sqlx.DB, ip string) (bool, error) {
+func (l *IPBanList) Banned(ip string) bool {
 	snapshot := l.snapshot.Load()
-	if (snapshot == nil || time.Since(snapshot.loadedAt) >= ipBanReloadInterval) && l.reloading.TryLock() {
-		defer l.reloading.Unlock()
-		loaded, err := loadIPBans(ctx, db)
-		if err != nil {
-			return false, err
-		}
-		l.snapshot.Store(loaded)
-		snapshot = loaded
-	}
 	if snapshot == nil {
-		return false, nil
+		return false
 	}
 	until, ok := snapshot.bans[ip]
-	return ok && time.Now().Before(until), nil
+	return ok && time.Now().Before(until)
+}
+
+func (l *IPBanList) reloadForever(db *sqlx.DB) {
+	for {
+		if loaded, err := loadIPBans(context.Background(), db); err == nil {
+			l.snapshot.Store(loaded)
+		}
+		time.Sleep(ipBanReloadInterval / 2)
+	}
 }
 
 func loadIPBans(ctx context.Context, db *sqlx.DB) (*ipBanSnapshot, error) {
@@ -68,11 +67,7 @@ func extractClientIP(req *http.Request) string {
 func IPBanMiddleware(h *HandlerContext) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
-			banned, err := h.IPBans.Banned(c.Request().Context(), h.DB, c.RealIP())
-			if err != nil {
-				return err
-			}
-			if banned {
+			if h.IPBans.Banned(c.RealIP()) {
 				return NewAPIError(http.StatusForbidden, "ip_banned")
 			}
 			return next(c)

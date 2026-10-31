@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-140924-a0e6742",
+  "startedAt": "2026-10-31T14:09:24+09:00",
+  "finishedAt": "2026-10-31T14:14:49+09:00",
+  "ref": "lane2-tune",
+  "sha": "a0e674282db2faf1aa480ff05027aa88794e8596",
+  "score": 127403,
+  "status": "pass",
+  "note": "reset: VACUUM (TRUNCATE false) image_objects on c6abd65",
+  "benchJobId": "16290",
+  "prevRunId": "20261031-135832-1338f93",
+  "bestRunId": "20261031-140924-a0e6742"
+}
