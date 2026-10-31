@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-140544-247167c",
+  "startedAt": "2026-10-31T14:05:44+09:00",
+  "finishedAt": "2026-10-31T14:12:42+09:00",
+  "ref": "image-storage-external",
+  "sha": "247167c3ec73b18ed02639f598c50a9c64999fbd",
+  "score": 123551,
+  "status": "pass",
+  "note": "画像の列で圧縮を試さない（main 14640b7 の上）",
+  "benchJobId": "16108",
+  "prevRunId": "20261031-135709-3bc4182",
+  "bestRunId": "20261031-140544-247167c"
+}

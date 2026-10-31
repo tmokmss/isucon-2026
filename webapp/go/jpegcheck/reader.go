@@ -98,6 +98,8 @@ type bits struct {
 	a uint32 // accumulator.
 	m uint32 // mask. m==1<<(n-1) when n>0, with m==0 when n==0.
 	n int32  // the number of unread bits in a.
+	// s は a に入っている直近のバイトから順に、0xff 0x00 の 2 バイトで読んだものなら 1 のビット列
+	s uint32
 }
 
 type decoder struct {
@@ -148,12 +150,10 @@ func (d *decoder) fill() error {
 	if d.bytes.i != d.bytes.j {
 		panic("jpeg: fill called when unread bytes exist")
 	}
-	// Move the last 2 bytes to the start of the buffer, in case we need
-	// to call unreadByteStuffedByte.
-	if d.bytes.j > 2 {
-		d.bytes.buf[0] = d.bytes.buf[d.bytes.j-2]
-		d.bytes.buf[1] = d.bytes.buf[d.bytes.j-1]
-		d.bytes.i, d.bytes.j = 2, 2
+	// 先読みした最大 4 バイト（詰め物込みで 8 バイト）を unreadWholeBytes で戻せるよう、末尾 8 バイトを先頭へ移す
+	if d.bytes.j > 8 {
+		copy(d.bytes.buf[:8], d.bytes.buf[d.bytes.j-8:d.bytes.j])
+		d.bytes.i, d.bytes.j = 8, 8
 	}
 	// Fill in the rest of the buffer.
 	n, err := d.r.Read(d.bytes.buf[d.bytes.j:])
@@ -176,6 +176,18 @@ func (d *decoder) unreadByteStuffedByte() {
 	d.bytes.i -= d.bytes.nUnreadable
 	d.bytes.nUnreadable = 0
 	if d.bits.n >= 8 {
+		d.bits.a >>= 8
+		d.bits.n -= 8
+		d.bits.m >>= 8
+		d.bits.s >>= 1
+	}
+}
+
+// unreadWholeBytes は、ensureNBits が先読みしてまだ 1 ビットも使っていないバイトをすべて入力へ戻す
+func (d *decoder) unreadWholeBytes() {
+	for d.bits.n >= 8 {
+		d.bytes.i -= 1 + int(d.bits.s&1)
+		d.bits.s >>= 1
 		d.bits.a >>= 8
 		d.bits.n -= 8
 		d.bits.m >>= 8
@@ -245,9 +257,7 @@ func (d *decoder) readByteStuffedByte() (x byte, err error) {
 func (d *decoder) readFull(p []byte) error {
 	// Unread the overshot bytes, if any.
 	if d.bytes.nUnreadable != 0 {
-		if d.bits.n >= 8 {
-			d.unreadByteStuffedByte()
-		}
+		d.unreadWholeBytes()
 		d.bytes.nUnreadable = 0
 	}
 
@@ -269,9 +279,7 @@ func (d *decoder) readFull(p []byte) error {
 func (d *decoder) ignore(n int) error {
 	// Unread the overshot bytes, if any.
 	if d.bytes.nUnreadable != 0 {
-		if d.bits.n >= 8 {
-			d.unreadByteStuffedByte()
-		}
+		d.unreadWholeBytes()
 		d.bytes.nUnreadable = 0
 	}
 
