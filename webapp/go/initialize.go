@@ -39,7 +39,12 @@ func initializeHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		s.pruneAfterBoundary()
 		s.rebuildIndexes()
+		s.resetChangesLocked()
+		d := s.snapshotLocked()
 		s.mu.Unlock()
+		if err := writeSnapshot(d); err != nil {
+			return err
+		}
 		imageCache.reset()
 		resetNewImages()
 		imagesReset()

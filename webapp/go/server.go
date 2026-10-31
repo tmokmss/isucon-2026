@@ -56,13 +56,14 @@ func NewServer(config *Config) *echo.Echo {
 	}
 	// 先に listen し、DB への接続と読み込みが終わるまでリクエストを待たせる（起動直後の initialize が 502 にならないように）
 	ready := make(chan struct{})
+	handlerContext.Store.handleStopSignals(ready)
 	go func() {
 		db := openDatabase(config)
 		db.SetMaxOpenConns(40)
 		db.SetMaxIdleConns(40)
 		for {
 			start := time.Now()
-			err := handlerContext.Store.LoadAll(context.Background(), db)
+			err := handlerContext.Store.LoadAll(context.Background(), db, readSnapshot)
 			if err == nil {
 				log.Printf("loaded store in %s", time.Since(start))
 				break
@@ -73,6 +74,8 @@ func NewServer(config *Config) *echo.Echo {
 		handlerContext.DB = db
 		StartReplDigest(handlerContext.Store)
 		originImageDB.Store(db)
+		originStore.Store(handlerContext.Store)
+		handlerContext.Store.startPersist()
 		close(ready)
 	}()
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
