@@ -519,7 +519,10 @@ func (s *Store) rebuildIndexes() {
 		p.realmojis = nil
 		p.comments = nil
 		p.window = s.windows[p.WindowID]
+		// 同じ ID の文字列を共有してメモリを減らす
+		p.WindowID = p.window.ID
 		if u := s.users[p.AuthorID]; u != nil {
+			p.AuthorID = u.ID
 			u.posts = append(u.posts, p)
 		}
 		p.window.posts = append(p.window.posts, p)
@@ -534,11 +537,19 @@ func (s *Store) rebuildIndexes() {
 	s.rmByImage = make(map[string]*RealMojiRow, len(s.realmojis))
 	for _, r := range s.realmojis {
 		r.post = s.posts[r.PostID]
+		r.PostID = r.post.ID
+		if u := s.users[r.ReactorID]; u != nil {
+			r.ReactorID = u.ID
+		}
 		r.post.realmojis = append(r.post.realmojis, r)
 		s.rmByImage[r.ImageID] = r
 	}
 	for _, c := range s.comments {
 		c.post = s.posts[c.PostID]
+		c.PostID = c.post.ID
+		if u := s.users[c.AuthorID]; u != nil {
+			c.AuthorID = u.ID
+		}
 		c.post.comments = append(c.post.comments, c)
 	}
 	for _, p := range s.posts {
