@@ -558,7 +558,7 @@ func (s *imageServer) handler(c *echo.Context) error {
 	return c.Blob(http.StatusOK, entry.mediaType, data)
 }
 
-// NewImageServer は ISUREAL_PASSIVE=1 の台で動かす。/api/images/:imageId だけを返し、ほかの /api/ は nginx が asia1 へ送る
+// NewImageServer は ISUREAL_PASSIVE=1 の台で動かす。/api/images/:imageId を返し、/api/posts は画像を検証して asia1 へ送る（post_forward.go）。ほかの /api/ は nginx が asia1 へ送る
 func NewImageServer(config *Config) *echo.Echo {
 	e := echo.New()
 	e.IPExtractor = extractClientIP
@@ -618,5 +618,6 @@ func NewImageServer(config *Config) *echo.Echo {
 		}
 	})
 	e.GET("/api/images/:imageId", s.handler)
+	e.Any("/api/posts", postForwardHandler())
 	return e
 }
