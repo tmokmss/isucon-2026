@@ -7,7 +7,7 @@ import (
 )
 
 // すべての /api/ のリクエストに一定の待ちを入れる。/api/initialize は 60 秒の制限があるので除く。
-const slowDelay = 600 * time.Millisecond
+const slowDelay = 1500 * time.Millisecond
 
 func SlowMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
