@@ -57,19 +57,23 @@ func readNewImage(id string) ([]byte, bool) {
 }
 
 // loadImage は asia1 で画像の本体を返す。新しい画像は new/ から、初期データの画像は PostgreSQL から読む。
-// asia1 はメモリが少なく CPU も埋まっているので、初期データの画像（16GB）をファイルから読むとディスクの読み出しで詰まる。initial は初期データの画像か
-func loadImage(ctx context.Context, db *sqlx.DB, id string, createdAt *time.Time) (data []byte, initial bool, err error) {
-	if data, ok := readHeldLocal(id); ok {
-		return data, false, nil
-	}
-	if data, ok, err := fetchHeldImage(ctx, id); err != nil {
-		return nil, false, err
-	} else if ok {
-		return data, false, nil
-	}
-	// europe1・america1 は、持ち主（asia1 を含む）に無ければ無い
-	if selfInternal != "" {
-		return nil, false, sql.ErrNoRows
+// asia1 はメモリが少なく CPU も埋まっているので、初期データの画像（16GB）をファイルから読むとディスクの読み出しで詰まる。
+// holder は画像の本体を持つ台（imageHolderOf の値）。knownInitial はストアで初期データの画像と分かっているときで、new/ と持ち主の台を見ない。
+// 返り値の initial は初期データの画像か
+func loadImage(ctx context.Context, db *sqlx.DB, id string, createdAt *time.Time, holder string, knownInitial bool) (data []byte, initial bool, err error) {
+	if !knownInitial {
+		if data, ok := readHeldLocal(id); ok {
+			return data, false, nil
+		}
+		if data, ok, err := fetchHeldImage(ctx, id, holder); err != nil {
+			return nil, false, err
+		} else if ok {
+			return data, false, nil
+		}
+		// europe1・america1 は、持ち主（asia1 を含む）に無ければ無い
+		if selfInternal != "" {
+			return nil, false, sql.ErrNoRows
+		}
 	}
 	err = sql.ErrNoRows
 	if createdAt != nil {
@@ -98,7 +102,8 @@ func serveOriginImage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not ready", http.StatusServiceUnavailable)
 		return
 	}
-	data, initial, err := loadImage(r.Context(), db, r.URL.Query().Get("id"), nil)
+	id := r.URL.Query().Get("id")
+	data, initial, err := loadImage(r.Context(), db, id, nil, imageHolderOf(id), false)
 	if errors.Is(err, sql.ErrNoRows) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
