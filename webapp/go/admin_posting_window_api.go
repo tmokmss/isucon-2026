@@ -1,14 +1,11 @@
 package isureal
 
 import (
-	"context"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v5"
 )
 
@@ -28,29 +25,6 @@ type openPostingWindowResponse struct {
 
 var postingWindowMu sync.Mutex
 
-// 投稿期間の開始は、利用者のリクエストで共有のプールが埋まっていても待たされないよう、専用の接続で書く。
-// 期間の終了と開始の 2 文は 1 回の往復で送る（pgx の batch は 1 つの暗黙のトランザクションになる）。
-// 通知は notifications へ 1 行ずつ入れると索引（計 450MB）へのランダムな読み書きで数秒かかるので、期間の行に配列で持たせる
-var postingWindowPool struct {
-	once sync.Once
-	pool *pgxpool.Pool
-	err  error
-}
-
-func postingWindowDB(config *Config) (*pgxpool.Pool, error) {
-	p := &postingWindowPool
-	p.once.Do(func() {
-		pc, err := pgxpool.ParseConfig(config.DatabaseDSN())
-		if err != nil {
-			p.err = err
-			return
-		}
-		pc.MaxConns = 2
-		p.pool, p.err = pgxpool.NewWithConfig(context.Background(), pc)
-	})
-	return p.pool, p.err
-}
-
 func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		var input openPostingWindowRequest
@@ -66,7 +40,6 @@ func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 		if input.OnTimeSeconds != nil {
 			seconds = *input.OnTimeSeconds
 		}
-		ctx := c.Request().Context()
 		s := h.Store
 		postingWindowMu.Lock()
 		defer postingWindowMu.Unlock()
@@ -98,23 +71,8 @@ func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 			CreatedAt: startsAt,
 			notified:  make(map[string]notificationRow, len(userIDs)),
 		}
-		notificationIDs := make([]string, len(userIDs))
-		for i, id := range userIDs {
-			notificationIDs[i] = uuid.NewString()
-			w.notified[id] = notificationRow{ID: notificationIDs[i], CreatedAt: startsAt}
-		}
-		pool, err := postingWindowDB(h.Config)
-		if err != nil {
-			return err
-		}
-		batch := &pgx.Batch{}
-		batch.Queue(`UPDATE posting_windows SET ended_at = $2 WHERE region = $1 AND ended_at IS NULL`, region, startsAt)
-		batch.Queue(`
-   INSERT INTO posting_windows (id, region, local_date, starts_at, on_time_deadline, created_at, notification_ids, notified_user_ids)
-   VALUES ($1, $2, $3, $4, $5, $4, $6, $7)
-  `, w.ID, region, localDate, startsAt, w.OnTimeDeadline, notificationIDs, userIDs)
-		if err := pool.SendBatch(ctx, batch).Close(); err != nil {
-			return err
+		for _, id := range userIDs {
+			w.notified[id] = notificationRow{ID: uuid.NewString(), CreatedAt: startsAt}
 		}
 		s.mu.Lock()
 		if oldWindow != nil && oldWindow.EndedAt == nil {

@@ -59,7 +59,6 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusBadRequest, "invalid_realmoji")
 		}
 
-		ctx := c.Request().Context()
 		actor := GetSession(c).UserID
 		s := h.Store
 		s.mu.RLock()
@@ -94,19 +93,6 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 		createdAt := now()
 		r := &RealMojiRow{RealMoji: RealMoji{ID: uuid.NewString(), PostID: p.ID, ReactorID: actor, ImageID: uuid.NewString(), ReactionType: input.ReactionType, CreatedAt: createdAt}}
 		if err := storeNewImage(r.ImageID, data); err != nil {
-			return err
-		}
-		tx, err := h.DB.BeginTxx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		if len(replaced) > 0 {
-		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO image_objects(id,owner_user_id,data,media_type,created_at) VALUES($1,$2,''::bytea,'image/jpeg',$3)`, r.ImageID, actor, createdAt); err != nil {
-			return err
-		}
-		if err := tx.Commit(); err != nil {
 			return err
 		}
 		imageCache.put(r.ImageID, data, "image/jpeg")
