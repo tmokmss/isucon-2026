@@ -133,3 +133,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-164120-892a769	2026-10-31T16:41:20+09:00	892a769075980a3989d53ef353cbc5d3656fd26d	presign-on-fast-peers	229591	pass	次の分の署名を毎分30秒過ぎに EU/US で先に計算（main bdf05cd の上）
 20261031-165402-07a4cc3	2026-10-31T16:54:02+09:00	07a4cc334e288da93b193cd48d5ac93cb9894b03	slow-before-1700-v4	1561	pass	low version before 17:00 (3000ms wait during fresh posting windows)
 20261031-170001-a1cea2f	2026-10-31T17:00:01+09:00	a1cea2f11404a718f0c18a191d787ec7efbb5a55	sign-cache-to-asia1	223475	pass	asia2 が計算した署名を asia1 のキャッシュへ送る（main bdf05cd の上）
+20261031-171105-5c44717	2026-10-31T17:11:05+09:00	5c4471724b9b1451394ce33b79fbe7e88f056fef	5c44717	201585	pass	asia1 GET memories export to EU US replicas on 885b12c
