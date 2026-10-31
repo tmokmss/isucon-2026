@@ -4,14 +4,15 @@ After=network-online.target
 Wants=network-online.target
 
 # asia2 は asia の読み取りを返す複製（asia1 の nginx が GET を送る、replica_server.go）と、署名の計算の逃がし先（:8090）を 1 プロセスで兼ねる。
+# Memories・エクスポートの署名は CPU の空いている europe1・america1 へ逃がす（env.sh の ISUREAL_OFFLOAD_PEERS）
 # PostgreSQL のメモリを潰さないよう MemoryMax で抑える。落ちている間は asia1 の nginx が asia1 へ送る
 [Service]
 User=isucon
 Group=isucon
 WorkingDirectory=/home/isucon/webapp/go
 EnvironmentFile=/home/isucon/env.sh
-Environment=GOMEMLIMIT=1200MiB
-MemoryMax=1600M
+Environment=GOMEMLIMIT=1500MiB
+MemoryMax=2000M
 ExecStart=/home/isucon/webapp/go/isureal
 Restart=on-failure
 RestartSec=5
