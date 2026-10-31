@@ -93,5 +93,11 @@ run_id	started_at	sha	ref	score	status	note
 20261031-134736-319c947	2026-10-31T13:47:36+09:00	319c9472f411af43016dcbcab0a0d450c011fc9a	repl-replica	104789	pass	複製 検証: 時刻の印で待つ形の shadow＋照合（main fbae0df 取り込み済み）
 20261031-135233-2d10aad	2026-10-31T13:52:33+09:00	2d10aadebfbf906549a31e44845d4f0bd035503c	jpegcheck-fast	119317	pass	JPEG の検証を 1.5 倍速く（main c6abd65 の上）
 20261031-135423-25c2db4	2026-10-31T13:54:23+09:00	25c2db44de6311345df6915ef385642c92b2a22d	image-files	82880	pass	image files, no per-file fsync (sync every 1s) + main c6abd65
+20261031-135652-8b16848	2026-10-31T13:56:52+09:00	8b168481ecd678a06cac7114b7ca4ead8d0bef64	8b16848	110598	pass	複製 検証: shadow＋照合（利用者を最後に読む修正、main c6abd65 取り込み済み）
 20261031-135709-3bc4182	2026-10-31T13:57:09+09:00	3bc4182721735b3dd6fb8e3a75eda33e51b2742e	jpeg-peer-asia2	114092	pass	JPEG の検証を asia2 にも逃がす（jpegcheck-fast の上）
+20261031-140017-04990e1	2026-10-31T14:00:17+09:00	04990e175c3ebdd5cc52753fc47b97bcab325270	image-files	134480	pass	hybrid: new images in asia1 files, initial from DB + main c6abd65
+20261031-140122-bd0fe45	2026-10-31T14:01:22+09:00	bd0fe45bf2e297e5a29c0f64fc6b357d64d09425	bd0fe45	126129	pass	複製 local・時刻の印で待つ（main c6abd65 取り込み済み）1回目
 20261031-140544-247167c	2026-10-31T14:05:44+09:00	247167c3ec73b18ed02639f598c50a9c64999fbd	image-storage-external	123551	pass	画像の列で圧縮を試さない（main 14640b7 の上）
+20261031-141027-bd0fe45	2026-10-31T14:10:27+09:00	bd0fe45bf2e297e5a29c0f64fc6b357d64d09425	bd0fe45	141335	pass	複製 local・時刻の印で待つ（main c6abd65 取り込み済み）2回目
+20261031-141508-a8128f2	2026-10-31T14:15:08+09:00	a8128f2ba3081f3ab26670e53751109ad694982d	image-files	134342	pass	image-files (no fsync/sync) on main e42c64c
+20261031-141745-a28a701	2026-10-31T14:17:45+09:00	a28a701c6be3e8bc33a447050f32c4afe806d10d	a28a701	140030	pass	複製 local・時刻の印で待つ（main e42c64c 取り込み済み）
