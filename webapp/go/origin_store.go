@@ -76,31 +76,44 @@ func serveOriginImageCheck(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not ready", http.StatusServiceUnavailable)
 		return
 	}
-	id := r.URL.Query().Get("id")
-	var res imageCheckResponse
-	s.mu.RLock()
-	owner, available, _ := s.imageOwnerLocked(id)
-	if owner != nil {
-		res.SecretKeyHash, res.OwnerID = owner.SecretKeyHash, owner.ID
-		if available {
-			switch {
-			case s.profileByImage[id] != nil:
-				res.IsProfile = true
-			case s.postByImage[id] != nil:
-				res.HasPost = true
-			default:
-				p := s.rmByImage[id].post
-				res.RealMoji = p.AuthorID + " " + p.ImageID
-			}
-		}
-	}
-	s.mu.RUnlock()
-	if owner == nil {
+	res, ok := s.imageCheck(r.URL.Query().Get("id"))
+	if !ok {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(&res)
+}
+
+// imageCheck は画像を取得してよいかの判定を返す。持ち主がいなければ ok=false
+func (s *Store) imageCheck(id string) (res imageCheckResponse, ok bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	owner, available, _ := s.imageOwnerLocked(id)
+	if owner == nil {
+		return res, false
+	}
+	res.SecretKeyHash, res.OwnerID = owner.SecretKeyHash, owner.ID
+	if available {
+		switch {
+		case s.profileByImage[id] != nil:
+			res.IsProfile = true
+		case s.postByImage[id] != nil:
+			res.HasPost = true
+		default:
+			p := s.rmByImage[id].post
+			res.RealMoji = p.AuthorID + " " + p.ImageID
+		}
+	}
+	return res, true
+}
+
+func (res *imageCheckResponse) remote() *remoteImageCheck {
+	return &remoteImageCheck{
+		SecretKeyHash: res.SecretKeyHash, OwnerID: res.OwnerID, MediaType: "image/jpeg",
+		IsProfile: res.IsProfile, HasPost: res.HasPost,
+		RealMoji: sql.NullString{String: res.RealMoji, Valid: res.RealMoji != ""},
+	}
 }
 
 var originImageCheckClient = &http.Client{Timeout: 5 * time.Second}
@@ -126,9 +139,5 @@ func fetchImageCheck(r *http.Request, origin, id string) (*remoteImageCheck, err
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		return nil, err
 	}
-	return &remoteImageCheck{
-		SecretKeyHash: res.SecretKeyHash, OwnerID: res.OwnerID, MediaType: "image/jpeg",
-		IsProfile: res.IsProfile, HasPost: res.HasPost,
-		RealMoji: sql.NullString{String: res.RealMoji, Valid: res.RealMoji != ""},
-	}, nil
+	return res.remote(), nil
 }

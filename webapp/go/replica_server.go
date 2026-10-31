@@ -11,6 +11,7 @@ package isureal
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net"
@@ -44,9 +45,6 @@ func replicaLocalRoute(path string) bool {
 	}
 	return false
 }
-
-// exportLocalImage は複製の台で、エクスポートの画像を手元のファイル（image_local.go が置いたもの）から読む
-var exportLocalImage = func(id string) ([]byte, bool) { return nil, false }
 
 type replicaFront struct {
 	mode   string
@@ -109,22 +107,23 @@ func NewReplicaServer(config *Config) http.Handler {
 	e.GET("/api/memories", getMemoriesHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
 	e.GET("/api/memories/:date", getMemoriesByDateHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
 	e.GET("/api/relationships/:kind", getRelationshipsHandler(h), SessionMiddleware(h, true), RegionMiddleware(h))
-	// 新しい画像の本体は PostgreSQL に無い（image_file.go）ので、手元に無ければ asia1 から取って置く
-	exportLocalImage = func(id string) ([]byte, bool) {
+	readHeldLocal = func(id string) ([]byte, bool) {
 		if !localImageIDPattern.MatchString(id) || len(id) < 2 {
 			return nil, false
 		}
-		if data, ok := readLocalImage(id); ok {
-			return data, true
+		return readLocalImage(id)
+	}
+	storeImageHolderLookup(h.Store)
+	// 画像を取得してよいかは、追いついていれば手元の複製で決める（追いつかなければ asia1 に問い合わせる）
+	imageCheck = func(r *http.Request, origin, id string) (*remoteImageCheck, error) {
+		if !rep.live.Load() || !rep.waitCaughtUp(time.Now().Add(replClockMargin).UnixNano()) {
+			return fetchImageCheck(r, origin, id)
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		data, initial, err := fetchOriginImage(ctx, rep.upstream, id)
-		if err != nil {
-			return nil, false
+		res, ok := h.Store.imageCheck(id)
+		if !ok {
+			return nil, sql.ErrNoRows
 		}
-		writeLocalImage(id, data, initial)
-		return data, true
+		return res.remote(), nil
 	}
 
 	f := &replicaFront{mode: os.Getenv("ISUREAL_REPLICA_MODE"), rep: rep, images: NewImageServer(config), local: e, proxy: proxy}

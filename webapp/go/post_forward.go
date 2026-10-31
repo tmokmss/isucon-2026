@@ -93,20 +93,28 @@ func postForwardHandler() echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		req := c.Request()
 		req.Header.Del(jpegVerifiedHeader)
+		req.Header.Del(heldImageHeader)
 		var body bytes.Buffer
 		body.Grow(max(int(req.ContentLength), 0) + bytes.MinRead)
 		if _, err := body.ReadFrom(req.Body); err != nil {
 			return err
 		}
+		out := body.Bytes()
 		if req.Method == http.MethodPost {
 			if image, ok := postImageFromBody(req.Header, body.Bytes()); ok {
 				if w, h, err := jpegcheck.Check(bytes.NewReader(image)); err == nil {
-					req.Header.Set(jpegVerifiedHeader, strconv.Itoa(w)+"."+strconv.Itoa(h)+"."+hex.EncodeToString(jpegVerifiedMAC(w, h, image)))
+					if held, contentType, newBody, ok := holdPostImage(req.Header, body.Bytes(), w, h); ok {
+						req.Header.Set(heldImageHeader, held)
+						req.Header.Set(echo.HeaderContentType, contentType)
+						out = newBody
+					} else {
+						req.Header.Set(jpegVerifiedHeader, strconv.Itoa(w)+"."+strconv.Itoa(h)+"."+hex.EncodeToString(jpegVerifiedMAC(w, h, image)))
+					}
 				}
 			}
 		}
-		req.Body = io.NopCloser(bytes.NewReader(body.Bytes()))
-		req.ContentLength = int64(body.Len())
+		req.Body = io.NopCloser(bytes.NewReader(out))
+		req.ContentLength = int64(len(out))
 		proxy.ServeHTTP(c.Response(), req)
 		return nil
 	}

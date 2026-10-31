@@ -75,6 +75,7 @@ func NewServer(config *Config) *echo.Echo {
 		StartReplDigest(handlerContext.Store)
 		originImageDB.Store(db)
 		originStore.Store(handlerContext.Store)
+		storeImageHolderLookup(handlerContext.Store)
 		handlerContext.Store.startPersist()
 		close(ready)
 	}()

@@ -88,6 +88,7 @@ type PostRow struct {
 	PostedAt   time.Time
 	CreatedAt  time.Time
 	DeletedAt  *time.Time
+	Holder     string // 画像の本体を持つ台の :8081。空なら asia1（image_held.go）
 	window     *WindowRow
 	realmojis  []*RealMojiRow
 	comments   []*CommentRow
