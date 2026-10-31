@@ -44,6 +44,8 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 				images[p.ImageID] = data
 			} else if data, ok := readNewImage(p.ImageID); ok {
 				images[p.ImageID] = data
+			} else if data, ok := exportLocalImage(p.ImageID); ok {
+				images[p.ImageID] = data
 			} else {
 				missingIDs = append(missingIDs, p.ImageID)
 				missingAt = append(missingAt, p.PostedAt)

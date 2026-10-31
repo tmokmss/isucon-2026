@@ -80,13 +80,9 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		if oldID != nil {
-			delete(s.profileByImage, *oldID)
-		}
-		u.ProfileImageID = &imageID
-		u.ProfileImageCreatedAt = &createdAt
-		s.profileByImage[imageID] = u
+		rw := s.commitLocked(&opProfileImage{UserID: u.ID, ImageID: &imageID, CreatedAt: &createdAt})
 		s.mu.Unlock()
+		rw.wait()
 		if oldID != nil {
 			imagesInvalidated(*oldID)
 		}
@@ -135,10 +131,9 @@ func deleteProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		delete(s.profileByImage, *imageID)
-		u.ProfileImageID = nil
-		u.ProfileImageCreatedAt = nil
+		rw := s.commitLocked(&opProfileImage{UserID: u.ID})
 		s.mu.Unlock()
+		rw.wait()
 		imagesInvalidated(*imageID)
 		return c.NoContent(http.StatusNoContent)
 	}

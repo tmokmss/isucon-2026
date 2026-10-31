@@ -197,6 +197,7 @@ func StartImageEventPublisher() {
 	imagesReset = func() { invalidateOnPeers(peers, []string{"*"}) }
 	mux := http.NewServeMux()
 	mux.HandleFunc("/_internal/image-events", imageEvents.serveHTTP)
+	StartReplPublisher(mux)
 	mux.HandleFunc("/_internal/image", serveOriginImage)
 	serveInternal(mux)
 }

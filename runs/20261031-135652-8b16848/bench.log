@@ -1,0 +1,44 @@
+{"id":"15209","status":"done","portalStatus":"finished","passed":true,"score":110598,"raw":110598,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:59:48.057Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:59:51.021Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:59:54.021Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:59:57.871Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T05:00:00.023Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T05:00:01.539Z level=INFO msg="user moved" user=koyori5393 from=asia to=america
+time=2026-10-31T05:00:02.645Z level=INFO msg="user moved" user=koyori5393 from=america to=asia
+time=2026-10-31T05:00:03.021Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T05:00:06.045Z level=INFO msg="asia 3 日目: 129 人"
+time=2026-10-31T05:00:06.719Z level=INFO msg="user moved" user=noazoe5561 from=asia to=america
+time=2026-10-31T05:00:08.068Z level=INFO msg="user moved" user=koyori5393 from=asia to=america
+time=2026-10-31T05:00:09.048Z level=INFO msg="europe 3 日目: 54 人"
+time=2026-10-31T05:00:09.943Z level=INFO msg="user moved" user=kehozoe-5850 from=asia to=america
+time=2026-10-31T05:00:12.069Z level=INFO msg="america 3 日目: 54 人"
+time=2026-10-31T05:00:12.118Z level=INFO msg="user moved" user=noazoe5561 from=america to=asia
+time=2026-10-31T05:00:15.050Z level=INFO msg="asia 4 日目: 327 人"
+time=2026-10-31T05:00:18.325Z level=INFO msg="europe 4 日目: 147 人"
+time=2026-10-31T05:00:19.098Z level=INFO msg="user moved" user=noazoe5561 from=asia to=america
+time=2026-10-31T05:00:19.555Z level=INFO msg="user moved" user=suto_7109 from=asia to=america
+time=2026-10-31T05:00:19.747Z level=INFO msg="user moved" user=beneva.6547 from=asia to=europe
+time=2026-10-31T05:00:21.161Z level=INFO msg="america 4 日目: 99 人"
+time=2026-10-31T05:00:21.163Z level=INFO msg="user moved" user=ulsolchi-6903 from=asia to=europe
+time=2026-10-31T05:00:21.195Z level=INFO msg="user moved" user=ischileo_7507 from=asia to=america
+time=2026-10-31T05:00:23.172Z level=INFO msg="user moved" user=teshi.7262 from=asia to=america
+time=2026-10-31T05:00:23.685Z level=INFO msg="user moved" user=koyori5393 from=america to=asia
+time=2026-10-31T05:00:23.855Z level=INFO msg="user moved" user=sean-7883 from=europe to=asia
+time=2026-10-31T05:00:24.496Z level=INFO msg="asia 5 日目: 715 人"
+time=2026-10-31T05:00:28.096Z level=INFO msg="europe 5 日目: 164 人"
+time=2026-10-31T05:00:30.229Z level=INFO msg="america 5 日目: 114 人"
+time=2026-10-31T05:00:39.497Z level=INFO msg="asia 最終日（グランプリ）: 715 人"
+time=2026-10-31T05:00:39.705Z level=INFO msg="america 最終日（グランプリ）: 114 人"
+time=2026-10-31T05:00:39.889Z level=INFO msg="europe 最終日（グランプリ）: 163 人"
+time=2026-10-31T05:00:48.048Z level=INFO msg="グランプリ: アジア 349 人, ヨーロッパ 63 人, アメリカ 73 人"
+{
+  "pass": true,
+  "score": 110598,
+  "messages": []
+}
+
+--- stderr ---
+

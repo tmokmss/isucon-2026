@@ -63,8 +63,9 @@ func createCommentHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		s.addCommentLocked(cm)
+		rw := s.commitLocked(&opCommentAdd{C: cm})
 		s.mu.Unlock()
+		rw.wait()
 		return c.JSON(http.StatusCreated, newCommentResponse(cm.Comment, user))
 	}
 }
@@ -169,9 +170,9 @@ func deleteCommentHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		cm.DeletedAt = &deletedAt
-		delete(s.comments, cm.ID)
+		rw := s.commitLocked(&opCommentDelete{ID: cm.ID, At: deletedAt})
 		s.mu.Unlock()
+		rw.wait()
 		return c.NoContent(http.StatusNoContent)
 	}
 }

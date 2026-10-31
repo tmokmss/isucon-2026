@@ -116,13 +116,14 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		imageCache.put(r.ImageID, data, "image/jpeg")
-		s.mu.Lock()
-		for _, old := range replaced {
-			t := createdAt
-			old.ReplacedAt = &t
+		replacedIDs := make([]string, len(replaced))
+		for i, old := range replaced {
+			replacedIDs[i] = old.ID
 		}
-		s.addRealMojiLocked(r)
+		s.mu.Lock()
+		rw := s.commitLocked(&opRealMojiAdd{R: r, Replaced: replacedIDs})
 		s.mu.Unlock()
+		rw.wait()
 		for _, old := range replaced {
 			imagesInvalidated(old.ImageID)
 		}
@@ -203,8 +204,9 @@ func deleteRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		r.DeletedAt = &deletedAt
+		rw := s.commitLocked(&opRealMojiDelete{ID: r.ID, At: deletedAt})
 		s.mu.Unlock()
+		rw.wait()
 		imagesInvalidated(r.ImageID)
 		return c.NoContent(http.StatusNoContent)
 	}

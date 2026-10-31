@@ -127,9 +127,10 @@ func registerHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		s.addUserLocked(u)
+		rw := s.commitLocked(&opUserAdd{U: u})
 		user := u.User
 		s.mu.Unlock()
+		rw.wait()
 		return c.JSON(http.StatusCreated, registerResponse{SecretKey: secretKey, User: newSessionUserResponse(user)})
 	}
 }
@@ -182,13 +183,9 @@ func loginHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		for hash, old := range u.sessions {
-			old.Active = false
-			delete(s.sessions, hash)
-		}
-		u.sessions = map[string]*LoginSessionRow{row.TokenHash: row}
-		s.sessions[row.TokenHash] = row
+		rw := s.commitLocked(&opLogin{UserID: u.ID, Row: row})
 		s.mu.Unlock()
+		rw.wait()
 		return c.JSON(http.StatusOK, loginResponse{Token: token, User: newSessionUserResponse(user)})
 	}
 }
@@ -210,14 +207,9 @@ func logoutHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		if row := s.sessions[session.TokenHash]; row != nil && row.UserID == session.UserID {
-			row.Active = false
-			delete(s.sessions, session.TokenHash)
-			if u := s.users[session.UserID]; u != nil {
-				delete(u.sessions, session.TokenHash)
-			}
-		}
+		rw := s.commitLocked(&opLogout{UserID: session.UserID, TokenHash: session.TokenHash})
 		s.mu.Unlock()
+		rw.wait()
 		return c.NoContent(http.StatusNoContent)
 	}
 }
@@ -268,26 +260,15 @@ func updateMeHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
+		rw := s.commitLocked(&opUpdateMe{UserID: session.UserID, DisplayName: opt(input.DisplayName), Bio: opt(input.Bio), Region: opt(input.Region)})
 		u := s.users[session.UserID]
-		if u != nil {
-			if input.DisplayName != nil {
-				u.DisplayName = *input.DisplayName
-				u.normDisplayName = normalizeSearchText(u.DisplayName)
-				s.refreshUserSearchLocked(u)
-			}
-			if input.Bio != nil {
-				u.Bio = *input.Bio
-			}
-			if input.Region != nil {
-				u.Region = *input.Region
-			}
-		}
 		var user User
 		ok := u != nil && u.active()
 		if ok {
 			user = u.User
 		}
 		s.mu.Unlock()
+		rw.wait()
 		if !ok {
 			return NewAPIError(http.StatusNotFound, "account_not_found")
 		}

@@ -81,10 +81,6 @@ func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 				}
 			}
 		}
-		var oldWindow *WindowRow
-		if w := s.activeWindows[region]; w != nil {
-			oldWindow = w
-		}
 		s.mu.RUnlock()
 		if conflict {
 			return NewAPIError(http.StatusConflict, "posting_window_conflict")
@@ -117,17 +113,9 @@ func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		if oldWindow != nil && oldWindow.EndedAt == nil {
-			t := startsAt
-			oldWindow.EndedAt = &t
-			// 終わった投稿期間の通知はもう読まれない
-			oldWindow.notified = map[string]notificationRow{}
-		}
-		s.windows[w.ID] = w
-		s.activeWindows[region] = w
-		s.maxLocalDate[region] = localDate
-		s.broadcastLocked()
+		rw := s.commitLocked(&opWindowOpen{W: w, Notified: w.notified})
 		s.mu.Unlock()
+		rw.wait()
 		return c.JSON(http.StatusCreated, openPostingWindowResponse{
 			ID: w.ID, Region: region, LocalDate: localDate.Format(time.DateOnly),
 			StartsAt: startsAt, OnTimeDeadline: w.OnTimeDeadline,

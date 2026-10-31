@@ -69,9 +69,9 @@ func createFriendRequestHandler(h *HandlerContext) echo.HandlerFunc {
 				return err
 			}
 			s.mu.Lock()
-			s.setRequestStatusLocked(existing, "accepted", at)
-			s.addFriendshipLocked(f)
+			rw := s.commitLocked(&opRequestStatus{ID: existing.ID, Status: "accepted", At: at, F: f})
 			s.mu.Unlock()
+			rw.wait()
 			return c.JSON(http.StatusCreated, createFriendRequestResponse{RelationID: existing.ID, Status: "accepted", UpdatedAt: at})
 		}
 		r := &FriendRequest{ID: uuid.NewString(), RequesterID: actor, RecipientID: recipient, Status: "pending", CreatedAt: at, UpdatedAt: at}
@@ -79,10 +79,9 @@ func createFriendRequestHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		s.friendRequests[r.ID] = r
-		s.users[actor].pendingOut[recipient] = r
-		s.users[recipient].pendingIn[actor] = r
+		rw := s.commitLocked(&opFriendRequestAdd{R: r})
 		s.mu.Unlock()
+		rw.wait()
 		return c.JSON(http.StatusCreated, createFriendRequestResponse{RelationID: r.ID, Status: r.Status, UpdatedAt: r.UpdatedAt})
 	}
 }
@@ -168,11 +167,9 @@ func transitionFriendRequestHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s.mu.Lock()
-		s.setRequestStatusLocked(r, status, at)
-		if f != nil {
-			s.addFriendshipLocked(f)
-		}
+		rw := s.commitLocked(&opRequestStatus{ID: r.ID, Status: status, At: at, F: f})
 		s.mu.Unlock()
+		rw.wait()
 		return c.JSON(http.StatusOK, transitionFriendRequestResponse{RelationID: r.ID, Status: status, UpdatedAt: at})
 	}
 }
