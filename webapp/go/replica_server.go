@@ -86,6 +86,7 @@ func NewReplicaServer(config *Config) http.Handler {
 		db.SetMaxOpenConns(20)
 		db.SetMaxIdleConns(20)
 		h.DB = db
+		go h.IPBans.reloadForever(db)
 		rep.db = db
 		rep.run()
 	}()

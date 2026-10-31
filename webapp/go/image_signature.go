@@ -15,7 +15,7 @@ import (
 const imageURLLifetime = 24 * time.Hour
 const imageSignatureIterations = 1000
 
-// 同じ (鍵, 画像 ID, exp) の署名を使い回す。exp を 1 分単位に切り上げるので、同じ 1 分の間は同じ URL になる
+// 同じ (鍵, 画像 ID, exp) の署名を使い回す。exp を imageURLExpStep 単位に切り上げるので、その間は同じ URL になる
 const imageSignatureCacheMax = 1_000_000
 
 var (
@@ -69,8 +69,10 @@ func imageSignatureCacheKey(key []byte, imageID string, exp int64) string {
 	return string(key) + strconv.FormatInt(exp, 10) + ":" + imageID
 }
 
+const imageURLExpStep = 5 * time.Minute
+
 func imageURLExp() int64 {
-	return time.Now().Add(imageURLLifetime).Add(time.Minute - time.Nanosecond).Truncate(time.Minute).Unix()
+	return time.Now().Add(imageURLLifetime).Add(imageURLExpStep - time.Nanosecond).Truncate(imageURLExpStep).Unix()
 }
 
 func signedImageURL(user User, imageID string) string {

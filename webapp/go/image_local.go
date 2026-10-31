@@ -585,12 +585,7 @@ func NewImageServer(config *Config) *echo.Echo {
 			}
 		}
 		close(ready)
-		for {
-			if loaded, err := loadIPBans(context.Background(), db); err == nil {
-				bans.snapshot.Store(loaded)
-			}
-			time.Sleep(ipBanReloadInterval / 2)
-		}
+		bans.reloadForever(db)
 	}()
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
