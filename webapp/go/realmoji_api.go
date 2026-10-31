@@ -71,7 +71,7 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 		if actor == p.AuthorID {
 			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
-		unlock := lockUsers(actor, p.AuthorID)
+		unlock := lockInteraction(actor, p.AuthorID)
 		defer unlock()
 		s.mu.RLock()
 		actorRow, authorRow := s.activeUser(actor), s.activeUser(p.AuthorID)

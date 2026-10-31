@@ -14,12 +14,18 @@ type FriendRequest struct {
 	UpdatedAt   time.Time
 }
 
-// lockRelationship は 2 人の書き込みを直列にし、2 人とも有効かを確かめる（元の beginRelationshipTx に相当）
+// lockRelationship は 2 人の間の関係の書き込みを直列にし、2 人とも有効かを確かめる（元の beginRelationshipTx に相当）。
+// 2 人の状態（退会・認定）は共有で取るので、同じ利用者が関わる別の組の書き込みは並列に進む
 func (h *HandlerContext) lockRelationship(actor, target string) (func(), error) {
 	if actor == target || target == "" {
 		return nil, NewAPIError(http.StatusBadRequest, "invalid_relationship")
 	}
-	unlock := lockUsers(actor, target)
+	unlockStatus := lockStripes(&statusLocks, nil, []string{actor, target})
+	unlockPair := lockPair(actor, target)
+	unlock := func() {
+		unlockPair()
+		unlockStatus()
+	}
 	s := h.Store
 	s.mu.RLock()
 	ok := s.activeUser(actor) != nil && s.activeUser(target) != nil

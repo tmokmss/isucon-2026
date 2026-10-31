@@ -17,7 +17,7 @@ func certifyUserHandler(h *HandlerContext) echo.HandlerFunc {
 			return err
 		}
 		s := h.Store
-		unlock := lockUsers(input.UserID)
+		unlock := lockStatus(input.UserID)
 		defer unlock()
 		s.mu.RLock()
 		u := s.activeUser(input.UserID)

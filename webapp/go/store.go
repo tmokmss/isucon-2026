@@ -164,30 +164,98 @@ type Store struct {
 
 func now() time.Time { return time.Now().UTC().Truncate(time.Microsecond) }
 
-// 書き込みの流れを利用者ごとに直列にする（元の実装の users 行ロックに相当する）
-var userLocks [4096]sync.Mutex
+// 書き込みの流れを直列にするロック。取る順は statusLocks → userLocks → pairLocks に揃える
+//   - userLocks: 利用者本人の書き込み（投稿・プロフィール・ログインなど）。元の実装の users 行ロックに相当する
+//   - statusLocks: 利用者の状態（退会・認定）。関係の書き込みは共有で取り、退会・認定と直列にする
+//   - pairLocks: 2 人の間の関係（友達・申請・フォロー・ブロック）と、それに依存するコメント・RealMoji
+//
+// 人気の利用者（認定公開アカウントなど）へ多くの利用者が同時に書き込んでも、相手側は共有か 2 人の組のロックなので並列に進む
+var (
+	userLocks   [4096]sync.RWMutex
+	statusLocks [4096]sync.RWMutex
+	pairLocks   [4096]sync.Mutex
+)
 
-func lockUsers(ids ...string) func() {
-	idx := make([]int, 0, len(ids))
-	for _, id := range ids {
-		h := fnv.New32a()
-		h.Write([]byte(id))
-		idx = append(idx, int(h.Sum32()%uint32(len(userLocks))))
+func stripe(key string) int {
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return int(h.Sum32() % 4096)
+}
+
+// lockStripes は excl を排他、shared を共有で取る。同じ添字は排他を優先して 1 回だけ取り、添字の昇順に取る
+func lockStripes(locks *[4096]sync.RWMutex, excl, shared []string) func() {
+	type entry struct {
+		idx  int
+		excl bool
 	}
-	sort.Ints(idx)
-	uniq := idx[:0]
-	for i, v := range idx {
-		if i == 0 || v != idx[i-1] {
-			uniq = append(uniq, v)
+	es := make([]entry, 0, len(excl)+len(shared))
+	for _, id := range excl {
+		es = append(es, entry{stripe(id), true})
+	}
+	for _, id := range shared {
+		es = append(es, entry{stripe(id), false})
+	}
+	sort.Slice(es, func(i, j int) bool {
+		if es[i].idx != es[j].idx {
+			return es[i].idx < es[j].idx
+		}
+		return es[i].excl && !es[j].excl
+	})
+	uniq := es[:0]
+	for i, e := range es {
+		if i == 0 || e.idx != es[i-1].idx {
+			uniq = append(uniq, e)
 		}
 	}
-	for _, i := range uniq {
-		userLocks[i].Lock()
+	for _, e := range uniq {
+		if e.excl {
+			locks[e.idx].Lock()
+		} else {
+			locks[e.idx].RLock()
+		}
 	}
 	return func() {
 		for i := len(uniq) - 1; i >= 0; i-- {
-			userLocks[uniq[i]].Unlock()
+			if uniq[i].excl {
+				locks[uniq[i].idx].Unlock()
+			} else {
+				locks[uniq[i].idx].RUnlock()
+			}
 		}
+	}
+}
+
+func lockUsers(ids ...string) func() {
+	return lockStripes(&userLocks, ids, nil)
+}
+
+// lockStatus は退会・認定のように利用者の状態を変える書き込みで使う
+func lockStatus(id string) func() {
+	unlockStatus := lockStripes(&statusLocks, []string{id}, nil)
+	unlockUser := lockUsers(id)
+	return func() {
+		unlockUser()
+		unlockStatus()
+	}
+}
+
+func lockPair(a, b string) func() {
+	lo, hi := pairKey(a, b)
+	m := &pairLocks[stripe(lo+"\x00"+hi)]
+	m.Lock()
+	return m.Unlock
+}
+
+// lockInteraction は投稿へのコメント・RealMoji で、書く本人を排他、投稿者を共有で取り、2 人の関係の変更と直列にする
+func lockInteraction(actor, author string) func() {
+	unlockUsers := lockStripes(&userLocks, []string{actor}, []string{author})
+	if actor == author {
+		return unlockUsers
+	}
+	unlockPair := lockPair(actor, author)
+	return func() {
+		unlockPair()
+		unlockUsers()
 	}
 }
 
