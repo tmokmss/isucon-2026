@@ -238,3 +238,30 @@ export const summarizePgStat = (text: string): string | null => {
     ...(examples.length > 0 ? ["", "-- 上位のクエリ（$1 のまま EXPLAIN (GENERIC_PLAN) に渡せる）", examples.join("\n")] : []),
   ].join("\n");
 };
+
+// ---------------------------------------------------------------------------
+// ベンチのリージョン別・日別の利用者数（ベンチは詰まらなかったリージョンだけ人数を増やす）
+// ---------------------------------------------------------------------------
+
+const REGIONS = ["asia", "europe", "america"] as const;
+const FINAL_DAY = "最終日";
+
+/** bench.log の「<region> N 日目: X 人」を表にする。該当行が無ければ null。 */
+export const summarizeBenchUsers = (log: string): string | null => {
+  const days: string[] = [];
+  const users = new Map<string, Map<string, string>>(REGIONS.map((r) => [r, new Map()]));
+  for (const m of log.matchAll(/(asia|europe|america) (\d+) 日目: (\d+) 人|(asia|europe|america) 最終日[^:"\\]*: (\d+) 人/g)) {
+    const region = m[1] ?? m[4]!;
+    const day = m[2] !== undefined ? `${m[2]}日目` : FINAL_DAY;
+    if (!days.includes(day)) days.push(day);
+    users.get(region)!.set(day, m[3] ?? m[5]!);
+  }
+  if (days.length === 0) return null;
+  days.sort((a, b) => (a === FINAL_DAY ? 1 : b === FINAL_DAY ? -1 : parseInt(a, 10) - parseInt(b, 10)));
+
+  const rows = [["region", ...days].join("\t")];
+  for (const r of REGIONS) rows.push([r, ...days.map((d) => users.get(r)!.get(d) ?? "—")].join("\t"));
+  const missing = REGIONS.filter((r) => !users.get(r)!.has(FINAL_DAY));
+  const note = missing.length > 0 ? `\n\n最終日（1 人 20 点）が来なかったリージョン: ${missing.join(", ")}` : "";
+  return `リージョン別・日別の利用者数（人数が伸びないリージョンは、その日にエラーかタイムアウトが出ている）\n\n${rows.join("\n")}${note}`;
+};

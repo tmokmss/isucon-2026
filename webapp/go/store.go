@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -408,6 +409,26 @@ func loadSmall(ctx context.Context, db *sqlx.DB, s *Store) error {
 			return err
 		}
 		s.windows[w.ID] = w
+		return nil
+	}); err != nil {
+		return err
+	}
+	// 投稿期間を開いたときの通知は posting_windows の配列に持つ（初期データの通知は notifications にある）
+	if _, err := db.ExecContext(ctx, `ALTER TABLE posting_windows ADD COLUMN IF NOT EXISTS notification_ids text[], ADD COLUMN IF NOT EXISTS notified_user_ids text[]`); err != nil {
+		return err
+	}
+	typeMap := pgtype.NewMap()
+	if err := selectRows(ctx, db, `SELECT id, notification_ids, notified_user_ids FROM posting_windows WHERE ended_at IS NULL AND notification_ids IS NOT NULL`, func(sc scanner) error {
+		var windowID string
+		var ids, userIDs []string
+		if err := sc.Scan(&windowID, typeMap.SQLScanner(&ids), typeMap.SQLScanner(&userIDs)); err != nil {
+			return err
+		}
+		if w := s.windows[windowID]; w != nil {
+			for i, userID := range userIDs {
+				w.notified[userID] = notificationRow{ID: ids[i], CreatedAt: w.StartsAt}
+			}
+		}
 		return nil
 	}); err != nil {
 		return err
