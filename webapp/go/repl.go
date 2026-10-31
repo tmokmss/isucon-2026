@@ -444,6 +444,7 @@ type replHub struct {
 	subs        map[*replSub]struct{}
 	quietUntil  time.Time
 	waitedTotal atomic.Int64
+	waitedCount atomic.Int64
 }
 
 var repl = &replHub{subs: map[*replSub]struct{}{}}
@@ -506,6 +507,7 @@ func (w replWait) wait() {
 			}
 		}
 		repl.waitedTotal.Add(int64(time.Since(start)))
+		repl.waitedCount.Add(1)
 	}
 	repl.mu.Lock()
 	until := repl.quietUntil
@@ -665,8 +667,8 @@ func (hub *replHub) heartbeatLoop() {
 		hub.mu.Unlock()
 		if time.Since(last) > 10*time.Second {
 			last = time.Now()
-			if w := time.Duration(hub.waitedTotal.Swap(0)); w > 0 {
-				log.Printf("repl: waited %s for acks in the last 10s", w)
+			if n := hub.waitedCount.Swap(0); n > 0 {
+				log.Printf("repl: %d writes waited %s on average for acks in the last 10s", n, time.Duration(hub.waitedTotal.Swap(0)/n))
 			}
 		}
 	}
@@ -783,16 +785,15 @@ func (r *replica) session(loaded *bool) error {
 		if err := r.applyBatch(batch, &lastSeq); err != nil {
 			return err
 		}
-		if len(in) == 0 {
-			conn.SetWriteDeadline(time.Now().Add(3 * time.Second))
-			msg := "a " + strconv.FormatUint(lastSeq, 10) + "\n"
-			if !readySent {
-				msg += "ready\n"
-				readySent = true
-			}
-			if _, err := conn.Write([]byte(msg)); err != nil {
-				return err
-			}
+		conn.SetWriteDeadline(time.Now().Add(3 * time.Second))
+		msg := "a " + strconv.FormatUint(lastSeq, 10) + "\n"
+		// 貯めた分をほぼ当て終えたら ready を送る（手元で返し始めるのは、この後に届く live の印を当ててから）
+		if !readySent && len(in) < 256 {
+			msg += "ready\n"
+			readySent = true
+		}
+		if _, err := conn.Write([]byte(msg)); err != nil {
+			return err
 		}
 	}
 }

@@ -48,6 +48,7 @@ type replicaFront struct {
 
 	shadowTotal atomic.Int64
 	shadowDiff  atomic.Int64
+	shadowLate  atomic.Int64
 	localTotal  atomic.Int64
 }
 
@@ -130,11 +131,22 @@ func (f *replicaFront) shadow(w http.ResponseWriter, r *http.Request) {
 	if !fresh || rec.Code == http.StatusBadGateway || sameResponse(rec, before) || sameResponse(rec, after) {
 		return
 	}
-	n := f.shadowDiff.Add(1)
-	if n <= 300 {
-		log.Printf("repl-diff %s %s asia=%d local=%d/%d\n  asia:  %s\n  local: %s", r.Method, r.URL.RequestURI(), rec.Code, before.Code, after.Code,
-			diffContext(rec.Body.Bytes(), after.Body.Bytes()), diffContext(after.Body.Bytes(), rec.Body.Bytes()))
-	}
+	// asia1 の応答と変更は同じ頃に届くので、少し待って作り直して一致すれば届く順の差として数える
+	r2 := r.Clone(context.Background())
+	go func() {
+		for _, d := range []time.Duration{100 * time.Millisecond, 300 * time.Millisecond} {
+			time.Sleep(d)
+			if sameResponse(rec, f.record(f.local, r2)) {
+				f.shadowLate.Add(1)
+				return
+			}
+		}
+		n := f.shadowDiff.Add(1)
+		if n <= 300 {
+			log.Printf("repl-diff %s %s asia=%d local=%d/%d\n  asia:  %s\n  local: %s", r2.Method, r2.URL.RequestURI(), rec.Code, before.Code, after.Code,
+				diffContext(rec.Body.Bytes(), after.Body.Bytes()), diffContext(after.Body.Bytes(), rec.Body.Bytes()))
+		}
+	}()
 }
 
 func sameResponse(a, b *httptest.ResponseRecorder) bool {
@@ -153,6 +165,6 @@ func diffContext(a, b []byte) string {
 
 func (f *replicaFront) statsLoop() {
 	for range time.Tick(10 * time.Second) {
-		log.Printf("repl-stats fresh=%v shadow=%d diff=%d local=%d", f.rep.fresh(), f.shadowTotal.Load(), f.shadowDiff.Load(), f.localTotal.Load())
+		log.Printf("repl-stats fresh=%v shadow=%d diff=%d late=%d local=%d", f.rep.fresh(), f.shadowTotal.Load(), f.shadowDiff.Load(), f.shadowLate.Load(), f.localTotal.Load())
 	}
 }
