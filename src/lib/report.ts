@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Config } from "../config.js";
 import type { HistoryRow, RunMeta } from "./run.js";
-import { summarizeAlp, summarizePgStat, summarizePtQuery } from "./digest.js";
+import { summarizeAlp, summarizeBenchUsers, summarizePgStat, summarizePtQuery } from "./digest.js";
 import { local } from "./ssh.js";
 
 /**
@@ -413,6 +413,7 @@ export const writeReport = async (dir: string, ctx: ReportContext): Promise<void
   const benchLog = readOr(join(dir, "bench.log"), "未取得: ベンチを起動できなかった。");
   // pass 以外なら全文。原因はたいてい末尾ではなく途中にある。
   const bench = ctx.meta.status === "pass" ? clip(benchLog, "bench.log") : benchLog;
+  const benchUsers = summarizeBenchUsers(benchLog);
 
   const body = [
     `# run ${ctx.meta.runId}`,
@@ -423,6 +424,7 @@ export const writeReport = async (dir: string, ctx: ReportContext): Promise<void
     "",
     "## Bench",
     "",
+    ...(benchUsers === null ? [] : [fence(benchUsers), ""]),
     fence(bench),
     "",
     "## Access log (alp)",
