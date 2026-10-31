@@ -5,7 +5,7 @@ package isureal
 // 逃がし先は、署名が ISUREAL_OFFLOAD_PEERS、JPEG が ISUREAL_OFFLOAD_JPEG_PEERS（頼む順、カンマ区切りの host:port）。
 // asia2 は PostgreSQL の台なので、署名は europe1・america1 を先に使い、JPEG は asia2 に頼まない。失敗した逃がし先は数秒外し、
 // 署名は、どの逃がし先も同時に頼める数（offloadPeerSlots）まで埋まっている・失敗した・遅いときは手元で計算する。
-// JPEG は、逃がし先 1 台につき offloadPeerSlots 件・手元で CPU 数の件数まで同時に検証し、あふれた分は先着順に待たせる
+// JPEG は、逃がし先 1 台につき 32 件（往復を待つ間も逃がし先の CPU を埋める）・手元で CPU 数の件数まで同時に検証し、あふれた分は先着順に待たせる
 // （一斉の投稿で全件を同時に計算すると、どの投稿も揃って遅れる）。逃がし先は鍵を受け取るので、
 // 受け付けはプライベートネットワーク（192.168.0.0/16）からだけにし、nginx には出さない。
 
@@ -123,11 +123,11 @@ var errInvalidJPEG = errors.New("invalid JPEG")
 
 // JPEG の検証を担う先の空き。nil は手元
 var jpegWorkers = func() chan *offloadPeer {
-	ch := make(chan *offloadPeer, runtime.NumCPU()+len(offloadJPEGPeers)*offloadPeerSlots)
+	ch := make(chan *offloadPeer, runtime.NumCPU()+len(offloadJPEGPeers)*32)
 	for range runtime.NumCPU() {
 		ch <- nil
 	}
-	for range offloadPeerSlots {
+	for range 32 {
 		for _, peer := range offloadJPEGPeers {
 			ch <- peer
 		}
