@@ -2,7 +2,7 @@ package isureal
 
 // 画像の本体はファイルに置き、PostgreSQL の image_objects.data には新しい画像では空のバイト列を入れる（行は判定と初期化のために残す）。
 // - asia1: 書き込みは new/ に一時ファイル → rename をしてから DB を commit する（ディスクへの同期は裏で 1 秒ごと）。
-//   読み出しは init/ → new/ の順にファイルを探し、無ければ PostgreSQL の data（初期データの画像だけが中身を持つ）を読んで init/ に置く
+//   読み出しは new/ のファイルを探し、無ければ PostgreSQL の data（初期データの画像だけが中身を持つ）を読む
 // - europe1・america1: 手元に無い画像は asia1 の :8081 /_internal/image から取る（PostgreSQL の data は読まない）
 // - initialize で asia1 の new/ も消す
 
@@ -63,15 +63,18 @@ func storeNewImage(id string, data []byte) error {
 	return nil
 }
 
-// loadImage は asia1 で画像の本体を返す。initial は初期データの画像か（init/ か PostgreSQL から読んだか）
-func loadImage(ctx context.Context, db *sqlx.DB, id string, createdAt *time.Time) (data []byte, initial bool, err error) {
+func readNewImage(id string) ([]byte, bool) {
 	if !localImageIDPattern.MatchString(id) || len(id) < 2 {
-		return nil, false, sql.ErrNoRows
+		return nil, false
 	}
-	if data, err := os.ReadFile(filepath.Join(imageRootDir, "init", id[:2], id)); err == nil {
-		return data, true, nil
-	}
-	if data, err := os.ReadFile(filepath.Join(imageRootDir, "new", id[:2], id)); err == nil {
+	data, err := os.ReadFile(filepath.Join(imageRootDir, "new", id[:2], id))
+	return data, err == nil
+}
+
+// loadImage は asia1 で画像の本体を返す。新しい画像は new/ から、初期データの画像は PostgreSQL から読む。
+// asia1 はメモリが少なく CPU も埋まっているので、初期データの画像（16GB）をファイルから読むとディスクの読み出しで詰まる。initial は初期データの画像か
+func loadImage(ctx context.Context, db *sqlx.DB, id string, createdAt *time.Time) (data []byte, initial bool, err error) {
+	if data, ok := readNewImage(id); ok {
 		return data, false, nil
 	}
 	err = sql.ErrNoRows
@@ -87,7 +90,6 @@ func loadImage(ctx context.Context, db *sqlx.DB, id string, createdAt *time.Time
 	if len(data) == 0 {
 		return nil, false, fmt.Errorf("image %s: no file and no data in PostgreSQL", id)
 	}
-	writeLocalImage(id, data, true)
 	return data, true, nil
 }
 
