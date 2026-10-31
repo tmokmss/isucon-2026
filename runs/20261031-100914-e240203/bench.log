@@ -1,0 +1,39 @@
+{"id":"151","status":"done","portalStatus":"finished","passed":true,"score":2674,"raw":2674,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T01:09:58.980Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T01:09:59.137Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T01:09:59.268Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T01:10:08.342Z level=INFO msg="asia 2 日目: 18 人"
+time=2026-10-31T01:10:10.229Z level=INFO msg="europe 2 日目: 7 人"
+time=2026-10-31T01:10:10.422Z level=INFO msg="america 2 日目: 6 人"
+time=2026-10-31T01:10:18.425Z level=INFO msg="europe 3 日目: 7 人"
+time=2026-10-31T01:10:18.458Z level=INFO msg="asia 3 日目: 18 人"
+time=2026-10-31T01:10:19.992Z level=INFO msg="america 3 日目: 6 人"
+time=2026-10-31T01:10:27.946Z level=INFO msg="europe 4 日目: 7 人"
+time=2026-10-31T01:10:29.184Z level=INFO msg="america 4 日目: 6 人"
+time=2026-10-31T01:10:34.574Z level=INFO msg="asia 5 日目: 18 人"
+time=2026-10-31T01:10:36.047Z level=INFO msg="europe 5 日目: 7 人"
+time=2026-10-31T01:10:40.591Z level=INFO msg="america 5 日目: 6 人"
+time=2026-10-31T01:10:49.146Z level=INFO msg="asia 最終日（グランプリ）: 17 人"
+time=2026-10-31T01:10:50.043Z level=INFO msg="europe 最終日（グランプリ）: 7 人"
+time=2026-10-31T01:10:51.467Z level=INFO msg="グランプリ: アジア 7 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 2674,
+  "messages": [
+    "asia の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "leoruho_5081: 投稿が開いていない投稿期間 4edf340f-d1b4-4185-8326-4491ed619e69 に入りました",
+    "seoyeon_lee_20: 投稿が開いていない投稿期間 4edf340f-d1b4-4185-8326-4491ed619e69 に入りました",
+    "hina_nakamura_38: 投稿が開いていない投稿期間 4edf340f-d1b4-4185-8326-4491ed619e69 に入りました",
+    "suta-5044: 投稿が開いていない投稿期間 4edf340f-d1b4-4185-8326-4491ed619e69 に入りました",
+    "yomi.5031: 投稿が開いていない投稿期間 4edf340f-d1b4-4185-8326-4491ed619e69 に入りました",
+    "noaro.5058: 投稿が開いていない投稿期間 4edf340f-d1b4-4185-8326-4491ed619e69 に入りました",
+    "yachisa_5021: 投稿が開いていない投稿期間 4edf340f-d1b4-4185-8326-4491ed619e69 に入りました",
+    "yuse_5050: 投稿が開いていない投稿期間 4edf340f-d1b4-4185-8326-4491ed619e69 に入りました",
+    "susol_5063: 投稿が開いていない投稿期間 4edf340f-d1b4-4185-8326-4491ed619e69 に入りました"
+  ]
+}
+
+--- stderr ---
+

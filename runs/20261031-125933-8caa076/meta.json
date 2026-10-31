@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-125933-8caa076",
+  "startedAt": "2026-10-31T12:59:33+09:00",
+  "finishedAt": "2026-10-31T13:05:37+09:00",
+  "ref": "8caa076",
+  "sha": "8caa076c49d3ba91aa0b5d0aa7e6f4d049f307fd",
+  "score": 85230,
+  "status": "pass",
+  "note": "main-8caa076-control",
+  "benchJobId": "10907",
+  "prevRunId": "20261031-125722-c75a0a9",
+  "bestRunId": "20261031-125722-c75a0a9"
+}

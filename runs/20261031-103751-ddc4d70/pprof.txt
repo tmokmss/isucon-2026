@@ -1,0 +1,49 @@
+File: isureal
+Build ID: a23ba3197135f2bdb5294626e505fd4c5761d0d3
+Type: cpu
+Time: 2026-10-31 10:39:29 JST
+Duration: 60s, Total samples = 23.44s (39.07%)
+Showing nodes accounting for 19.11s, 81.53% of 23.44s total
+Dropped 814 nodes (cum <= 0.12s)
+Showing top 40 nodes out of 274
+      flat  flat%   sum%        cum   cum%
+     8.49s 36.22% 36.22%      8.52s 36.35%  crypto/internal/fips140/sha256.blockAVX2
+     1.31s  5.59% 41.81%      1.31s  5.59%  internal/runtime/syscall/linux.Syscall6
+     1.22s  5.20% 47.01%      1.22s  5.20%  runtime.memclrNoHeapPointers
+     1.18s  5.03% 52.05%      1.18s  5.03%  runtime.memmove
+     0.99s  4.22% 56.27%      1.43s  6.10%  image/jpeg.(*decoder).reconstructBlock
+     0.53s  2.26% 58.53%      9.65s 41.17%  crypto/internal/fips140/sha256.(*Digest).checkSum
+     0.51s  2.18% 60.71%      2.98s 12.71%  image/jpeg.(*decoder).processSOS
+     0.49s  2.09% 62.80%      9.44s 40.27%  crypto/internal/fips140/sha256.(*Digest).Write
+     0.36s  1.54% 64.33%      0.65s  2.77%  image/jpeg.(*decoder).decodeHuffman
+     0.32s  1.37% 65.70%     10.83s 46.20%  crypto/internal/fips140/hmac.(*HMAC).Sum
+     0.30s  1.28% 66.98%      0.31s  1.32%  image/jpeg.(*decoder).receiveExtend
+     0.27s  1.15% 68.13%     10.11s 43.13%  crypto/internal/fips140/sha256.(*Digest).Sum
+     0.27s  1.15% 69.28%      0.30s  1.28%  image/jpeg.(*decoder).ensureNBits
+     0.25s  1.07% 70.35%      0.25s  1.07%  runtime.futex
+     0.24s  1.02% 71.37%      4.93s 21.03%  crypto/internal/fips140/pbkdf2.Key[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }]
+     0.22s  0.94% 72.31%      0.22s  0.94%  runtime.madvise
+     0.21s   0.9% 73.21%      0.26s  1.11%  image/jpeg.idctCols
+     0.18s  0.77% 73.98%      0.48s  2.05%  crypto/internal/fips140/sha256.(*Digest).UnmarshalBinary
+     0.18s  0.77% 74.74%      0.24s  1.02%  runtime.tryDeferToSpanScan
+     0.17s  0.73% 75.47%      0.17s  0.73%  runtime.nextFreeFast (inline)
+     0.13s  0.55% 76.02%      6.83s 29.14%  example.com/isureal-company/isureal.imageSignature
+     0.13s  0.55% 76.58%      0.18s  0.77%  image/jpeg.idctRows
+     0.13s  0.55% 77.13%      0.13s  0.55%  runtime.procyieldAsm
+     0.13s  0.55% 77.69%      0.28s  1.19%  runtime.scanObject
+     0.12s  0.51% 78.20%      0.39s  1.66%  runtime.mallocgcSmallScanNoHeader
+     0.11s  0.47% 78.67%      0.22s  0.94%  runtime.scanObjectsSmall
+     0.09s  0.38% 79.05%      1.11s  4.74%  runtime.mallocgc
+     0.08s  0.34% 79.39%      0.13s  0.55%  crypto/internal/fips140.RecordApproved
+     0.07s   0.3% 79.69%      0.32s  1.37%  crypto/internal/fips140/hmac.(*HMAC).Reset
+     0.07s   0.3% 79.99%      8.59s 36.65%  crypto/internal/fips140/sha256.block
+     0.07s   0.3% 80.29%      0.28s  1.19%  runtime.newobject
+     0.07s   0.3% 80.59%      0.17s  0.73%  runtime.pcvalue
+     0.04s  0.17% 80.76%      0.20s  0.85%  crypto/internal/fips140/hmac.(*HMAC).Write (partial-inline)
+     0.04s  0.17% 80.93%      0.72s  3.07%  github.com/jackc/pgx/v5/stdlib.(*Rows).Next
+     0.03s  0.13% 81.06%      0.49s  2.09%  github.com/jackc/pgx/v5/pgconn.(*ResultReader).receiveMessage
+     0.03s  0.13% 81.19%      0.72s  3.07%  github.com/jackc/pgx/v5/pgproto3.(*Frontend).Receive
+     0.03s  0.13% 81.31%      0.14s   0.6%  golang.org/x/text/unicode/norm.(*formInfo).quickSpan
+     0.02s 0.085% 81.40%      0.19s  0.81%  github.com/jackc/pgx/v5/pgtype.scanPlanString.Scan
+     0.02s 0.085% 81.48%      1.17s  4.99%  github.com/jmoiron/sqlx.scanAll
+     0.01s 0.043% 81.53%      0.12s  0.51%  crypto/ecdh.x25519ScalarMult

@@ -1,0 +1,35 @@
+{"id":"9937","status":"done","portalStatus":"finished","passed":true,"score":63311,"raw":63311,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T03:51:34.741Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:51:37.689Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:51:40.688Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:51:43.839Z level=INFO msg="asia 2 日目: 49 人"
+time=2026-10-31T03:51:46.794Z level=INFO msg="europe 2 日目: 15 人"
+time=2026-10-31T03:51:49.790Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T03:51:52.845Z level=INFO msg="asia 3 日目: 141 人"
+time=2026-10-31T03:51:55.827Z level=INFO msg="europe 3 日目: 36 人"
+time=2026-10-31T03:51:58.076Z level=INFO msg="user moved" user=rote.6151 from=asia to=america
+time=2026-10-31T03:51:58.794Z level=INFO msg="america 3 日目: 37 人"
+time=2026-10-31T03:52:01.869Z level=INFO msg="asia 4 日目: 400 人"
+time=2026-10-31T03:52:04.975Z level=INFO msg="europe 4 日目: 81 人"
+time=2026-10-31T03:52:08.074Z level=INFO msg="america 4 日目: 64 人"
+time=2026-10-31T03:52:09.945Z level=INFO msg="user moved" user=toben_6695 from=asia to=europe
+time=2026-10-31T03:52:11.498Z level=INFO msg="asia 5 日目: 566 人"
+time=2026-10-31T03:52:12.102Z level=INFO msg="user moved" user=chima6861 from=asia to=europe
+time=2026-10-31T03:52:15.634Z level=INFO msg="europe 5 日目: 83 人"
+time=2026-10-31T03:52:16.878Z level=INFO msg="america 5 日目: 64 人"
+time=2026-10-31T03:52:25.967Z level=INFO msg="america 最終日（グランプリ）: 64 人"
+time=2026-10-31T03:52:26.570Z level=INFO msg="asia 最終日（グランプリ）: 565 人"
+time=2026-10-31T03:52:26.827Z level=INFO msg="europe 最終日（グランプリ）: 82 人"
+time=2026-10-31T03:52:34.703Z level=INFO msg="グランプリ: アジア 1 人, ヨーロッパ 1 人, アメリカ 2 人"
+{
+  "pass": true,
+  "score": 63311,
+  "messages": [
+    "yomu5095: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）"
+  ]
+}
+
+--- stderr ---
+

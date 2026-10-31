@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-110341-7679a66",
+  "startedAt": "2026-10-31T11:03:41+09:00",
+  "finishedAt": "2026-10-31T11:05:30+09:00",
+  "ref": "HEAD",
+  "sha": "7679a66b952dd7e13d3aa5934dcfe9f8fb5d315f",
+  "score": 16152,
+  "status": "pass",
+  "note": "画像: PostgreSQL から取った初期データの画像を init/ に貯める",
+  "benchJobId": "2526",
+  "prevRunId": "20261031-105807-4478bd9",
+  "bestRunId": "20261031-103811-cef5fe3"
+}

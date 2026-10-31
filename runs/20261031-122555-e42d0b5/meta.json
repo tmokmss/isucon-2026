@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-122555-e42d0b5",
+  "startedAt": "2026-10-31T12:25:55+09:00",
+  "finishedAt": "2026-10-31T12:27:54+09:00",
+  "ref": "grandprix-post-fifo",
+  "sha": "e42d0b56cef82129d492f9b99faa9917bd0cf571",
+  "score": 79369,
+  "status": "pass",
+  "note": "jpeg fifo on 72",
+  "benchJobId": "8085",
+  "prevRunId": "20261031-121235-e0e4cb3",
+  "bestRunId": "20261031-122555-e42d0b5"
+}

@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-133811-f498277",
+  "startedAt": "2026-10-31T13:38:11+09:00",
+  "finishedAt": "2026-10-31T13:46:16+09:00",
+  "ref": "image-files",
+  "sha": "f498277673d9572858351d19a4da139e507d3d23",
+  "score": 75212,
+  "status": "pass",
+  "note": "image bodies to files (fix passive SQL) + main 7e687d9",
+  "benchJobId": "14000",
+  "prevRunId": "20261031-121235-e0e4cb3",
+  "bestRunId": "20261031-133811-f498277"
+}

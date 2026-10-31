@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-134736-319c947",
+  "startedAt": "2026-10-31T13:47:36+09:00",
+  "finishedAt": "2026-10-31T13:54:50+09:00",
+  "ref": "repl-replica",
+  "sha": "319c9472f411af43016dcbcab0a0d450c011fc9a",
+  "score": 104789,
+  "status": "pass",
+  "note": "複製 検証: 時刻の印で待つ形の shadow＋照合（main fbae0df 取り込み済み）",
+  "benchJobId": "14685",
+  "prevRunId": "20261031-121235-e0e4cb3",
+  "bestRunId": "20261031-134736-319c947"
+}

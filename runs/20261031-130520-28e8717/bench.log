@@ -1,0 +1,38 @@
+{"id":"11207","status":"done","portalStatus":"finished","passed":true,"score":80118,"raw":80118,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:08:20.692Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:08:22.883Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:08:25.881Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:08:29.074Z level=INFO msg="asia 2 日目: 39 人"
+time=2026-10-31T04:08:31.983Z level=INFO msg="europe 2 日目: 15 人"
+time=2026-10-31T04:08:34.606Z level=INFO msg="user moved" user=leochi.5260 from=asia to=america
+time=2026-10-31T04:08:34.984Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T04:08:38.042Z level=INFO msg="asia 3 日目: 93 人"
+time=2026-10-31T04:08:41.669Z level=INFO msg="europe 3 日目: 37 人"
+time=2026-10-31T04:08:42.112Z level=INFO msg="user moved" user=kieva-5550 from=asia to=america
+time=2026-10-31T04:08:44.007Z level=INFO msg="america 3 日目: 33 人"
+time=2026-10-31T04:08:47.053Z level=INFO msg="asia 4 日目: 241 人"
+time=2026-10-31T04:08:52.003Z level=INFO msg="user moved" user=rinuto-6203 from=asia to=europe
+time=2026-10-31T04:08:52.025Z level=INFO msg="europe 4 日目: 85 人"
+time=2026-10-31T04:08:53.056Z level=INFO msg="america 4 日目: 67 人"
+time=2026-10-31T04:08:53.731Z level=INFO msg="user moved" user=evaanka-6336 from=asia to=america
+time=2026-10-31T04:08:56.116Z level=INFO msg="asia 5 日目: 592 人"
+time=2026-10-31T04:08:56.151Z level=INFO msg="user moved" user=tesu_6546 from=asia to=america
+time=2026-10-31T04:08:59.140Z level=INFO msg="europe 5 日目: 85 人"
+time=2026-10-31T04:09:02.277Z level=INFO msg="america 5 日目: 69 人"
+time=2026-10-31T04:09:12.422Z level=INFO msg="asia 最終日（グランプリ）: 590 人"
+time=2026-10-31T04:09:12.923Z level=INFO msg="america 最終日（グランプリ）: 68 人"
+time=2026-10-31T04:09:13.057Z level=INFO msg="europe 最終日（グランプリ）: 84 人"
+time=2026-10-31T04:09:19.898Z level=INFO msg="グランプリ: アジア 438 人, ヨーロッパ 27 人, アメリカ 14 人"
+{
+  "pass": true,
+  "score": 80118,
+  "messages": [
+    "vinyoko_5032: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "retsu.5125: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）"
+  ]
+}
+
+--- stderr ---
+

@@ -1,0 +1,13 @@
+{"id":"4443","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"初期化に失敗しました"}
+
+--- stdout ---
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "初期化に失敗しました: POST /api/initialize: ステータスコード 504 が返りました（期待値 200、unknown）（上限 1m0s）"
+  ]
+}
+
+--- stderr ---
+

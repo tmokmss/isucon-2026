@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-110450-8f720c2",
+  "startedAt": "2026-10-31T11:04:50+09:00",
+  "finishedAt": "2026-10-31T11:07:14+09:00",
+  "ref": "origin/main",
+  "sha": "8f720c2f3486aa735ba0e54c16611d8123a5b438",
+  "score": 15668,
+  "status": "pass",
+  "note": "main: インメモリ化 + 画像を手元から（#62）+ 署名 1 分単位",
+  "benchJobId": "2618",
+  "prevRunId": "20261031-110242-f264c69",
+  "bestRunId": "20261031-103811-cef5fe3"
+}

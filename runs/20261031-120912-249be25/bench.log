@@ -1,0 +1,75 @@
+{"id":"6978","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"負荷走行を打ち切りました"}
+
+--- stdout ---
+time=2026-10-31T03:10:59.388Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:11:02.350Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:11:05.351Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:11:08.376Z level=INFO msg="asia 2 日目: 49 人"
+time=2026-10-31T03:11:11.353Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T03:11:14.350Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T03:11:17.376Z level=INFO msg="asia 3 日目: 141 人"
+time=2026-10-31T03:11:20.398Z level=INFO msg="europe 3 日目: 44 人"
+time=2026-10-31T03:11:21.103Z level=INFO msg="user moved" user=hehara.5634 from=asia to=america
+time=2026-10-31T03:11:21.161Z level=INFO msg="user moved" user=tato.5981 from=asia to=america
+time=2026-10-31T03:11:21.386Z level=INFO msg="user moved" user=funo_6059 from=asia to=america
+time=2026-10-31T03:11:22.919Z level=INFO msg="user moved" user=tato.5981 from=america to=asia
+time=2026-10-31T03:11:23.351Z level=INFO msg="america 3 日目: 40 人"
+time=2026-10-31T03:11:26.456Z level=INFO msg="asia 4 日目: 394 人"
+time=2026-10-31T03:11:29.313Z level=INFO msg="user moved" user=tato.5981 from=asia to=america
+time=2026-10-31T03:11:29.388Z level=INFO msg="europe 4 日目: 106 人"
+time=2026-10-31T03:11:32.395Z level=INFO msg="america 4 日目: 59 人"
+time=2026-10-31T03:11:35.407Z level=INFO msg="user moved" user=suta-8134 from=asia to=america
+time=2026-10-31T03:11:35.441Z level=INFO msg="asia 5 日目: 471 人"
+time=2026-10-31T03:11:35.499Z level=INFO msg="user moved" user=kevinchi-6947 from=asia to=europe
+time=2026-10-31T03:11:38.522Z level=INFO msg="europe 5 日目: 107 人"
+time=2026-10-31T03:11:41.423Z level=INFO msg="america 5 日目: 60 人"
+time=2026-10-31T03:11:50.652Z level=INFO msg="europe 最終日（グランプリ）: 106 人"
+time=2026-10-31T03:11:50.795Z level=INFO msg="asia 最終日（グランプリ）: 470 人"
+time=2026-10-31T03:11:50.975Z level=INFO msg="america 最終日（グランプリ）: 60 人"
+time=2026-10-31T03:11:59.366Z level=INFO msg="グランプリ: アジア 27 人, ヨーロッパ 2 人, アメリカ 2 人"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "負荷走行を打ち切りました: 55s〜1m0s のエラー率 13.4%（42/314 件）が上限 10.0% を超えました",
+    "maliara-8783: プロフィール画像を取得できません: GET /api/images/dd3ae67f-8d52-43c4-a178-3e4521632092?exp=1793502720\u0026sig=QslaVy2pGZrmZ69-bbCzgi1Xd9bOA7_ZFy5LPbXGEBs: ステータスコード 500 が返りました（期待値 200、failed to connect to `user=isureal database=isureal`:",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)）",
+    "kazoemu8799: プロフィール画像を取得できません: GET /api/images/9761de9c-3bc0-4643-916d-e0527bbb38b8?exp=1793502720\u0026sig=UIJVRmMflAYvqDfhH4yx86N_jIiioyTWuEhmWoBr5Qo: ステータスコード 500 が返りました（期待値 200、failed to connect to `user=isureal database=isureal`:",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)）",
+    "sushi_on_a_sunflower_4749: 履歴を読めません: GET /api/images/93188968-8cc6-4918-8437-7add6ac84068?exp=1793502720\u0026sig=d2hU17ZXeIxTgAh8HalvYZFeKZ-CQYjy7803P_dTB9c: ステータスコード 500 が返りました（期待値 200、failed to connect to `user=isureal database=isureal`:",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)）",
+    "sardinas_en_olla_de_barro_4671: 履歴を読めません: GET /api/images/07ce45ce-1854-40ee-9ef0-2c66b881be67?exp=1793502720\u0026sig=0-HvR4FSw-6XnoM6R7InfQDvUv_OVK54R9G4d_pz-II: ステータスコード 500 が返りました（期待値 200、failed to connect to `user=isureal database=isureal`:",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)）",
+    "salmon_in_a_jar_2533: 履歴を読めません: GET /api/images/b9addc54-4149-4b5f-bd67-a4493a187cd3?exp=1793502720\u0026sig=RkssCIWstwjuVl9VjsizRJZfMzu7bloVpCeYKMm3dyc: ステータスコード 500 が返りました（期待値 200、failed to connect to `user=isureal database=isureal`:",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)）",
+    "mia_jackson_423: 履歴を読めません: GET /api/images/ac4b8915-7da1-41cc-90b7-abcdb079eeb2?exp=1793502720\u0026sig=3boyEg7XuQBzan_gPMzJOKDVuXlwbNMTIN40EjcFpvI: ステータスコード 500 が返りました（期待値 200、failed to connect to `user=isureal database=isureal`:",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)）",
+    "sebastian_ramirez_219: 履歴を読めません: GET /api/images/db408bc4-5ca7-4af9-a145-b4f5efb07c15?exp=1793502720\u0026sig=wNkNjVbLfBSRKCjfd-6Hi8wAWJU5W00G1HUS3KSJldg: ステータスコード 500 が返りました（期待値 200、failed to connect to `user=isureal database=isureal`:",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)）",
+    "hehara.5634: 投稿 5255632e-d376-49fc-a56d-9726faa9ab70 の画像を取得できません: GET /api/images/3d0abb3a-693e-4406-86b8-5fab6fe8d818?exp=1793502720\u0026sig=cJDBNbuThAP-p8DOf00Z9x3u2VlqGlFfoWp3L6uusXA: ステータスコード 500 が返りました（期待値 200、failed to connect to `user=isureal database=isureal`:",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)",
+    "\t192.168.4.10:5432 (192.168.4.10): server error: FATAL: sorry, too many clients already (SQLSTATE 53300)）",
+    "mamarel7735: 認定公開アカウントをフォローできません: PUT /api/follows/7f09e043-412d-4ae0-8a59-0b18a5cfb839: 応答がタイムアウトしました",
+    "kano_8287: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "vinhiso_6763: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "tosuben7068: 友達申請を承認できません: POST /api/friend-requests/b2a4b59b-9da3-4f3c-a7c0-2be25227b694/accept: 応答がタイムアウトしました",
+    "kesema_9002: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "warina_9137: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "chimi-8979: 認定公開アカウントをフォローできません: PUT /api/follows/7f09e043-412d-4ae0-8a59-0b18a5cfb839: 応答がタイムアウトしました",
+    "honofu8243: 認定公開アカウントをフォローできません: PUT /api/follows/7f09e043-412d-4ae0-8a59-0b18a5cfb839: 応答がタイムアウトしました",
+    "heku.9326: 認定公開アカウントをフォローできません: PUT /api/follows/7f09e043-412d-4ae0-8a59-0b18a5cfb839: 応答がタイムアウトしました",
+    "rumiyo-6595: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "liahari8038: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "noaelre.9385: 認定公開アカウントをフォローできません: PUT /api/follows/7f09e043-412d-4ae0-8a59-0b18a5cfb839: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

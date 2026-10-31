@@ -196,6 +196,7 @@ report.md の Summary に前回比・ベスト比が出る。ハーネスは良�
   `runs/history.tsv` は追跡されていて、ベンチのたびに書き換わる。未コミットのまま revert すると失敗し、
   ラン記録を含むコミットを revert すると衝突する。先にラン記録をコミットし、衝突したら revert をやめて
   `git checkout <戻したい sha> -- <ファイル>` で戻す。どちらでも、戻ったことを `git show --stat HEAD` で確かめる
+  ラン記録は `git add runs` で `runs/<run-id>/` ごとコミットし、main へ取り込む。`history.tsv` が取り込みで衝突したら、両方の行を残す
 - 失敗した（status が fail / error）→ Bench 節を全文読み、整合性チェックで落ちたなら
   レスポンスが変わっていないか確認する（下の禁止事項）
 

@@ -1,0 +1,39 @@
+{"id":"7221","status":"done","portalStatus":"finished","passed":true,"score":64700,"raw":64700,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T03:14:37.354Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:14:40.321Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:14:43.318Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:14:46.342Z level=INFO msg="asia 2 日目: 45 人"
+time=2026-10-31T03:14:49.319Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T03:14:49.372Z level=INFO msg="user moved" user=muse.5294 from=asia to=europe
+time=2026-10-31T03:14:52.317Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T03:14:55.341Z level=INFO msg="asia 3 日目: 125 人"
+time=2026-10-31T03:14:57.068Z level=INFO msg="user moved" user=waku_5521 from=asia to=america
+time=2026-10-31T03:14:58.324Z level=INFO msg="europe 3 日目: 45 人"
+time=2026-10-31T03:14:59.680Z level=INFO msg="user moved" user=waku_5521 from=america to=europe
+time=2026-10-31T03:15:01.320Z level=INFO msg="america 3 日目: 34 人"
+time=2026-10-31T03:15:01.537Z level=INFO msg="user moved" user=muse.5294 from=europe to=america
+time=2026-10-31T03:15:04.361Z level=INFO msg="asia 4 日目: 354 人"
+time=2026-10-31T03:15:07.373Z level=INFO msg="europe 4 日目: 113 人"
+time=2026-10-31T03:15:10.340Z level=INFO msg="america 4 日目: 64 人"
+time=2026-10-31T03:15:13.414Z level=INFO msg="asia 5 日目: 428 人"
+time=2026-10-31T03:15:16.786Z level=INFO msg="europe 5 日目: 113 人"
+time=2026-10-31T03:15:19.369Z level=INFO msg="america 5 日目: 64 人"
+time=2026-10-31T03:15:28.437Z level=INFO msg="europe 最終日（グランプリ）: 112 人"
+time=2026-10-31T03:15:28.566Z level=INFO msg="asia 最終日（グランプリ）: 427 人"
+time=2026-10-31T03:15:28.617Z level=INFO msg="america 最終日（グランプリ）: 64 人"
+time=2026-10-31T03:15:37.330Z level=INFO msg="グランプリ: アジア 27 人, ヨーロッパ 1 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 64700,
+  "messages": [
+    "noako.5068: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "yaleo.8384: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "keku.5496: 友達申請を承認できません: POST /api/friend-requests/10281b7a-ec61-4669-bfe4-b39b485cc457/accept: 応答がタイムアウトしました",
+    "rumuis.5872: 友達申請を承認できません: POST /api/friend-requests/eacf3d5d-0491-40de-b5d4-553a2989544d/accept: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

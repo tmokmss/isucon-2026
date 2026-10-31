@@ -1,0 +1,37 @@
+{"id":"2618","status":"done","portalStatus":"finished","passed":true,"score":15668,"raw":15668,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:06:02.936Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:06:05.285Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:06:08.037Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:06:12.202Z level=INFO msg="asia 2 日目: 29 人"
+time=2026-10-31T02:06:14.006Z level=INFO msg="europe 2 日目: 13 人"
+time=2026-10-31T02:06:17.162Z level=INFO msg="america 2 日目: 12 人"
+time=2026-10-31T02:06:20.836Z level=INFO msg="asia 3 日目: 62 人"
+time=2026-10-31T02:06:23.998Z level=INFO msg="europe 3 日目: 30 人"
+time=2026-10-31T02:06:24.600Z level=INFO msg="user moved" user=leoivymo5304 from=america to=europe
+time=2026-10-31T02:06:27.818Z level=INFO msg="america 3 日目: 24 人"
+time=2026-10-31T02:06:29.728Z level=INFO msg="user moved" user=solya_5510 from=asia to=america
+time=2026-10-31T02:06:30.940Z level=INFO msg="asia 4 日目: 72 人"
+time=2026-10-31T02:06:31.303Z level=INFO msg="user moved" user=leoivymo5304 from=europe to=america
+time=2026-10-31T02:06:36.455Z level=INFO msg="europe 4 日目: 30 人"
+time=2026-10-31T02:06:39.098Z level=INFO msg="america 4 日目: 26 人"
+time=2026-10-31T02:06:41.281Z level=INFO msg="asia 5 日目: 72 人"
+time=2026-10-31T02:06:42.896Z level=INFO msg="europe 5 日目: 30 人"
+time=2026-10-31T02:06:50.390Z level=INFO msg="america 5 日目: 26 人"
+time=2026-10-31T02:06:58.123Z level=INFO msg="europe 最終日（グランプリ）: 30 人"
+time=2026-10-31T02:07:00.142Z level=INFO msg="america 最終日（グランプリ）: 26 人"
+time=2026-10-31T02:07:01.961Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 15668,
+  "messages": [
+    "mekedan.5723: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "anmaxra5300: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "nenero_5076: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "asia の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

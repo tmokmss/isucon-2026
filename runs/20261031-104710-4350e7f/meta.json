@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-104710-4350e7f",
+  "startedAt": "2026-10-31T10:47:10+09:00",
+  "finishedAt": "2026-10-31T10:52:49+09:00",
+  "ref": "HEAD",
+  "sha": "4350e7f0be163b67b5b1f95dab923e1d785bc107",
+  "score": 17610,
+  "status": "pass",
+  "note": "main: インメモリ化（#61）を入れた",
+  "benchJobId": "1802",
+  "prevRunId": "20261031-103811-cef5fe3",
+  "bestRunId": "20261031-103811-cef5fe3"
+}

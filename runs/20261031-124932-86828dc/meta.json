@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-124932-86828dc",
+  "startedAt": "2026-10-31T12:49:32+09:00",
+  "finishedAt": "2026-10-31T12:53:02+09:00",
+  "ref": "repl-replica",
+  "sha": "86828dc8e9968059141569bd5270f988ffd42452",
+  "score": 63311,
+  "status": "pass",
+  "note": "複製 第1段 shadow（europe1・america1 が裏でフィード等を計算して asia1 の応答と比べる）",
+  "benchJobId": "9937",
+  "prevRunId": "20261031-124342-0db3f89",
+  "bestRunId": "20261031-121235-e0e4cb3"
+}

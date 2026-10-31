@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-105911-5aad88a",
+  "startedAt": "2026-10-31T10:59:11+09:00",
+  "finishedAt": "2026-10-31T11:02:39+09:00",
+  "ref": "origin/inmemory-2",
+  "sha": "5aad88a3aaabbd30baeffaaa2095916121e25fc7",
+  "score": 10532,
+  "status": "pass",
+  "note": "PR #63: TLS 無効化・エクスポートを主キーで・メモリ削減",
+  "benchJobId": "2354",
+  "prevRunId": "20261031-105734-4350e7f",
+  "bestRunId": "20261031-103811-cef5fe3"
+}

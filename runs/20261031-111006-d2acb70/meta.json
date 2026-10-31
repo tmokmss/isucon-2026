@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-111006-d2acb70",
+  "startedAt": "2026-10-31T11:10:06+09:00",
+  "finishedAt": "2026-10-31T11:18:52+09:00",
+  "ref": "posting-window-fast",
+  "sha": "d2acb70c3ccd72cb65b59e7137c2dff1685ba9f4",
+  "score": 12786,
+  "status": "pass",
+  "note": "投稿期間の開始を専用プール・1往復で",
+  "benchJobId": "3327",
+  "prevRunId": "20261031-110450-8f720c2",
+  "bestRunId": "20261031-103811-cef5fe3"
+}

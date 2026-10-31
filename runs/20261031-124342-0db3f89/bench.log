@@ -1,0 +1,61 @@
+{"id":"9653","status":"failed","portalStatus":"finished","passed":false,"score":0,"raw":0,"deduction":0,"reason":"負荷走行を打ち切りました"}
+
+--- stdout ---
+time=2026-10-31T03:47:41.649Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:47:44.619Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:47:47.615Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:47:50.666Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T03:47:53.611Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T03:47:56.613Z level=INFO msg="america 2 日目: 10 人"
+time=2026-10-31T03:47:56.674Z level=INFO msg="user moved" user=heel-5135 from=america to=asia
+time=2026-10-31T03:47:57.131Z level=INFO msg="user moved" user=heel-5135 from=asia to=europe
+time=2026-10-31T03:47:59.639Z level=INFO msg="asia 3 日目: 143 人"
+time=2026-10-31T03:48:02.129Z level=INFO msg="user moved" user=hesol.5726 from=asia to=europe
+time=2026-10-31T03:48:02.498Z level=INFO msg="user moved" user=ruyu.5729 from=asia to=america
+time=2026-10-31T03:48:02.652Z level=INFO msg="europe 3 日目: 34 人"
+time=2026-10-31T03:48:03.239Z level=INFO msg="user moved" user=shiis5942 from=asia to=america
+time=2026-10-31T03:48:03.907Z level=INFO msg="user moved" user=mukolia-6019 from=asia to=america
+time=2026-10-31T03:48:05.635Z level=INFO msg="america 3 日目: 23 人"
+time=2026-10-31T03:48:08.664Z level=INFO msg="asia 4 日目: 400 人"
+time=2026-10-31T03:48:11.913Z level=INFO msg="europe 4 日目: 34 人"
+time=2026-10-31T03:48:14.829Z level=INFO msg="america 4 日目: 22 人"
+time=2026-10-31T03:48:16.689Z level=INFO msg="user moved" user=miarimar_7891 from=asia to=europe
+time=2026-10-31T03:48:17.165Z level=INFO msg="user moved" user=hitano-6469 from=asia to=europe
+time=2026-10-31T03:48:17.901Z level=INFO msg="asia 5 日目: 479 人"
+time=2026-10-31T03:48:21.262Z level=INFO msg="europe 5 日目: 37 人"
+time=2026-10-31T03:48:24.007Z level=INFO msg="america 5 日目: 22 人"
+time=2026-10-31T03:48:24.477Z level=INFO msg="user moved" user=mukolia-6019 from=america to=asia
+time=2026-10-31T03:48:32.756Z level=INFO msg="asia 最終日（グランプリ）: 480 人"
+time=2026-10-31T03:48:32.841Z level=INFO msg="europe 最終日（グランプリ）: 37 人"
+time=2026-10-31T03:48:32.873Z level=INFO msg="america 最終日（グランプリ）: 21 人"
+time=2026-10-31T03:48:41.616Z level=INFO msg="グランプリ: アジア 6 人, ヨーロッパ 0 人, アメリカ 1 人"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "負荷走行を打ち切りました: 55s〜1m0s のエラー率 35.3%（59/167 件）が上限 10.0% を超えました",
+    "salmon_in_a_jar_2533: ログアウトできません: POST /api/auth/logout: ステータスコード 502 が返りました（期待値 204、unknown）",
+    "nusa6249: 友達申請を送れません: POST /api/friend-requests: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "ivymutsu_5473: 投稿できません: POST /api/posts: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "elnamax-5459: 投稿できません: POST /api/posts: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "muma.6237: 友達申請を送れません: POST /api/friend-requests: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "shidantsu6259: 友達申請を送れません: POST /api/friend-requests: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "liase-6269: 新しいユーザーを登録できません: POST /api/auth/register: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "helena_santos_4199: 投稿できません: POST /api/posts: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "leoliaivy6223: 投稿できません: POST /api/posts: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "fuhomax5106: 友達申請を承認できません: POST /api/friend-requests/da5c3edc-c88d-4964-a530-1be0bf1b3ebe/accept: ステータスコード 502 が返りました（期待値 200、unknown）",
+    "reho.5439: 友達申請を承認できません: POST /api/friend-requests/4692d97c-ef2a-4a69-93c8-3ac72c2a7e93/accept: ステータスコード 502 が返りました（期待値 200、unknown）",
+    "reyadan-6149: 友達申請を送れません: POST /api/friend-requests: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "benul_6241: 投稿できません: POST /api/posts: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "ramar_6159: 友達申請を送れません: POST /api/friend-requests: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "evachi_5394: 投稿 8ee04eed-5ab8-4124-adf0-0e1c1d294b7f に RealMoji を送れません: POST /api/posts/8ee04eed-5ab8-4124-adf0-0e1c1d294b7f/realmojis: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "danlia6202: 投稿できません: POST /api/posts: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "elias_hoffmann_8: 履歴を読めません: GET /api/memories?month=2026-08: 通信に失敗しました: 応答の本体を読めません: unexpected EOF",
+    "rian-5374: 投稿 75629362-2f08-447d-bb08-f997592fb37e に RealMoji を送れません: POST /api/posts/75629362-2f08-447d-bb08-f997592fb37e/realmojis: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "zoehena_5452: 友達申請を承認できません: POST /api/friend-requests/5dc48186-771c-4fa3-b054-951c1ae39945/accept: ステータスコード 502 が返りました（期待値 200、unknown）",
+    "salmon_in_a_jar_2533: ログインできません: POST /api/auth/login: ステータスコード 502 が返りました（期待値 200、unknown）"
+  ]
+}
+
+--- stderr ---
+

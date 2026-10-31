@@ -1,0 +1,33 @@
+{"id":"3535","status":"done","portalStatus":"finished","passed":true,"score":19275,"raw":19275,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:21:11.114Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:21:13.597Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:21:16.034Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:21:20.448Z level=INFO msg="asia 2 日目: 24 人"
+time=2026-10-31T02:21:22.178Z level=INFO msg="europe 2 日目: 9 人"
+time=2026-10-31T02:21:23.808Z level=INFO msg="user moved" user=hemuor.5192 from=asia to=america
+time=2026-10-31T02:21:25.145Z level=INFO msg="america 2 日目: 9 人"
+time=2026-10-31T02:21:28.837Z level=INFO msg="asia 3 日目: 42 人"
+time=2026-10-31T02:21:31.409Z level=INFO msg="europe 3 日目: 17 人"
+time=2026-10-31T02:21:34.170Z level=INFO msg="america 3 日目: 18 人"
+time=2026-10-31T02:21:37.484Z level=INFO msg="user moved" user=hemuor.5192 from=america to=asia
+time=2026-10-31T02:21:39.261Z level=INFO msg="asia 4 日目: 84 人"
+time=2026-10-31T02:21:42.197Z level=INFO msg="europe 4 日目: 29 人"
+time=2026-10-31T02:21:42.705Z level=INFO msg="user moved" user=hemax_5465 from=america to=europe
+time=2026-10-31T02:21:43.371Z level=INFO msg="america 4 日目: 29 人"
+time=2026-10-31T02:21:46.137Z level=INFO msg="user moved" user=hemax_5465 from=europe to=asia
+time=2026-10-31T02:21:48.853Z level=INFO msg="asia 5 日目: 85 人"
+time=2026-10-31T02:21:51.086Z level=INFO msg="europe 5 日目: 29 人"
+time=2026-10-31T02:21:54.929Z level=INFO msg="america 5 日目: 29 人"
+time=2026-10-31T02:22:03.273Z level=INFO msg="america 最終日（グランプリ）: 29 人"
+time=2026-10-31T02:22:06.760Z level=INFO msg="asia 最終日（グランプリ）: 84 人"
+time=2026-10-31T02:22:09.994Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 4 人"
+{
+  "pass": true,
+  "score": 19275,
+  "messages": []
+}
+
+--- stderr ---
+

@@ -1,0 +1,31 @@
+{"id":"3327","status":"done","portalStatus":"finished","passed":true,"score":12786,"raw":12786,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:17:46.346Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:17:46.418Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:17:49.271Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:18:05.701Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T02:18:12.048Z level=INFO msg="europe 3 日目: 7 人"
+time=2026-10-31T02:18:12.147Z level=INFO msg="america 3 日目: 15 人"
+time=2026-10-31T02:18:18.356Z level=INFO msg="europe 4 日目: 7 人"
+time=2026-10-31T02:18:18.372Z level=INFO msg="america 4 日目: 15 人"
+time=2026-10-31T02:18:18.547Z level=INFO msg="asia 4 日目: 18 人"
+time=2026-10-31T02:18:22.081Z level=INFO msg="asia 5 日目: 18 人"
+time=2026-10-31T02:18:22.246Z level=INFO msg="europe 5 日目: 7 人"
+time=2026-10-31T02:18:25.316Z level=INFO msg="america 5 日目: 15 人"
+time=2026-10-31T02:18:34.256Z level=INFO msg="europe 最終日（グランプリ）: 6 人"
+time=2026-10-31T02:18:35.918Z level=INFO msg="asia 最終日（グランプリ）: 17 人"
+time=2026-10-31T02:18:35.971Z level=INFO msg="america 最終日（グランプリ）: 14 人"
+time=2026-10-31T02:18:43.231Z level=INFO msg="グランプリ: アジア 17 人, ヨーロッパ 6 人, アメリカ 14 人"
+{
+  "pass": true,
+  "score": 12786,
+  "messages": [
+    "asia の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "europe の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "asia の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

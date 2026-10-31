@@ -1,0 +1,4 @@
+未取得: pg_stat_statements を読めませんでした (isu4, exit=2)
+isuh setup --only logs で有効にしたか確認すること。
+
+psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  sorry, too many clients already

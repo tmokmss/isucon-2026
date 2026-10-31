@@ -1,0 +1,41 @@
+{"id":"2245","status":"done","portalStatus":"finished","passed":true,"score":15531,"raw":15531,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T01:59:41.198Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T01:59:43.811Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T01:59:45.762Z level=INFO msg="user moved" user=nite.5022 from=asia to=america
+time=2026-10-31T01:59:46.691Z level=INFO msg="america 1 日目: 7 人"
+time=2026-10-31T01:59:50.217Z level=INFO msg="asia 2 日目: 40 人"
+time=2026-10-31T01:59:52.780Z level=INFO msg="europe 2 日目: 11 人"
+time=2026-10-31T01:59:55.134Z level=INFO msg="user moved" user=soku_5290 from=asia to=europe
+time=2026-10-31T01:59:55.584Z level=INFO msg="america 2 日目: 12 人"
+time=2026-10-31T01:59:59.739Z level=INFO msg="asia 3 日目: 97 人"
+time=2026-10-31T02:00:02.351Z level=INFO msg="europe 3 日目: 23 人"
+time=2026-10-31T02:00:05.573Z level=INFO msg="america 3 日目: 22 人"
+time=2026-10-31T02:00:12.747Z level=INFO msg="asia 4 日目: 109 人"
+time=2026-10-31T02:00:16.001Z level=INFO msg="europe 4 日目: 23 人"
+time=2026-10-31T02:00:24.614Z level=INFO msg="europe 5 日目: 23 人"
+time=2026-10-31T02:00:26.929Z level=INFO msg="user moved" user=temero5778 from=asia to=america
+time=2026-10-31T02:00:26.931Z level=INFO msg="asia 5 日目: 108 人"
+time=2026-10-31T02:00:27.787Z level=INFO msg="america 5 日目: 23 人"
+time=2026-10-31T02:00:38.971Z level=INFO msg="america 最終日（グランプリ）: 23 人"
+time=2026-10-31T02:00:40.564Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 15531,
+  "messages": [
+    "america の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "danka5924: 開いていない投稿期間 83f9189d-3f6c-4546-894f-50d72ca3d2ae が通知されました",
+    "nite.5022: 投稿が開いていない投稿期間 83f9189d-3f6c-4546-894f-50d72ca3d2ae に入りました",
+    "mushi_5855: 開いていない投稿期間 83f9189d-3f6c-4546-894f-50d72ca3d2ae が通知されました",
+    "kita.5891: 開いていない投稿期間 83f9189d-3f6c-4546-894f-50d72ca3d2ae が通知されました",
+    "kechi5909: 開いていない投稿期間 83f9189d-3f6c-4546-894f-50d72ca3d2ae が通知されました",
+    "martoel5871: 投稿が開いていない投稿期間 83f9189d-3f6c-4546-894f-50d72ca3d2ae に入りました",
+    "leosota5910: 投稿が開いていない投稿期間 83f9189d-3f6c-4546-894f-50d72ca3d2ae に入りました",
+    "hokamax-5879: 開いていない投稿期間 83f9189d-3f6c-4546-894f-50d72ca3d2ae が通知されました",
+    "asia の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

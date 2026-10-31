@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-110242-f264c69",
+  "startedAt": "2026-10-31T11:02:42+09:00",
+  "finishedAt": "2026-10-31T11:03:58+09:00",
+  "ref": "HEAD",
+  "sha": "f264c69ca06cffacd2e99e0827d45bffcf0c8176",
+  "score": 0,
+  "status": "fail",
+  "note": "署名: exp を 10 分単位に（main + 1 コミット）",
+  "benchJobId": "2454",
+  "prevRunId": "20261031-105911-5aad88a",
+  "bestRunId": "20261031-103811-cef5fe3"
+}
