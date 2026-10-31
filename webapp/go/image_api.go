@@ -70,10 +70,18 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 
 		s := h.Store
 		s.mu.RLock()
-		owner, _, _ := s.imageOwnerLocked(input.ImageID)
+		owner, available, createdAt := s.imageOwnerLocked(input.ImageID)
 		var key []byte
+		var holder string
+		initial := false
 		if owner != nil {
 			key = owner.ImageKey
+			if p := s.postByImage[input.ImageID]; p != nil {
+				holder = p.Holder
+				initial = !p.CreatedAt.After(s.boundary)
+			} else {
+				initial = createdAt != nil && !createdAt.After(s.boundary)
+			}
 		}
 		s.mu.RUnlock()
 		if owner == nil {
@@ -83,15 +91,10 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 			c.Set("abuse", "invalid_signature")
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}
-
-		// 削除状態を毎回確認する
-		s.mu.RLock()
-		owner, available, createdAt := s.imageOwnerLocked(input.ImageID)
-		s.mu.RUnlock()
-		if owner == nil || !available {
+		if !available {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}
-		data, mediaType, err := h.fetchImage(c, input.ImageID, createdAt)
+		data, mediaType, err := h.fetchImage(c, input.ImageID, createdAt, holder, initial)
 		if errors.Is(err, sql.ErrNoRows) {
 			return NewAPIError(http.StatusForbidden, "image_forbidden")
 		}
@@ -105,11 +108,11 @@ func getImageHandler(h *HandlerContext) echo.HandlerFunc {
 	}
 }
 
-func (h *HandlerContext) fetchImage(c *echo.Context, imageID string, createdAt *time.Time) ([]byte, string, error) {
+func (h *HandlerContext) fetchImage(c *echo.Context, imageID string, createdAt *time.Time, holder string, initial bool) ([]byte, string, error) {
 	if data, mediaType, ok := imageCache.get(imageID); ok {
 		return data, mediaType, nil
 	}
-	data, _, err := loadImage(c.Request().Context(), h.DB, imageID, createdAt)
+	data, _, err := loadImage(c.Request().Context(), h.DB, imageID, createdAt, holder, initial)
 	if err != nil {
 		return nil, "", err
 	}

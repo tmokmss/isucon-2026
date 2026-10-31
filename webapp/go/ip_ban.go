@@ -36,6 +36,17 @@ func (l *IPBanList) Banned(ip string) bool {
 	return ok && time.Now().Before(until)
 }
 
+// loadFirst は最初の読み込みが成功するまで待つ
+func (l *IPBanList) loadFirst(db *sqlx.DB) {
+	for l.snapshot.Load() == nil {
+		if loaded, err := loadIPBans(context.Background(), db); err == nil {
+			l.snapshot.Store(loaded)
+		} else {
+			time.Sleep(time.Second)
+		}
+	}
+}
+
 func (l *IPBanList) reloadForever(db *sqlx.DB) {
 	for {
 		if loaded, err := loadIPBans(context.Background(), db); err == nil {

@@ -73,9 +73,8 @@ func parseHeldImageHeader(req *http.Request) (id, holder string, width, height i
 // readHeldLocal はこの台の手元のファイルを読む。europe1・america1 は init/ と new/、asia1 は new/ だけ（初期データは PostgreSQL）
 var readHeldLocal = readNewImage
 
-// fetchHeldImage は、手元に無い画像の本体を持ち主の台から取り、手元の new/ に置く。持ち主が無い・この台なら false
-func fetchHeldImage(ctx context.Context, id string) ([]byte, bool, error) {
-	holder := imageHolderOf(id)
+// fetchHeldImage は、手元に無い画像の本体を持ち主の台（imageHolderOf の値）から取り、手元の new/ に置く。持ち主が無い・この台なら false
+func fetchHeldImage(ctx context.Context, id, holder string) ([]byte, bool, error) {
 	if holder == "" {
 		holder = asiaInternal
 	}

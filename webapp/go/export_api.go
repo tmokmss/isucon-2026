@@ -29,9 +29,14 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		author := u.User
 		var posts []Post
+		var holders []string
+		var initials []bool
 		for _, p := range u.posts {
 			if p.DeletedAt == nil {
 				posts = append(posts, p.post())
+				holders = append(holders, p.Holder)
+				// asia1 の手元のファイルには初期データの画像が無い
+				initials = append(initials, selfInternal == "" && !p.CreatedAt.After(s.boundary))
 			}
 		}
 		s.mu.RUnlock()
@@ -39,12 +44,15 @@ func exportPostsHandler(h *HandlerContext) echo.HandlerFunc {
 		images := make(map[string][]byte, len(posts))
 		var missingIDs []string
 		var missingAt []time.Time
-		for _, p := range posts {
+		for i, p := range posts {
 			if data, _, ok := imageCache.get(p.ImageID); ok {
 				images[p.ImageID] = data
+			} else if initials[i] {
+				missingIDs = append(missingIDs, p.ImageID)
+				missingAt = append(missingAt, p.PostedAt)
 			} else if data, ok := readHeldLocal(p.ImageID); ok {
 				images[p.ImageID] = data
-			} else if data, ok, _ := fetchHeldImage(ctx, p.ImageID); ok {
+			} else if data, ok, _ := fetchHeldImage(ctx, p.ImageID, holders[i]); ok {
 				images[p.ImageID] = data
 			} else {
 				missingIDs = append(missingIDs, p.ImageID)
