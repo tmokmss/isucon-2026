@@ -3,6 +3,8 @@ package isureal
 // europe1・america1 が受けた投稿は、その台で画像を jpegcheck.Check で検証してから asia1 へ送る。
 // 検証に通ったときだけ、幅・高さと画像の本体に付けた HMAC（鍵は ISUREAL_JPEG_VERIFY_KEY、台の間で共有）を X-Isureal-Jpeg に入れる。
 // asia1 は HMAC が合えば検証を省き、合わない・無いときは今までどおり検証する。各台の nginx はクライアントの X-Isureal-Jpeg を消す。
+// asia1 への本文の送信は postForwardSlots 件ずつ先着順に行う。リージョン間の帯域は限られていて、最終日の一斉の投稿（1 件約 500KB）を
+// 全件同時に送ると帯域を等分して全件が揃って遅れ、投稿期間の終わりに間に合う件数が減る。本文を書き終えたら次に譲り、asia1 の処理は待たない
 
 import (
 	"bytes"
@@ -13,11 +15,14 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/labstack/echo/v5"
@@ -26,6 +31,10 @@ import (
 )
 
 const jpegVerifiedHeader = "X-Isureal-Jpeg"
+
+const postForwardSlots = 16
+
+var postForwardSem = make(chan struct{}, postForwardSlots)
 
 var jpegVerifyKey = []byte(os.Getenv("ISUREAL_JPEG_VERIFY_KEY"))
 
@@ -84,7 +93,16 @@ func postForwardHandler() echo.HandlerFunc {
 			pr.Out.Host = pr.In.Host
 		},
 		Transport: &http.Transport{
-			DialContext:         (&net.Dialer{Timeout: 3 * time.Second}).DialContext,
+			// 送信バッファを小さく固定し、本文を書き終えた時点（WroteRequest）がほぼ送り終えた時点になるようにする
+			DialContext: (&net.Dialer{Timeout: 3 * time.Second, Control: func(_, _ string, rc syscall.RawConn) error {
+				var serr error
+				if err := rc.Control(func(fd uintptr) {
+					serr = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_SNDBUF, 64<<10)
+				}); err != nil {
+					return err
+				}
+				return serr
+			}}).DialContext,
 			MaxIdleConns:        256,
 			MaxIdleConnsPerHost: 256,
 			IdleConnTimeout:     90 * time.Second,
@@ -107,6 +125,19 @@ func postForwardHandler() echo.HandlerFunc {
 		}
 		req.Body = io.NopCloser(bytes.NewReader(body.Bytes()))
 		req.ContentLength = int64(body.Len())
+		if req.Method == http.MethodPost {
+			select {
+			case postForwardSem <- struct{}{}:
+			case <-req.Context().Done():
+				return nil
+			}
+			var once sync.Once
+			release := func() { once.Do(func() { <-postForwardSem }) }
+			defer release()
+			req = req.WithContext(httptrace.WithClientTrace(req.Context(), &httptrace.ClientTrace{
+				WroteRequest: func(httptrace.WroteRequestInfo) { release() },
+			}))
+		}
 		proxy.ServeHTTP(c.Response(), req)
 		return nil
 	}
