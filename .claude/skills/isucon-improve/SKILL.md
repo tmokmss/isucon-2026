@@ -125,6 +125,7 @@ report.md だけ読めば判断できるように作ってある。生ファイ�
 3. Slow query — MySQL を例外として残した場合だけ。`share` が大きい順に見る
    - `rows_examined_avg` が `rows_sent_avg` よりずっと大きい → インデックスが効いていない。
      `webapp/sql/` のスキーマに `ALTER TABLE ... ADD INDEX` / `CREATE INDEX` を足す
+   - PostgreSQL（pg_stat_statements）では `blks_avg`（1 回あたりに読んだページ数）が `rows_avg` よりずっと大きいとき同じ
    - `calls` が桁違いに多い → N+1。アプリ側で JOIN / `IN (...)` にまとめる
    - 下の「上位の実例」はそのまま `EXPLAIN` に使える
 4. Access log — `share`（合計時間の割合）が大きいエンドポイントから

@@ -323,7 +323,7 @@ runs/
     ├── meta.json                     # 機械が読む
     ├── bench.log                     # ベンチの生出力（portal: ジョブの応答 / local: ベンチマーカーの出力）
     ├── alp.txt                       # alp --format tsv の全行（nginx が複数台なら == host == の節ごと）
-    ├── ptquery.txt                   # pt-query-digest --output json
+    ├── ptquery.txt                   # pt-query-digest --output json（PostgreSQL なら pg_stat_statements の上位を JSON 1 つで）
     ├── pprof.txt                     # go tool pprof -top の出力
     ├── cpu.pprof                     # 生のプロファイル（go tool pprof -http で後から掘る）
     └── resource/
@@ -345,7 +345,7 @@ runs/
 | ベンチ中 | `vmstat`（ホスト単位）と `top -b`（プロセス単位）を常駐させる | `hosts.all` |
 | ベンチ中 | `/debug/pprof/profile?seconds=N` を curl する | `hosts.app[0]` |
 | ベンチ後 | `alp --format tsv`（nginx が複数台なら全台、ホストごとに並べる） | `hosts.nginx` |
-| ベンチ後 | `pt-query-digest --output json` | `hosts.db` |
+| ベンチ後 | `pt-query-digest --output json`（`middleware.dbService` が `postgresql` で始まるなら pg_stat_statements を読む。ベンチ前に `pg_stat_statements_reset()`） | `hosts.db` |
 
 **生ファイルは機械向けの形式で取り、`report.md` では畳む。** report.md はそのまま
 エージェントに渡るので、alp の既定の表（20 列近く・罫線）や pt-query-digest の既定の

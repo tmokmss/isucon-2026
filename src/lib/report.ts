@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Config } from "../config.js";
 import type { HistoryRow, RunMeta } from "./run.js";
-import { summarizeAlp, summarizePtQuery } from "./digest.js";
+import { summarizeAlp, summarizePgStat, summarizePtQuery } from "./digest.js";
 import { local } from "./ssh.js";
 
 /**
@@ -405,7 +405,8 @@ const alpSection = (dir: string, cfg: Config): string => {
   return `**注意: metrics.alpMatches が空で URI が正規化されていない。** ID を含むパスが別々の行に割れているので、集計は当てにならない。\n\n${body}`;
 };
 
-const ptQuerySection = (dir: string): string => digestSection(dir, "ptquery.txt", summarizePtQuery);
+const ptQuerySection = (dir: string): string =>
+  digestSection(dir, "ptquery.txt", (text) => summarizePgStat(text) ?? summarizePtQuery(text));
 
 /** report.md を書く。見出しは docs/DESIGN.md §4 の通りで固定。 */
 export const writeReport = async (dir: string, ctx: ReportContext): Promise<void> => {

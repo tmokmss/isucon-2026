@@ -37,9 +37,9 @@ export const config: Config = {
 
   middleware: {
     nginxService: "nginx.service",
-    dbService: "mysql.service",
+    dbService: "postgresql.service",
     nginxAccessLog: "/var/log/nginx/access.log",
-    dbSlowLog: "/var/log/mysql/mysql-slow.log",
+    dbSlowLog: "",
     extraServices: [], // 例: ["redis-server.service"]
   },
 

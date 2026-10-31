@@ -166,3 +166,75 @@ export const summarizePtQuery = (text: string): string | null => {
     "\n",
   );
 };
+
+// ---------------------------------------------------------------------------
+// pg_stat_statements（PostgreSQL。collect が JSON 1 つにまとめて ptquery.txt に置く）
+// ---------------------------------------------------------------------------
+
+interface PgStatRow {
+  calls?: number;
+  total_ms?: number;
+  mean_ms?: number;
+  max_ms?: number;
+  rows?: number;
+  blks?: number;
+  query?: string;
+}
+
+interface PgStat {
+  source?: string;
+  total_ms?: number;
+  calls?: number;
+  unique?: number;
+  top?: PgStatRow[];
+}
+
+/** pg_stat_statements の集計を畳む。列は pt-query-digest の表に揃える。 */
+export const summarizePgStat = (text: string): string | null => {
+  let stat: PgStat;
+  try {
+    stat = JSON.parse(text) as PgStat;
+  } catch {
+    return null;
+  }
+  if (stat.source !== "pg_stat_statements" || !Array.isArray(stat.top)) return null;
+  if (stat.top.length === 0) return "（クエリなし。ベンチ中にアプリの DB へのクエリが無かった）";
+
+  const totalMs = Number(stat.total_ms ?? 0);
+  const head =
+    `全 ${stat.calls ?? "?"} クエリ / ${stat.unique ?? "?"} 種類 / 合計 ${(totalMs / 1000).toFixed(3)}s` +
+    `（上位 ${stat.top.length} 種類。share は全体の合計時間に対する割合。` +
+    `blks_avg は 1 回あたりに読んだ共有バッファのページ数で、rows_avg よりずっと大きければインデックスが効いていない）`;
+
+  const avg = (n: number | undefined, calls: number): string => (n === undefined || calls === 0 ? "—" : (n / calls).toFixed(1));
+  const rows = [["rank", "share", "calls", "total_s", "avg_ms", "max_ms", "blks_avg", "rows_avg", "query"].join("\t")];
+  stat.top.forEach((r, i) => {
+    const calls = Number(r.calls ?? 0);
+    const total = Number(r.total_ms ?? 0);
+    rows.push(
+      [
+        String(i + 1),
+        totalMs > 0 ? `${((total / totalMs) * 100).toFixed(1)}%` : "—",
+        String(calls),
+        (total / 1000).toFixed(3),
+        Number(r.mean_ms ?? 0).toFixed(2),
+        Number(r.max_ms ?? 0).toFixed(2),
+        avg(r.blks, calls),
+        avg(r.rows, calls),
+        shorten(r.query ?? "", FINGERPRINT_MAX),
+      ].join("\t"),
+    );
+  });
+
+  const examples = stat.top
+    .slice(0, EXAMPLES)
+    .map((r, i) => (r.query ? `-- rank ${i + 1}\n${shorten(r.query, EXAMPLE_MAX)};` : null))
+    .filter((e): e is string => e !== null);
+
+  return [
+    head,
+    "",
+    rows.join("\n"),
+    ...(examples.length > 0 ? ["", "-- 上位のクエリ（$1 のまま EXPLAIN (GENERIC_PLAN) に渡せる）", examples.join("\n")] : []),
+  ].join("\n");
+};

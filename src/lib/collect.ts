@@ -22,6 +22,15 @@ const write = (dir: string, name: string, body: string): void => {
 
 const errorText = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
+/**
+ * PostgreSQL には slow query log の代わりに pg_stat_statements を使う。
+ * 集計はサーバ全体で 1 つなので、拡張は postgres DB に作り、アプリの DB の分だけを読む。
+ */
+export const usesPostgres = (cfg: Config): boolean => cfg.middleware.dbService.startsWith("postgresql");
+
+export const psqlOn = (host: string, sql: string, opts: { allowFailure?: boolean } = {}) =>
+  onHost(host, ["sudo", "-u", "postgres", "psql", "-d", "postgres", "-XAtc", sql], opts);
+
 // ---------------------------------------------------------------------------
 // リモートで常駐させる計測プロセス
 // ---------------------------------------------------------------------------
@@ -83,6 +92,11 @@ export const resetLogs = async (cfg: Config): Promise<void> => {
     })),
     { host: cfg.hosts.db, path: cfg.middleware.dbSlowLog, what: "slow query log" },
   ];
+
+  if (usesPostgres(cfg) && cfg.hosts.db !== "") {
+    const result = await psqlOn(cfg.hosts.db, "SELECT pg_stat_statements_reset()", { allowFailure: true });
+    if (result.exitCode !== 0) log.warn(`${cfg.hosts.db}: pg_stat_statements を空にできません（isuh setup --only logs が未実行？）`);
+  }
 
   await Promise.all(
     targets.map(async ({ host, path, what }) => {
@@ -347,8 +361,44 @@ const collectAlp = async (cfg: Config, runDir: string): Promise<void> => {
   write(runDir, "alp.txt", body);
 };
 
+const pgStatSql = (limit: number): string => `
+WITH s AS (
+  SELECT p.* FROM pg_stat_statements p JOIN pg_database d ON d.oid = p.dbid WHERE d.datname <> 'postgres'
+)
+SELECT json_build_object(
+  'source', 'pg_stat_statements',
+  'total_ms', coalesce(sum(total_exec_time), 0),
+  'calls', coalesce(sum(calls), 0),
+  'unique', count(*),
+  'top', (SELECT coalesce(json_agg(t), '[]') FROM (
+    SELECT calls, total_exec_time AS total_ms, mean_exec_time AS mean_ms, max_exec_time AS max_ms,
+           rows, shared_blks_hit + shared_blks_read AS blks, query
+    FROM s ORDER BY total_exec_time DESC LIMIT ${limit}
+  ) t)
+) FROM s`;
+
+const collectPgStat = async (cfg: Config, runDir: string): Promise<void> => {
+  const host = cfg.hosts.db;
+  const result = await psqlOn(host, pgStatSql(cfg.metrics.ptQueryLimit), { allowFailure: true });
+  if (result.exitCode === 0 && result.stdout.trim() !== "") {
+    write(runDir, "ptquery.txt", result.stdout);
+  } else {
+    write(
+      runDir,
+      "ptquery.txt",
+      `未取得: pg_stat_statements を読めませんでした (${host}, exit=${result.exitCode})\n` +
+        `isuh setup --only logs で有効にしたか確認すること。\n\n${result.stderr}`,
+    );
+    log.warn(`pg_stat_statements を読めませんでした (${host})`);
+  }
+};
+
 const collectSlowQuery = async (cfg: Config, runDir: string): Promise<void> => {
   const host = cfg.hosts.db;
+  if (host !== "" && usesPostgres(cfg)) {
+    await collectPgStat(cfg, runDir);
+    return;
+  }
   if (host === "" || cfg.middleware.dbSlowLog === "") {
     write(runDir, "ptquery.txt", "未取得: hosts.db / middleware.dbSlowLog が未設定");
     return;

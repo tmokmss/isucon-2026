@@ -7,6 +7,7 @@ import type { Command } from "../lib/command.js";
 import { configError, EXIT, HarnessError, usageError } from "../lib/exit.js";
 import { log } from "../lib/log.js";
 import { repoRoot } from "../lib/paths.js";
+import { psqlOn, usesPostgres } from "../lib/collect.js";
 import { copyFrom, copyTo, local, onHost, onHostShell, shQuote } from "../lib/ssh.js";
 
 /**
@@ -423,7 +424,7 @@ const stepTools = async (cfg: Config): Promise<void> => {
 };
 
 // ---------------------------------------------------------------------------
-// logs: nginx の LTSV と MySQL の slow query log
+// logs: nginx の LTSV と MySQL の slow query log（PostgreSQL なら pg_stat_statements）
 // ---------------------------------------------------------------------------
 
 const NGINX_CONF = "/etc/nginx/conf.d/isuh-log.conf";
@@ -551,11 +552,47 @@ const setupSlowLog = async (cfg: Config, host: string): Promise<void> => {
   }
 };
 
+// ALTER SYSTEM は postgresql.auto.conf に書くので、conf.d の有無や配置に依らない
+const setupPgStatStatements = async (cfg: Config, host: string): Promise<void> => {
+  const current = await psqlOn(host, "SHOW shared_preload_libraries", { allowFailure: true });
+  if (current.exitCode !== 0) throw setupError(`${host}: sudo -u postgres psql で接続できません\n${current.stderr.trim()}`);
+  const libs = current.stdout.trim();
+
+  if (!libs.split(",").map((l) => l.trim()).includes("pg_stat_statements")) {
+    const next = libs === "" ? "pg_stat_statements" : `${libs},pg_stat_statements`;
+    const dataDir = (await psqlOn(host, "SHOW data_directory")).stdout.trim();
+    await psqlOn(host, `ALTER SYSTEM SET shared_preload_libraries = '${next}'`);
+    const restarted = await onHost(host, ["sudo", "systemctl", "restart", cfg.middleware.dbService], { allowFailure: true });
+    if (restarted.exitCode !== 0) {
+      await onHost(host, ["sudo", "sed", "-i", "/^shared_preload_libraries/d", `${dataDir}/postgresql.auto.conf`]);
+      await onHost(host, ["sudo", "systemctl", "restart", cfg.middleware.dbService], { allowFailure: true });
+      throw setupError(`${host}: pg_stat_statements を読み込むと PostgreSQL が起動しません。戻しました\n${restarted.stderr.trim()}`);
+    }
+  }
+
+  // 起動直後は接続できないことがあるので少し待つ
+  for (let i = 0; i < 30; i++) {
+    const r = await psqlOn(host, "CREATE EXTENSION IF NOT EXISTS pg_stat_statements; SELECT count(*) FROM pg_stat_statements", {
+      allowFailure: true,
+    });
+    if (r.exitCode === 0) {
+      log.info(`${host}: pg_stat_statements を有効にしました`);
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw setupError(`${host}: pg_stat_statements を読めません（shared_preload_libraries = ${libs}）`);
+};
+
 const stepLogs = async (cfg: Config): Promise<void> => {
   // 1 台が落ちても、他の台の再起動を途中で見捨てない（MySQL の restart 中に抜けると壊れうる）
   const results = await Promise.allSettled([
     ...cfg.hosts.nginx.map((h) => setupNginxLog(cfg, h)),
-    cfg.hosts.db === "" ? Promise.resolve() : setupSlowLog(cfg, cfg.hosts.db),
+    cfg.hosts.db === ""
+      ? Promise.resolve()
+      : usesPostgres(cfg)
+        ? setupPgStatStatements(cfg, cfg.hosts.db)
+        : setupSlowLog(cfg, cfg.hosts.db),
   ]);
   const failed = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
   if (failed) throw failed.reason;
