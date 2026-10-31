@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-171626-1662a5d",
+  "startedAt": "2026-10-31T17:16:26+09:00",
+  "finishedAt": "2026-10-31T17:18:24+09:00",
+  "ref": "sse-read-timeout",
+  "sha": "1662a5d5b0f1f9e6ee6c2705a0e61f85f8259c13",
+  "score": 191008,
+  "status": "pass",
+  "note": "SSE proxy_read_timeout 20s on main 885b12c",
+  "benchJobId": "33249",
+  "prevRunId": "20261031-171010-53bad13",
+  "bestRunId": "20261031-164055-bdf05cd"
+}

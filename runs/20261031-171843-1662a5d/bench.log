@@ -1,0 +1,54 @@
+{"id":"33494","status":"done","portalStatus":"finished","passed":true,"score":219963,"raw":219963,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T08:19:08.103Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T08:19:11.099Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T08:19:14.091Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T08:19:17.107Z level=INFO msg="asia 2 日目: 54 人"
+time=2026-10-31T08:19:19.575Z level=INFO msg="user moved" user=wanu.5282 from=asia to=europe
+time=2026-10-31T08:19:19.703Z level=INFO msg="user moved" user=vinis_5302 from=asia to=america
+time=2026-10-31T08:19:20.091Z level=INFO msg="europe 2 日目: 22 人"
+time=2026-10-31T08:19:20.171Z level=INFO msg="user moved" user=wanu.5282 from=europe to=asia
+time=2026-10-31T08:19:20.334Z level=INFO msg="user moved" user=vinis_5302 from=america to=europe
+time=2026-10-31T08:19:23.091Z level=INFO msg="america 2 日目: 19 人"
+time=2026-10-31T08:19:26.104Z level=INFO msg="asia 3 日目: 159 人"
+time=2026-10-31T08:19:28.329Z level=INFO msg="user moved" user=wanu.5282 from=asia to=europe
+time=2026-10-31T08:19:29.094Z level=INFO msg="europe 3 日目: 63 人"
+time=2026-10-31T08:19:31.245Z level=INFO msg="user moved" user=vinis_5302 from=europe to=america
+time=2026-10-31T08:19:32.095Z level=INFO msg="america 3 日目: 58 人"
+time=2026-10-31T08:19:32.851Z level=INFO msg="user moved" user=chini.6306 from=asia to=america
+time=2026-10-31T08:19:33.179Z level=INFO msg="user moved" user=ruya_5913 from=asia to=america
+time=2026-10-31T08:19:35.105Z level=INFO msg="asia 4 日目: 412 人"
+time=2026-10-31T08:19:38.098Z level=INFO msg="europe 4 日目: 182 人"
+time=2026-10-31T08:19:39.293Z level=INFO msg="user moved" user=wanu.5282 from=europe to=asia
+time=2026-10-31T08:19:40.512Z level=INFO msg="user moved" user=hafushi7570 from=asia to=europe
+time=2026-10-31T08:19:41.156Z level=INFO msg="america 4 日目: 172 人"
+time=2026-10-31T08:19:42.222Z level=INFO msg="user moved" user=mamarben-8430 from=asia to=europe
+time=2026-10-31T08:19:43.183Z level=INFO msg="user moved" user=kirumu.9565 from=america to=asia
+time=2026-10-31T08:19:43.452Z level=INFO msg="user moved" user=ronaben.9588 from=europe to=america
+time=2026-10-31T08:19:43.774Z level=INFO msg="user moved" user=hori.7910 from=asia to=america
+time=2026-10-31T08:19:44.112Z level=INFO msg="asia 5 日目: 731 人"
+time=2026-10-31T08:19:44.387Z level=INFO msg="user moved" user=todan9664 from=america to=asia
+time=2026-10-31T08:19:44.481Z level=INFO msg="user moved" user=vinis_5302 from=america to=europe
+time=2026-10-31T08:19:44.494Z level=INFO msg="user moved" user=koketor_9859 from=america to=asia
+time=2026-10-31T08:19:47.138Z level=INFO msg="europe 5 日目: 523 人"
+time=2026-10-31T08:19:48.547Z level=INFO msg="user moved" user=kuor.10215 from=america to=europe
+time=2026-10-31T08:19:49.215Z level=INFO msg="user moved" user=maki.9770 from=america to=asia
+time=2026-10-31T08:19:49.830Z level=INFO msg="user moved" user=chini.6306 from=america to=asia
+time=2026-10-31T08:19:50.284Z level=INFO msg="user moved" user=orma_10123 from=america to=asia
+time=2026-10-31T08:19:50.455Z level=INFO msg="america 5 日目: 472 人"
+time=2026-10-31T08:19:59.970Z level=INFO msg="europe 最終日（グランプリ）: 523 人"
+time=2026-10-31T08:20:01.656Z level=INFO msg="asia 最終日（グランプリ）: 735 人"
+time=2026-10-31T08:20:01.850Z level=INFO msg="america 最終日（グランプリ）: 471 人"
+time=2026-10-31T08:20:08.173Z level=INFO msg="グランプリ: アジア 239 人, ヨーロッパ 407 人, アメリカ 185 人"
+{
+  "pass": true,
+  "score": 219963,
+  "messages": [
+    "seoyeon_lee_1482: ログアウトできません: POST /api/auth/logout: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/logout\": EOF",
+    "fan_yang_1897: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF"
+  ]
+}
+
+--- stderr ---
+
