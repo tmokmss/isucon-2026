@@ -1,3 +1,5 @@
+\ir 002-indexes.sql
+
 SET session_replication_role = replica;
 
 BEGIN;
