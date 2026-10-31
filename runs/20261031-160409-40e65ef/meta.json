@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-160409-40e65ef",
+  "startedAt": "2026-10-31T16:04:09+09:00",
+  "finishedAt": "2026-10-31T16:13:12+09:00",
+  "ref": "asia2-replica",
+  "sha": "40e65ef68604ca176cec4a58cd8fadbd953fbcb3",
+  "score": 201497,
+  "status": "pass",
+  "note": "asia2 as asia read replica, asia1 nginx sends GET to asia2",
+  "benchJobId": "26713",
+  "prevRunId": "20261031-152137-8c13252",
+  "bestRunId": "20261031-160409-40e65ef"
+}
