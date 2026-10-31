@@ -10,7 +10,7 @@ User=isucon
 Group=isucon
 WorkingDirectory=/home/isucon/webapp/go
 EnvironmentFile=/home/isucon/env.sh
-Environment=GOMEMLIMIT=1200MiB
+Environment=GOMEMLIMIT=1200MiB GOGC=200
 MemoryMax=1600M
 ExecStart=/home/isucon/webapp/go/isureal
 Restart=on-failure
