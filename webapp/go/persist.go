@@ -126,7 +126,7 @@ func (s *Store) snapshotLocked() *snapshotData {
 		d.Posts = append(d.Posts, snapPost{Row: row, HasLat: p.Location.Latitude != nil, HasLng: p.Location.Longitude != nil, HasLoc: p.Location.Locality != nil})
 	}
 	for _, r := range s.changedRealMojis {
-		d.RealMojis = append(d.RealMojis, RealMojiRow{RealMoji: r.RealMoji})
+		d.RealMojis = append(d.RealMojis, RealMojiRow{RealMoji: r.RealMoji, Holder: r.Holder})
 	}
 	for _, c := range s.changedComments {
 		d.Comments = append(d.Comments, CommentRow{Comment: c.Comment})

@@ -42,18 +42,23 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 		default:
 			return NewAPIError(http.StatusBadRequest, "invalid_realmoji")
 		}
-		file, err := input.Image.Open()
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		data, err := io.ReadAll(file)
-		if err != nil {
-			return err
-		}
-		width, height, err := checkJPEG(data)
-		if err != nil {
-			return NewAPIError(http.StatusBadRequest, "invalid_realmoji")
+		// europe1・america1 が画像を手元に置いたときは、画像の ID と持ち主の台だけが来る（image_held.go）
+		heldID, holder, width, height, held := parseHeldImageHeader(c.Request())
+		var data []byte
+		if !held {
+			file, err := input.Image.Open()
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+			data, err = io.ReadAll(file)
+			if err != nil {
+				return err
+			}
+			width, height, err = checkJPEG(data)
+			if err != nil {
+				return NewAPIError(http.StatusBadRequest, "invalid_realmoji")
+			}
 		}
 		if width > 512 || height > 512 {
 			return NewAPIError(http.StatusBadRequest, "invalid_realmoji")
@@ -91,11 +96,15 @@ func replaceRealMojiHandler(h *HandlerContext) echo.HandlerFunc {
 			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
 		createdAt := now()
-		r := &RealMojiRow{RealMoji: RealMoji{ID: uuid.NewString(), PostID: p.ID, ReactorID: actor, ImageID: uuid.NewString(), ReactionType: input.ReactionType, CreatedAt: createdAt}}
-		if err := storeNewImage(r.ImageID, data); err != nil {
-			return err
+		r := &RealMojiRow{RealMoji: RealMoji{ID: uuid.NewString(), PostID: p.ID, ReactorID: actor, ImageID: uuid.NewString(), ReactionType: input.ReactionType, CreatedAt: createdAt}, Holder: holder}
+		if held {
+			r.ImageID = heldID
+		} else {
+			if err := storeNewImage(r.ImageID, data); err != nil {
+				return err
+			}
+			imageCache.put(r.ImageID, data, "image/jpeg")
 		}
-		imageCache.put(r.ImageID, data, "image/jpeg")
 		replacedIDs := make([]string, len(replaced))
 		for i, old := range replaced {
 			replacedIDs[i] = old.ID

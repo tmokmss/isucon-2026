@@ -606,5 +606,6 @@ func NewImageServer(config *Config) *echo.Echo {
 	})
 	e.GET("/api/images/:imageId", s.handler)
 	e.Any("/api/posts", postForwardHandler())
+	e.POST("/api/posts/:postId/realmojis", postForwardHandler())
 	return e
 }

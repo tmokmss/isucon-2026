@@ -1,6 +1,6 @@
 package isureal
 
-// europe1・america1 が受けた投稿の画像は、その台の new/ に置き、asia1 へは画像の ID と持ち主の台（:8081）だけを送る。
+// europe1・america1 が受けた投稿と RealMoji の画像は、その台の new/ に置き、asia1 へは画像の ID と持ち主の台（:8081）だけを送る。
 // - post_forward.go: 画像を検証して new/ に書いてから、画像のパートを空にした本文と X-Isureal-Image（ID・持ち主・幅・高さ・HMAC）を asia1 へ送る
 // - asia1 の createPostHandler: 印が合えば、その ID と持ち主で投稿を作る（PostRow.Holder）。画像の本体は受けない
 // - 本体を読むときは、手元に無ければ PostRow.Holder の台の /_internal/image から取り、手元の new/ に置く。Holder が空なら asia1 が持つ
@@ -166,6 +166,9 @@ func storeImageHolderLookup(s *Store) {
 		defer s.mu.RUnlock()
 		if p := s.postByImage[id]; p != nil {
 			return p.Holder
+		}
+		if r := s.rmByImage[id]; r != nil {
+			return r.Holder
 		}
 		return ""
 	}

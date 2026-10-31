@@ -104,7 +104,8 @@ func (p *PostRow) post() Post {
 
 type RealMojiRow struct {
 	RealMoji
-	post *PostRow
+	Holder string // 画像の本体を持つ台の :8081。空なら asia1（image_held.go）
+	post   *PostRow
 }
 
 func (r *RealMojiRow) current() bool { return r.ReplacedAt == nil && r.DeletedAt == nil }

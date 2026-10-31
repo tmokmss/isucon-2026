@@ -133,7 +133,7 @@ func NewReplicaServer(config *Config) http.Handler {
 
 func (f *replicaFront) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 画像と投稿（画像を検証してから asia1 へ送る、post_forward.go）は image_local.go の入口が受ける
-	if strings.HasPrefix(r.URL.Path, "/api/images/") || r.URL.Path == "/api/posts" {
+	if strings.HasPrefix(r.URL.Path, "/api/images/") || r.URL.Path == "/api/posts" || (r.Method == http.MethodPost && isRealMojiPath(r.URL.Path)) {
 		f.images.ServeHTTP(w, r)
 		return
 	}
@@ -271,4 +271,10 @@ func (f *replicaFront) statsLoop() {
 			log.Printf("repl-routes (compared/diff/late)%s", b.String())
 		}
 	}
+}
+
+// isRealMojiPath は POST /api/posts/:postId/realmojis か
+func isRealMojiPath(path string) bool {
+	parts := strings.Split(strings.TrimPrefix(path, "/api/"), "/")
+	return len(parts) == 3 && parts[0] == "posts" && parts[1] != "" && parts[2] == "realmojis"
 }
