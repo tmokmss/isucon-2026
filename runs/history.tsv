@@ -23,3 +23,6 @@ run_id	started_at	sha	ref	score	status	note
 20261031-115822-a8d9e7d	2026-10-31T11:58:22+09:00	a8d9e7d3cca4f3ca5fe322dcd1a10b905f08612c	origin/main	56314	pass	main: 登録の並列化を入れ直した
 20261031-120912-249be25	2026-10-31T12:09:12+09:00	249be2509f9627b7ed6307d439e5436ecd78bd61	origin/main	0	fail	main: +#71 JPEG の検証を europe1・america1 へ（再起動試験の後）
 20261031-121235-e0e4cb3	2026-10-31T12:12:35+09:00	e0e4cb333b1a67886d3965403d050c30c5b4c784	origin/main	64700	pass	main: max_connections を 300 に
+20261031-132303-5a138c8	2026-10-31T13:23:03+09:00	5a138c83d36b9977a99f7fd8fdcf1e2a1cb27f30	nginx-buffers-tcp	83744	pass	nginx-no-tempfile + tcp_slow_start_after_idle=0
+20261031-133914-11f4759	2026-10-31T13:39:14+09:00	11f4759553c3daaa49b80077f50bdcf415e1a64a	nginx-buffers-tcp	109728	pass	nginx-no-tempfile + tcp_slow_start_after_idle=0 on 7e687d9
+20261031-134616-f256785	2026-10-31T13:46:16+09:00	f256785754ab9ddfd393d887303f6c8b93353d4b	nginx-buffers-tcp	115400	pass	nginx-no-tempfile + tcp_slow_start_after_idle=0 on fbae0df
