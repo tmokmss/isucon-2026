@@ -2,6 +2,7 @@ package isureal
 
 import (
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,8 @@ type openPostingWindowResponse struct {
 	OnTimeDeadline time.Time `json:"onTimeDeadline"`
 }
 
+var postingWindowMu sync.Mutex
+
 func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		var input openPostingWindowRequest
@@ -38,51 +41,82 @@ func openPostingWindowHandler(h *HandlerContext) echo.HandlerFunc {
 			seconds = *input.OnTimeSeconds
 		}
 		ctx := c.Request().Context()
+		s := h.Store
+		postingWindowMu.Lock()
+		defer postingWindowMu.Unlock()
+		s.mu.RLock()
+		maxDate, hasAny := s.maxLocalDate[region]
+		conflict := hasAny && !maxDate.Before(localDate)
+		var userIDs []string
+		if !conflict {
+			for _, u := range s.users {
+				if u.Region == region && u.active() {
+					userIDs = append(userIDs, u.ID)
+				}
+			}
+		}
+		var oldWindow *WindowRow
+		if w := s.activeWindows[region]; w != nil {
+			oldWindow = w
+		}
+		s.mu.RUnlock()
+		if conflict {
+			return NewAPIError(http.StatusConflict, "posting_window_conflict")
+		}
+		startsAt := now()
+		w := &WindowRow{
+			PostingWindow: PostingWindow{
+				ID: uuid.NewString(), Region: region, LocalDate: localDate, StartsAt: startsAt,
+				OnTimeDeadline: startsAt.Add(time.Duration(seconds) * time.Second),
+			},
+			CreatedAt: startsAt,
+			notified:  make(map[string]notificationRow, len(userIDs)),
+		}
+		notificationIDs := make([]string, len(userIDs))
+		for i, id := range userIDs {
+			notificationIDs[i] = uuid.NewString()
+			w.notified[id] = notificationRow{ID: notificationIDs[i], CreatedAt: startsAt}
+		}
 		tx, err := h.DB.BeginTxx(ctx, nil)
 		if err != nil {
 			return err
 		}
 		defer tx.Rollback()
-		if _, err := tx.ExecContext(ctx, `LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE`); err != nil {
-			return err
-		}
-		var conflict bool
-		if err := tx.GetContext(ctx, &conflict, `SELECT EXISTS(SELECT 1 FROM posting_windows WHERE region = $1 AND local_date >= $2)`, region, localDate); err != nil {
-			return err
-		}
-		if conflict {
-			return NewAPIError(http.StatusConflict, "posting_window_conflict")
-		}
-		var startsAt time.Time
-		if err := tx.GetContext(ctx, &startsAt, `SELECT clock_timestamp()`); err != nil {
-			return err
-		}
 		if _, err := tx.ExecContext(ctx, `UPDATE posting_windows SET ended_at = $2 WHERE region = $1 AND ended_at IS NULL`, region, startsAt); err != nil {
 			return err
 		}
-		windowID := uuid.NewString()
 		if _, err := tx.ExecContext(ctx, `
-   INSERT INTO posting_windows (id, region, local_date, starts_at, on_time_deadline)
-   VALUES ($1, $2, $3, $4, $5)
-  `, windowID, region, localDate, startsAt, startsAt.Add(time.Duration(seconds)*time.Second)); err != nil {
+   INSERT INTO posting_windows (id, region, local_date, starts_at, on_time_deadline, created_at)
+   VALUES ($1, $2, $3, $4, $5, $4)
+  `, w.ID, region, localDate, startsAt, w.OnTimeDeadline); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `
+		if len(userIDs) > 0 {
+			if _, err := tx.ExecContext(ctx, `
    INSERT INTO notifications (id, user_id, posting_window_id, created_at)
-   SELECT gen_random_uuid()::text, id, $2, $3 FROM users WHERE region = $1 AND status = 'active'
-  `, region, windowID, startsAt); err != nil {
-			return err
-		}
-		window, err := getPostingWindow(ctx, tx, windowID)
-		if err != nil {
-			return err
+   SELECT unnest($1::text[]), unnest($2::text[]), $3, $4
+  `, notificationIDs, userIDs, w.ID, startsAt); err != nil {
+				return err
+			}
 		}
 		if err := tx.Commit(); err != nil {
 			return err
 		}
+		s.mu.Lock()
+		if oldWindow != nil && oldWindow.EndedAt == nil {
+			t := startsAt
+			oldWindow.EndedAt = &t
+			// 終わった投稿期間の通知はもう読まれない
+			oldWindow.notified = map[string]notificationRow{}
+		}
+		s.windows[w.ID] = w
+		s.activeWindows[region] = w
+		s.maxLocalDate[region] = localDate
+		s.broadcastLocked()
+		s.mu.Unlock()
 		return c.JSON(http.StatusCreated, openPostingWindowResponse{
-			ID: window.ID, Region: window.Region, LocalDate: window.LocalDate.Format(time.DateOnly),
-			StartsAt: window.StartsAt, OnTimeDeadline: window.OnTimeDeadline,
+			ID: w.ID, Region: region, LocalDate: localDate.Format(time.DateOnly),
+			StartsAt: startsAt, OnTimeDeadline: w.OnTimeDeadline,
 		})
 	}
 }

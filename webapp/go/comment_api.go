@@ -1,10 +1,7 @@
 package isureal
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,47 +35,37 @@ func createCommentHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		ctx := c.Request().Context()
 		actor := GetSession(c).UserID
-		post, err := getPost(ctx, h.DB, input.PostID)
-		if errors.Is(err, sql.ErrNoRows) {
+		s := h.Store
+		s.mu.RLock()
+		p := s.livePostLocked(input.PostID)
+		s.mu.RUnlock()
+		if p == nil {
 			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
-		if err != nil {
-			return err
+		unlock := lockUsers(actor, p.AuthorID)
+		defer unlock()
+		s.mu.RLock()
+		allowed := s.canCommentLocked(actor, p.ID)
+		u := s.activeUser(actor)
+		var user User
+		if u != nil {
+			user = u.User
 		}
-		tx, err := h.DB.BeginTxx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		for _, id := range slices.Compact([]string{min(actor, post.AuthorID), max(actor, post.AuthorID)}) {
-			var lockedID string
-			if err := tx.GetContext(ctx, &lockedID, `SELECT id FROM users WHERE id=$1 FOR NO KEY UPDATE`, id); err != nil {
-				return err
-			}
-		}
-		allowed, err := canComment(ctx, tx, actor, post.ID)
-		if err != nil {
-			return err
-		}
+		s.mu.RUnlock()
 		if !allowed {
 			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
-		id := uuid.NewString()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO comments(id,post_id,author_id,body,created_at) VALUES($1,$2,$3,$4,clock_timestamp())`, id, post.ID, actor, input.Body); err != nil {
+		if u == nil {
+			return NewAPIError(http.StatusInternalServerError, "user_not_found")
+		}
+		cm := &CommentRow{Comment: Comment{ID: uuid.NewString(), PostID: p.ID, AuthorID: actor, Body: input.Body, CreatedAt: now()}}
+		if _, err := h.DB.ExecContext(ctx, `INSERT INTO comments(id,post_id,author_id,body,created_at) VALUES($1,$2,$3,$4,$5)`, cm.ID, cm.PostID, actor, cm.Body, cm.CreatedAt); err != nil {
 			return err
 		}
-		comment, err := getComment(ctx, tx, id)
-		if err != nil {
-			return err
-		}
-		user, err := getUser(ctx, tx, actor)
-		if err != nil {
-			return err
-		}
-		if err := tx.Commit(); err != nil {
-			return err
-		}
-		return c.JSON(http.StatusCreated, newCommentResponse(comment, user))
+		s.mu.Lock()
+		s.addCommentLocked(cm)
+		s.mu.Unlock()
+		return c.JSON(http.StatusCreated, newCommentResponse(cm.Comment, user))
 	}
 }
 
@@ -93,6 +80,33 @@ type getCommentsResponse struct {
 	HasMore bool                    `json:"hasMore"`
 }
 
+type commentWithAuthor struct {
+	comment Comment
+	author  User
+}
+
+// commentsLocked は投稿の有効なコメントを (created_at, id) の昇順で返す
+func (s *Store) commentsLocked(p *PostRow, afterAt *time.Time, afterID string, limit int) []commentWithAuthor {
+	out := make([]commentWithAuthor, 0)
+	for _, cm := range p.comments {
+		if cm.DeletedAt != nil {
+			continue
+		}
+		if afterAt != nil && !(cm.CreatedAt.After(*afterAt) || (cm.CreatedAt.Equal(*afterAt) && cm.ID > afterID)) {
+			continue
+		}
+		a := s.activeUser(cm.AuthorID)
+		if a == nil {
+			continue
+		}
+		out = append(out, commentWithAuthor{comment: cm.Comment, author: a.User})
+		if len(out) == limit {
+			break
+		}
+	}
+	return out
+}
+
 func getCommentsHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		var input getCommentsRequest
@@ -102,21 +116,17 @@ func getCommentsHandler(h *HandlerContext) echo.HandlerFunc {
 		if (input.AfterCreatedAt == nil) != (input.AfterID == "") {
 			return NewAPIError(http.StatusBadRequest, "invalid_pagination")
 		}
-		ctx := c.Request().Context()
-		allowed, err := canComment(ctx, h.DB, GetSession(c).UserID, input.PostID)
-		if err != nil {
-			return err
-		}
-		if !allowed {
+		s := h.Store
+		s.mu.RLock()
+		if !s.canCommentLocked(GetSession(c).UserID, input.PostID) {
+			s.mu.RUnlock()
 			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
-		comments, err := selectCommentsWithAuthor(ctx, h.DB, `AND c.post_id=$1 AND ($2::timestamptz IS NULL OR (c.created_at,c.id)>($2,$3)) ORDER BY c.created_at,c.id LIMIT 51`, input.PostID, input.AfterCreatedAt, input.AfterID)
-		if err != nil {
-			return err
-		}
+		comments := s.commentsLocked(s.posts[input.PostID], input.AfterCreatedAt, input.AfterID, 51)
+		s.mu.RUnlock()
 		items := make([]createCommentResponse, 0, len(comments))
-		for _, comment := range comments {
-			items = append(items, newCommentResponse(comment.Comment, comment.Author))
+		for _, cm := range comments {
+			items = append(items, newCommentResponse(cm.comment, cm.author))
 		}
 		hasMore := len(items) > 50
 		if hasMore {
@@ -138,35 +148,30 @@ func deleteCommentHandler(h *HandlerContext) echo.HandlerFunc {
 		}
 		ctx := c.Request().Context()
 		actor := GetSession(c).UserID
-		tx, err := h.DB.BeginTxx(ctx, nil)
-		if err != nil {
-			return err
+		s := h.Store
+		unlock := lockUsers(actor)
+		defer unlock()
+		s.mu.RLock()
+		cm := s.comments[input.CommentID]
+		var authorID, postAuthorID string
+		if cm != nil && cm.DeletedAt == nil {
+			authorID, postAuthorID = cm.AuthorID, cm.post.AuthorID
 		}
-		defer tx.Rollback()
-		var lockedID string
-		if err := tx.GetContext(ctx, &lockedID, `SELECT id FROM users WHERE id=$1 FOR NO KEY UPDATE`, actor); err != nil {
-			return err
-		}
-		var record struct {
-			AuthorID     string `db:"author_id"`
-			PostAuthorID string `db:"post_author_id"`
-		}
-		err = tx.GetContext(ctx, &record, `SELECT c.author_id,p.author_id AS post_author_id FROM comments c JOIN posts p ON p.id=c.post_id WHERE c.id=$1 AND c.deleted_at IS NULL FOR UPDATE OF c`, input.CommentID)
-		if errors.Is(err, sql.ErrNoRows) {
+		s.mu.RUnlock()
+		if cm == nil || authorID == "" {
 			return NewAPIError(http.StatusNotFound, "interaction_not_found")
 		}
-		if err != nil {
-			return err
-		}
-		if actor != record.AuthorID && actor != record.PostAuthorID {
+		if actor != authorID && actor != postAuthorID {
 			return NewAPIError(http.StatusForbidden, "interaction_forbidden")
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE comments SET deleted_at=clock_timestamp() WHERE id=$1`, input.CommentID); err != nil {
+		deletedAt := now()
+		if _, err := h.DB.ExecContext(ctx, `UPDATE comments SET deleted_at=$2 WHERE id=$1`, cm.ID, deletedAt); err != nil {
 			return err
 		}
-		if err := tx.Commit(); err != nil {
-			return err
-		}
+		s.mu.Lock()
+		cm.DeletedAt = &deletedAt
+		delete(s.comments, cm.ID)
+		s.mu.Unlock()
 		return c.NoContent(http.StatusNoContent)
 	}
 }

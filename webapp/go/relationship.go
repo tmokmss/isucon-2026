@@ -1,73 +1,95 @@
 package isureal
 
 import (
-	"context"
-	"database/sql"
-	"errors"
 	"net/http"
 	"time"
-
-	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 )
 
 type FriendRequest struct {
-	ID          string    `db:"id"`
-	RequesterID string    `db:"requester_id"`
-	RecipientID string    `db:"recipient_id"`
-	Status      string    `db:"status"`
-	CreatedAt   time.Time `db:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at"`
+	ID          string
+	RequesterID string
+	RecipientID string
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
-func getFriendRequest(ctx context.Context, db sqlx.QueryerContext, id string) (FriendRequest, error) {
-	var request FriendRequest
-	err := sqlx.GetContext(ctx, db, &request, `SELECT id, requester_id, recipient_id, status, created_at, updated_at FROM friend_requests WHERE id=$1`, id)
-	return request, err
-}
-
-func beginRelationshipTx(ctx context.Context, db *sqlx.DB, actor, target string) (*sqlx.Tx, error) {
+// lockRelationship は 2 人の書き込みを直列にし、2 人とも有効かを確かめる（元の beginRelationshipTx に相当）
+func (h *HandlerContext) lockRelationship(actor, target string) (func(), error) {
 	if actor == target || target == "" {
 		return nil, NewAPIError(http.StatusBadRequest, "invalid_relationship")
 	}
-	tx, err := db.BeginTxx(ctx, nil)
-	if err != nil {
-		return nil, err
+	unlock := lockUsers(actor, target)
+	s := h.Store
+	s.mu.RLock()
+	ok := s.activeUser(actor) != nil && s.activeUser(target) != nil
+	s.mu.RUnlock()
+	if !ok {
+		unlock()
+		return nil, NewAPIError(http.StatusNotFound, "relationship_not_found")
 	}
-	for _, id := range []string{min(actor, target), max(actor, target)} {
-		var lockedID string
-		if err := tx.GetContext(ctx, &lockedID, `SELECT id FROM users WHERE id=$1 AND status='active' FOR NO KEY UPDATE`, id); err != nil {
-			tx.Rollback()
-			if errors.Is(err, sql.ErrNoRows) {
-				return nil, NewAPIError(http.StatusNotFound, "relationship_not_found")
-			}
-			return nil, err
+	return unlock, nil
+}
+
+func (s *Store) addFriendshipLocked(f *FriendshipRow) {
+	s.friendships = append(s.friendships, f)
+	s.users[f.LowID].friends[f.HighID] = f
+	s.users[f.HighID].friends[f.LowID] = f
+}
+
+func (s *Store) removeFriendshipLocked(a, b string) {
+	lo, hi := pairKey(a, b)
+	f := s.users[lo].friends[hi]
+	if f == nil {
+		return
+	}
+	delete(s.users[lo].friends, hi)
+	delete(s.users[hi].friends, lo)
+	for i, x := range s.friendships {
+		if x == f {
+			s.friendships[i] = s.friendships[len(s.friendships)-1]
+			s.friendships = s.friendships[:len(s.friendships)-1]
+			break
 		}
 	}
-	return tx, nil
 }
 
-func isBlocked(ctx context.Context, db sqlx.QueryerContext, actor, target string) (bool, error) {
-	var blocked bool
-	err := sqlx.GetContext(ctx, db, &blocked, `SELECT EXISTS(SELECT 1 FROM block_relations WHERE (blocker_id=$1 AND blocked_id=$2) OR (blocker_id=$2 AND blocked_id=$1))`, actor, target)
-	return blocked, err
+func (s *Store) addFollowLocked(f *FollowRow) {
+	s.follows = append(s.follows, f)
+	s.users[f.FollowerID].following[f.FolloweeID] = f
+	s.users[f.FolloweeID].followers[f.FollowerID] = f
 }
 
-func insertFriendship(ctx context.Context, tx *sqlx.Tx, request FriendRequest) error {
-	_, err := tx.ExecContext(ctx, `INSERT INTO friendships (id, user_low_id, user_high_id, source_request_id) VALUES ($1,$2,$3,$4)`, uuid.NewString(), min(request.RequesterID, request.RecipientID), max(request.RequesterID, request.RecipientID), request.ID)
-	return err
+func (s *Store) removeFollowLocked(follower, followee string) {
+	f := s.users[follower].following[followee]
+	if f == nil {
+		return
+	}
+	delete(s.users[follower].following, followee)
+	delete(s.users[followee].followers, follower)
+	for i, x := range s.follows {
+		if x == f {
+			s.follows[i] = s.follows[len(s.follows)-1]
+			s.follows = s.follows[:len(s.follows)-1]
+			break
+		}
+	}
 }
 
-func requireRelationshipChange(result sql.Result, err error, status int, code string) error {
-	if err != nil {
-		return err
+func (s *Store) setRequestStatusLocked(r *FriendRequest, status string, at time.Time) {
+	if r.Status == "pending" && status != "pending" {
+		delete(s.users[r.RequesterID].pendingOut, r.RecipientID)
+		delete(s.users[r.RecipientID].pendingIn, r.RequesterID)
 	}
-	count, err := result.RowsAffected()
-	if err != nil {
-		return err
+	r.Status = status
+	r.UpdatedAt = at
+}
+
+// pendingBetweenLocked は 2 人の間の保留中の友達申請を返す
+func (s *Store) pendingBetweenLocked(a, b string) *FriendRequest {
+	u := s.users[a]
+	if r := u.pendingOut[b]; r != nil {
+		return r
 	}
-	if count == 0 {
-		return NewAPIError(status, code)
-	}
-	return nil
+	return u.pendingIn[b]
 }

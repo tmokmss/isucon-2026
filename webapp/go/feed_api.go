@@ -1,14 +1,10 @@
 package isureal
 
 import (
-	"context"
-	"database/sql"
-	"errors"
 	"net/http"
 	"sort"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v5"
 )
 
@@ -29,6 +25,12 @@ type getFeedResponse struct {
 	HasMore bool               `json:"hasMore"`
 }
 
+type feedCandidate struct {
+	post   Post
+	author User
+	row    *PostRow
+}
+
 func getFeedHandler(h *HandlerContext) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		var input getFeedRequest
@@ -47,21 +49,16 @@ func getFeedHandler(h *HandlerContext) echo.HandlerFunc {
 		if ranked && (input.BeforeScore == nil) != (input.BeforeID == "") {
 			return NewAPIError(http.StatusBadRequest, "invalid_pagination")
 		}
-		ctx := c.Request().Context()
-		viewer, err := loadViewerContext(ctx, h.DB, GetSession(c).UserID)
-		if errors.Is(err, sql.ErrNoRows) {
+		s := h.Store
+		s.mu.RLock()
+		viewer, ok := s.loadViewerContextLocked(GetSession(c).UserID)
+		if !ok {
+			s.mu.RUnlock()
 			return c.JSON(http.StatusOK, getFeedResponse{Items: []feedItemResponse{}})
-		}
-		if err != nil {
-			return err
 		}
 		following := map[string]bool{}
 		if input.Feed == "following" {
-			var followeeIDs []string
-			if err := h.DB.SelectContext(ctx, &followeeIDs, `SELECT followee_id FROM follows WHERE follower_id = $1`, viewer.ID); err != nil {
-				return err
-			}
-			for _, id := range followeeIDs {
+			for id := range s.users[viewer.ID].following {
 				following[id] = true
 			}
 		}
@@ -69,36 +66,50 @@ func getFeedHandler(h *HandlerContext) echo.HandlerFunc {
 		if ranked {
 			beforePostedAt, beforeID = nil, ""
 		}
-		posts, err := selectPostsWithAuthor(ctx, h.DB, `
-   AND p.author_id <> $1 AND w.ended_at IS NULL
-   AND ($2::timestamptz IS NULL OR (p.posted_at, p.id) < ($2, $3))
-   ORDER BY p.posted_at DESC, p.id DESC
-  `, viewer.ID, beforePostedAt, beforeID)
-		if err != nil {
-			return err
+		var rows []*PostRow
+		for _, w := range s.activeWindows {
+			for _, p := range w.posts {
+				if p.DeletedAt != nil || p.AuthorID == viewer.ID {
+					continue
+				}
+				if beforePostedAt != nil && !(p.PostedAt.Before(*beforePostedAt) || (p.PostedAt.Equal(*beforePostedAt) && p.ID < beforeID)) {
+					continue
+				}
+				rows = append(rows, p)
+			}
 		}
-		candidates := make([]PostWithAuthor, 0)
-		for _, post := range posts {
-			if viewer.canView(post.Post) && matchesFeed(viewer, following, post.Post, input.Feed) {
-				candidates = append(candidates, post)
+		sort.Slice(rows, func(i, j int) bool { return postLess(rows[j], rows[i]) })
+		candidates := make([]feedCandidate, 0)
+		for _, p := range rows {
+			author := s.activeUser(p.AuthorID)
+			if author == nil {
+				continue
+			}
+			post := p.post()
+			if viewer.canView(post) && matchesFeed(viewer, following, post, input.Feed) {
+				candidates = append(candidates, feedCandidate{post: post, author: author.User, row: p})
+				if !ranked && len(candidates) == 51 {
+					break
+				}
 			}
 		}
 		var scores map[string]int64
 		if ranked {
-			if scores, err = recommendationScores(ctx, h.DB, viewer, candidates); err != nil {
-				return err
-			}
+			scores = s.recommendationScoresLocked(viewer, candidates)
+		}
+		s.mu.RUnlock()
+		if ranked {
 			sort.SliceStable(candidates, func(i, j int) bool {
-				return scores[candidates[i].ID] > scores[candidates[j].ID]
+				return scores[candidates[i].post.ID] > scores[candidates[j].post.ID]
 			})
 		}
 		items := make([]feedItemResponse, 0)
-		for _, post := range candidates {
-			score := scores[post.ID]
-			if ranked && input.BeforeScore != nil && !rankedBefore(score, post.Post, *input.BeforeScore, *input.BeforePostedAt, input.BeforeID) {
+		for _, cand := range candidates {
+			score := scores[cand.post.ID]
+			if ranked && input.BeforeScore != nil && !rankedBefore(score, cand.post, *input.BeforeScore, *input.BeforePostedAt, input.BeforeID) {
 				continue
 			}
-			item := feedItemResponse{createPostResponse: newPostResponse(post.Post, post.Author)}
+			item := feedItemResponse{createPostResponse: newPostResponse(cand.post, cand.author)}
 			if ranked {
 				item.Score = &score
 			}
@@ -125,65 +136,46 @@ func rankedBefore(score int64, post Post, beforeScore int64, beforePostedAt time
 	return post.ID < beforeID
 }
 
-func recommendationScores(ctx context.Context, db sqlx.QueryerContext, viewer viewerContext, posts []PostWithAuthor) (map[string]int64, error) {
-	scores := make(map[string]int64, len(posts))
-	if len(posts) == 0 {
-		return scores, nil
-	}
-	authorIDs := make([]string, 0, len(posts))
-	postIDs := make([]string, 0, len(posts))
-	for _, post := range posts {
-		authorIDs = append(authorIDs, post.AuthorID)
-		postIDs = append(postIDs, post.ID)
-	}
-
-	query, args, err := sqlx.In(`SELECT user_low_id, user_high_id FROM friendships WHERE user_low_id IN (?) OR user_high_id IN (?)`, authorIDs, authorIDs)
-	if err != nil {
-		return nil, err
-	}
-	var friendships []struct {
-		UserLowID  string `db:"user_low_id"`
-		UserHighID string `db:"user_high_id"`
-	}
-	if err := sqlx.SelectContext(ctx, db, &friendships, sqlx.Rebind(sqlx.DOLLAR, query), args...); err != nil {
-		return nil, err
-	}
+func (s *Store) recommendationScoresLocked(viewer viewerContext, candidates []feedCandidate) map[string]int64 {
+	scores := make(map[string]int64, len(candidates))
 	connections := map[string]int64{}
-	for _, friendship := range friendships {
-		connections[friendship.UserLowID] += int64(viewer.MutualFriends[friendship.UserHighID])
-		connections[friendship.UserHighID] += int64(viewer.MutualFriends[friendship.UserLowID])
-	}
-
-	query, args, err = sqlx.In(`
-  SELECT r.post_id, r.reactor_id AS user_id FROM realmojis r
-  JOIN users u ON u.id = r.reactor_id AND u.status = 'active'
-  WHERE r.post_id IN (?) AND r.replaced_at IS NULL AND r.deleted_at IS NULL
-  UNION
-  SELECT c.post_id, c.author_id AS user_id FROM comments c
-  JOIN users u ON u.id = c.author_id AND u.status = 'active'
-  WHERE c.post_id IN (?) AND c.deleted_at IS NULL
- `, postIDs, postIDs)
-	if err != nil {
-		return nil, err
-	}
-	var engagements []struct {
-		PostID string `db:"post_id"`
-		UserID string `db:"user_id"`
-	}
-	if err := sqlx.SelectContext(ctx, db, &engagements, sqlx.Rebind(sqlx.DOLLAR, query), args...); err != nil {
-		return nil, err
-	}
-	friendEngagements := map[string]int64{}
-	for _, engagement := range engagements {
-		if viewer.Friends[engagement.UserID] {
-			friendEngagements[engagement.PostID]++
+	for _, cand := range candidates {
+		authorID := cand.post.AuthorID
+		if _, ok := connections[authorID]; ok {
+			continue
 		}
+		var sum int64
+		if a := s.users[authorID]; a != nil {
+			for f := range a.friends {
+				sum += int64(viewer.MutualFriends[f])
+			}
+		}
+		connections[authorID] = sum
 	}
-
-	for _, post := range posts {
-		scores[post.ID] = 10*friendEngagements[post.ID] + 3*int64(viewer.MutualFriends[post.AuthorID]) + min(connections[post.AuthorID], 30)
+	for _, cand := range candidates {
+		var engaged int64
+		seen := map[string]bool{}
+		for _, r := range cand.row.realmojis {
+			if !r.current() || seen[r.ReactorID] || s.activeUser(r.ReactorID) == nil {
+				continue
+			}
+			seen[r.ReactorID] = true
+			if viewer.Friends[r.ReactorID] {
+				engaged++
+			}
+		}
+		for _, cm := range cand.row.comments {
+			if cm.DeletedAt != nil || seen[cm.AuthorID] || s.activeUser(cm.AuthorID) == nil {
+				continue
+			}
+			seen[cm.AuthorID] = true
+			if viewer.Friends[cm.AuthorID] {
+				engaged++
+			}
+		}
+		scores[cand.post.ID] = 10*engaged + 3*int64(viewer.MutualFriends[cand.post.AuthorID]) + min(connections[cand.post.AuthorID], 30)
 	}
-	return scores, nil
+	return scores
 }
 
 func matchesFeed(viewer viewerContext, following map[string]bool, post Post, feed string) bool {
