@@ -114,7 +114,10 @@ func serveOriginImage(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(data)
 }
 
-var originImageClient = &http.Client{Timeout: 10 * time.Second}
+var originImageClient = &http.Client{Timeout: 10 * time.Second, Transport: originTransport}
+
+// 画像の本体と判定を取りに行く接続を使い回す（既定の 2 本では、同時の取得が毎回 100ms 先へ接続を張り直す）
+var originTransport = &http.Transport{MaxIdleConns: 512, MaxIdleConnsPerHost: 256, IdleConnTimeout: 90 * time.Second}
 
 // fetchOriginImage は europe1・america1 で、手元に無い画像の本体を asia1 から取る。asia1 に無ければ sql.ErrNoRows
 func fetchOriginImage(ctx context.Context, origin, id string) (data []byte, initial bool, err error) {

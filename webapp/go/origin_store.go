@@ -129,7 +129,7 @@ func (res *imageCheckResponse) remote() *remoteImageCheck {
 	}
 }
 
-var originImageCheckClient = &http.Client{Timeout: 5 * time.Second}
+var originImageCheckClient = &http.Client{Timeout: 5 * time.Second, Transport: originTransport}
 
 // fetchImageCheck は europe1・america1 で asia1 に判定を問い合わせる。持ち主がいなければ sql.ErrNoRows
 func fetchImageCheck(r *http.Request, origin, id string) (*remoteImageCheck, error) {

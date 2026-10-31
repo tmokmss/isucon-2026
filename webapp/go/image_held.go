@@ -20,6 +20,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -74,7 +75,42 @@ func parseHeldImageHeader(req *http.Request) (id, holder string, width, height i
 var readHeldLocal = readNewImage
 
 // fetchHeldImage は、手元に無い画像の本体を持ち主の台から取り、手元の new/ に置く。持ち主が無い・この台なら false
+// 同じ画像を同時に取りに行く要求は、先に出た 1 本の結果を待つ（リージョン間の帯域を同じ本体で重ねて使わない）
+type heldFetch struct {
+	done chan struct{}
+	data []byte
+	ok   bool
+	err  error
+}
+
+var (
+	heldFetchMu sync.Mutex
+	heldFetches = map[string]*heldFetch{}
+)
+
 func fetchHeldImage(ctx context.Context, id string) ([]byte, bool, error) {
+	heldFetchMu.Lock()
+	if f := heldFetches[id]; f != nil {
+		heldFetchMu.Unlock()
+		select {
+		case <-f.done:
+			return f.data, f.ok, f.err
+		case <-ctx.Done():
+			return nil, false, ctx.Err()
+		}
+	}
+	f := &heldFetch{done: make(chan struct{})}
+	heldFetches[id] = f
+	heldFetchMu.Unlock()
+	f.data, f.ok, f.err = fetchHeldImageOnce(context.WithoutCancel(ctx), id)
+	heldFetchMu.Lock()
+	delete(heldFetches, id)
+	heldFetchMu.Unlock()
+	close(f.done)
+	return f.data, f.ok, f.err
+}
+
+func fetchHeldImageOnce(ctx context.Context, id string) ([]byte, bool, error) {
 	holder := imageHolderOf(id)
 	if holder == "" {
 		holder = asiaInternal
