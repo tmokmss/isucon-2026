@@ -1,6 +1,8 @@
 package isureal
 
 import (
+	"bytes"
+	"image/jpeg"
 	"io"
 	"net/http"
 
@@ -17,12 +19,15 @@ func putProfileImageHandler(h *HandlerContext) echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
-		width, height, ok := checkJPEG(data)
-		if !ok {
+		cfg, err := jpeg.DecodeConfig(bytes.NewReader(data))
+		if err == nil {
+			_, err = jpeg.Decode(bytes.NewReader(data))
+		}
+		if err != nil {
 			c.Set("abuse", "invalid_image")
 			return NewAPIError(http.StatusBadRequest, "invalid_profile_image")
 		}
-		if width > 512 || height > 512 {
+		if cfg.Width > 512 || cfg.Height > 512 {
 			return NewAPIError(http.StatusBadRequest, "invalid_profile_image")
 		}
 

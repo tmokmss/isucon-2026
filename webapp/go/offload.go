@@ -1,6 +1,6 @@
 package isureal
 
-// JPEG の検証と画像の署名を、CPU の空いている台へ逃がす。
+// まとめて返す画像の署名（Memories・エクスポート）を、CPU の空いている台へ逃がす。
 // 逃がし先は ISUREAL_OFFLOAD_PEERS（近い順、カンマ区切りの host:port）。失敗した逃がし先は数秒外し、
 // どの逃がし先も同時に頼める数（offloadPeerSlots）まで埋まっている・失敗した・遅いときは手元で計算する。逃がし先は鍵を受け取るので、
 // 受け付けはプライベートネットワーク（192.168.0.0/16）からだけにし、nginx には出さない。
@@ -11,7 +11,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"image/jpeg"
 	"io"
 	"net"
 	"net/http"
@@ -26,7 +25,6 @@ import (
 const offloadPort = ":8090"
 
 const (
-	offloadJPEGTimeout = 2 * time.Second
 	offloadSignTimeout = 2 * time.Second
 	offloadPeerBackoff = 5 * time.Second
 	offloadPeerSlots   = 8
@@ -100,22 +98,6 @@ func offloadPost(url string, body []byte, timeout time.Duration) ([]byte, error)
 		return nil, fmt.Errorf("offload status %d", res.StatusCode)
 	}
 	return data, nil
-}
-
-// JPEG として最後までデコードできるかと、幅・高さを返す
-func checkJPEG(data []byte) (width, height int, ok bool) {
-	if res, err := offloadCall("/jpeg", data, offloadJPEGTimeout); err == nil && len(res) == 9 {
-		return int(binary.BigEndian.Uint32(res[1:5])), int(binary.BigEndian.Uint32(res[5:9])), res[0] == 1
-	}
-	return checkJPEGLocal(data)
-}
-
-func checkJPEGLocal(data []byte) (width, height int, ok bool) {
-	img, err := jpeg.Decode(bytes.NewReader(data))
-	if err != nil {
-		return 0, 0, false
-	}
-	return img.Bounds().Dx(), img.Bounds().Dy(), true
 }
 
 type signTarget struct {
@@ -203,21 +185,6 @@ var privateNetwork = &net.IPNet{IP: net.IPv4(192, 168, 0, 0), Mask: net.CIDRMask
 
 func offloadHandler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /jpeg", func(w http.ResponseWriter, r *http.Request) {
-		data, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		width, height, ok := checkJPEGLocal(data)
-		res := make([]byte, 9)
-		if ok {
-			res[0] = 1
-		}
-		binary.BigEndian.PutUint32(res[1:5], uint32(width))
-		binary.BigEndian.PutUint32(res[5:9], uint32(height))
-		w.Write(res)
-	})
 	mux.HandleFunc("POST /sign", func(w http.ResponseWriter, r *http.Request) {
 		data, err := io.ReadAll(r.Body)
 		if err != nil {

@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	// CPU の空いている台は、JPEG の検証と署名の計算だけを受け付ける
+	// 逃がし先の台（asia2）は、署名の計算だけを受け付ける。DB にはつながず、データも読み込まない
 	if os.Getenv("ISUREAL_OFFLOAD_WORKER") == "1" {
 		panic(isureal.ServeOffload())
 	}
