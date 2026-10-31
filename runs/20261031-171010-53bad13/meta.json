@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-171010-53bad13",
+  "startedAt": "2026-10-31T17:10:10+09:00",
+  "finishedAt": "2026-10-31T17:12:42+09:00",
+  "ref": "asia2-gogc",
+  "sha": "53bad13c4a4b8e9fd5011a7f6a548dc056295727",
+  "score": 219729,
+  "status": "pass",
+  "note": "asia2 GOGC=400 GOMEMLIMIT=1400MiB MemoryMax=1800M",
+  "benchJobId": "32598",
+  "prevRunId": "20261031-170001-a1cea2f",
+  "bestRunId": "20261031-164120-892a769"
+}
