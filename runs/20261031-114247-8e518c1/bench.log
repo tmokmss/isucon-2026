@@ -1,0 +1,33 @@
+{"id":"5454","status":"done","portalStatus":"finished","passed":true,"score":26395,"raw":26395,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:48:47.536Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:48:50.471Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:48:53.486Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:48:56.500Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T02:48:59.571Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T02:49:01.591Z level=INFO msg="user moved" user=suseru.5364 from=asia to=europe
+time=2026-10-31T02:49:02.524Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T02:49:05.491Z level=INFO msg="asia 3 日目: 134 人"
+time=2026-10-31T02:49:08.660Z level=INFO msg="europe 3 日目: 25 人"
+time=2026-10-31T02:49:11.593Z level=INFO msg="america 3 日目: 15 人"
+time=2026-10-31T02:49:14.751Z level=INFO msg="asia 4 日目: 134 人"
+time=2026-10-31T02:49:17.597Z level=INFO msg="europe 4 日目: 25 人"
+time=2026-10-31T02:49:20.527Z level=INFO msg="america 4 日目: 15 人"
+time=2026-10-31T02:49:23.547Z level=INFO msg="asia 5 日目: 134 人"
+time=2026-10-31T02:49:26.565Z level=INFO msg="europe 5 日目: 25 人"
+time=2026-10-31T02:49:29.504Z level=INFO msg="america 5 日目: 15 人"
+time=2026-10-31T02:49:38.471Z level=INFO msg="america 最終日（グランプリ）: 15 人"
+time=2026-10-31T02:49:38.521Z level=INFO msg="asia 最終日（グランプリ）: 133 人"
+time=2026-10-31T02:49:38.563Z level=INFO msg="europe 最終日（グランプリ）: 24 人"
+time=2026-10-31T02:49:47.465Z level=INFO msg="グランプリ: アジア 84 人, ヨーロッパ 17 人, アメリカ 8 人"
+{
+  "pass": true,
+  "score": 26395,
+  "messages": [
+    "nukino5371: プロフィール画像を変えられません: PUT /api/me/profile-image: ステータスコード 503 が返りました（期待値 204、busy）（5 回試行）"
+  ]
+}
+
+--- stderr ---
+

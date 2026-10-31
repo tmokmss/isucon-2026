@@ -1,0 +1,40 @@
+{"id":"10907","status":"done","portalStatus":"finished","passed":true,"score":85230,"raw":85230,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:04:11.179Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:04:14.142Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:04:17.141Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:04:20.166Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T04:04:23.141Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T04:04:26.141Z level=INFO msg="america 2 日目: 13 人"
+time=2026-10-31T04:04:29.166Z level=INFO msg="asia 3 日目: 150 人"
+time=2026-10-31T04:04:32.158Z level=INFO msg="europe 3 日目: 49 人"
+time=2026-10-31T04:04:32.757Z level=INFO msg="user moved" user=shivin-6009 from=asia to=europe
+time=2026-10-31T04:04:35.144Z level=INFO msg="america 3 日目: 31 人"
+time=2026-10-31T04:04:38.211Z level=INFO msg="asia 4 日目: 428 人"
+time=2026-10-31T04:04:41.348Z level=INFO msg="europe 4 日目: 126 人"
+time=2026-10-31T04:04:41.652Z level=INFO msg="user moved" user=razoeis-6564 from=asia to=europe
+time=2026-10-31T04:04:44.348Z level=INFO msg="america 4 日目: 60 人"
+time=2026-10-31T04:04:44.807Z level=INFO msg="user moved" user=kuke-7291 from=asia to=europe
+time=2026-10-31T04:04:45.265Z level=INFO msg="user moved" user=ruso_6833 from=asia to=america
+time=2026-10-31T04:04:46.312Z level=INFO msg="user moved" user=hitatsu-7336 from=asia to=america
+time=2026-10-31T04:04:46.502Z level=INFO msg="user moved" user=maxivyki.8029 from=asia to=america
+time=2026-10-31T04:04:47.408Z level=INFO msg="asia 5 日目: 866 人"
+time=2026-10-31T04:04:50.226Z level=INFO msg="europe 5 日目: 128 人"
+time=2026-10-31T04:04:53.414Z level=INFO msg="america 5 日目: 63 人"
+time=2026-10-31T04:05:02.340Z level=INFO msg="asia 最終日（グランプリ）: 866 人"
+time=2026-10-31T04:05:02.510Z level=INFO msg="america 最終日（グランプリ）: 63 人"
+time=2026-10-31T04:05:02.580Z level=INFO msg="europe 最終日（グランプリ）: 128 人"
+time=2026-10-31T04:05:11.173Z level=INFO msg="グランプリ: アジア 158 人, ヨーロッパ 4 人, アメリカ 1 人"
+{
+  "pass": true,
+  "score": 85230,
+  "messages": [
+    "homeya6648: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "hire6259: 投稿 ce5c939b-8220-4a67-83e0-8e8b5484111f に RealMoji を送れません: POST /api/posts/ce5c939b-8220-4a67-83e0-8e8b5484111f/realmojis: 応答がタイムアウトしました",
+    "fuzoe_5465: 投稿できません: POST /api/posts: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

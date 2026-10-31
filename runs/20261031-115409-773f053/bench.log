@@ -1,0 +1,41 @@
+{"id":"5987","status":"done","portalStatus":"finished","passed":true,"score":56553,"raw":56553,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:56:36.022Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:56:38.980Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:56:42.009Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:56:44.996Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T02:56:47.988Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T02:56:50.992Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T02:56:51.742Z level=INFO msg="user moved" user=kuhe_5431 from=europe to=asia
+time=2026-10-31T02:56:54.040Z level=INFO msg="asia 3 日目: 155 人"
+time=2026-10-31T02:56:55.904Z level=INFO msg="user moved" user=kuhe_5431 from=asia to=europe
+time=2026-10-31T02:56:57.015Z level=INFO msg="europe 3 日目: 39 人"
+time=2026-10-31T02:56:59.983Z level=INFO msg="america 3 日目: 26 人"
+time=2026-10-31T02:57:00.499Z level=INFO msg="user moved" user=yunayu5449 from=europe to=asia
+time=2026-10-31T02:57:03.033Z level=INFO msg="asia 4 日目: 232 人"
+time=2026-10-31T02:57:05.475Z level=INFO msg="user moved" user=yunayu5449 from=asia to=europe
+time=2026-10-31T02:57:06.134Z level=INFO msg="europe 4 日目: 54 人"
+time=2026-10-31T02:57:08.738Z level=INFO msg="user moved" user=ruelke6635 from=asia to=america
+time=2026-10-31T02:57:08.984Z level=INFO msg="america 4 日目: 43 人"
+time=2026-10-31T02:57:10.306Z level=INFO msg="user moved" user=kuhe_5431 from=europe to=asia
+time=2026-10-31T02:57:12.013Z level=INFO msg="asia 5 日目: 268 人"
+time=2026-10-31T02:57:12.180Z level=INFO msg="user moved" user=nishiya5458 from=europe to=asia
+time=2026-10-31T02:57:15.102Z level=INFO msg="europe 5 日目: 52 人"
+time=2026-10-31T02:57:18.103Z level=INFO msg="america 5 日目: 43 人"
+time=2026-10-31T02:57:27.149Z level=INFO msg="europe 最終日（グランプリ）: 52 人"
+time=2026-10-31T02:57:27.177Z level=INFO msg="america 最終日（グランプリ）: 42 人"
+time=2026-10-31T02:57:27.379Z level=INFO msg="asia 最終日（グランプリ）: 268 人"
+time=2026-10-31T02:57:35.984Z level=INFO msg="グランプリ: アジア 174 人, ヨーロッパ 36 人, アメリカ 28 人"
+{
+  "pass": true,
+  "score": 56553,
+  "messages": [
+    "yomu.5527: プロフィール画像を変えられません: PUT /api/me/profile-image: ステータスコード 503 が返りました（期待値 204、busy）（5 回試行）",
+    "ulto_5624: プロフィール画像を変えられません: PUT /api/me/profile-image: ステータスコード 503 が返りました（期待値 204、busy）（5 回試行）",
+    "tefuvin5089: プロフィール画像を変えられません: PUT /api/me/profile-image: ステータスコード 503 が返りました（期待値 204、busy）（5 回試行）"
+  ]
+}
+
+--- stderr ---
+

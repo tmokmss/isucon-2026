@@ -1,0 +1,49 @@
+File: isureal
+Build ID: ec07723ca656ab0fccca1d0f01056f081e84b563
+Type: cpu
+Time: 2026-10-31 10:32:00 JST
+Duration: 60.03s, Total samples = 43.79s (72.95%)
+Showing nodes accounting for 36.13s, 82.51% of 43.79s total
+Dropped 927 nodes (cum <= 0.22s)
+Showing top 40 nodes out of 232
+      flat  flat%   sum%        cum   cum%
+    17.19s 39.26% 39.26%     17.22s 39.32%  crypto/internal/fips140/sha256.blockAVX2
+     2.18s  4.98% 44.23%     10.82s 24.71%  crypto/internal/fips140/hmac.New[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }]
+     1.85s  4.22% 48.46%      1.85s  4.22%  runtime.memclrNoHeapPointers
+     1.63s  3.72% 52.18%      2.20s  5.02%  image/jpeg.(*decoder).reconstructBlock
+     1.51s  3.45% 55.63%      1.51s  3.45%  runtime.memmove
+     1.08s  2.47% 58.10%      1.08s  2.47%  internal/runtime/syscall/linux.Syscall6
+     0.67s  1.53% 59.63%      4.35s  9.93%  image/jpeg.(*decoder).processSOS
+     0.67s  1.53% 61.16%      0.67s  1.53%  runtime.nextFreeFast (inline)
+     0.64s  1.46% 62.62%     18.55s 42.36%  crypto/internal/fips140/sha256.(*Digest).Write
+     0.58s  1.32% 63.94%      5.84s 13.34%  runtime.mallocgc
+     0.55s  1.26% 65.20%      2.85s  6.51%  runtime.mallocgcSmallNoscan
+     0.54s  1.23% 66.43%      0.95s  2.17%  image/jpeg.(*decoder).decodeHuffman
+     0.54s  1.23% 67.66%      0.70s  1.60%  runtime.tryDeferToSpanScan
+     0.49s  1.12% 68.78%      1.09s  2.49%  runtime.scanObject
+     0.45s  1.03% 69.81%      0.46s  1.05%  image/jpeg.(*decoder).receiveExtend
+     0.44s  1.00% 70.82%     11.88s 27.13%  crypto/internal/fips140/sha256.(*Digest).checkSum
+     0.42s  0.96% 71.77%      0.42s  0.96%  runtime.madvise
+     0.38s  0.87% 72.64%     13.14s 30.01%  crypto/internal/fips140/sha256.(*Digest).Sum
+     0.30s  0.69% 73.33%      5.72s 13.06%  crypto/internal/fips140/pbkdf2.Key[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }]
+     0.30s  0.69% 74.01%     17.52s 40.01%  crypto/internal/fips140/sha256.block
+     0.29s  0.66% 74.67%      0.42s  0.96%  image/jpeg.(*decoder).ensureNBits
+     0.29s  0.66% 75.34%      0.29s  0.66%  runtime.procyieldAsm
+     0.27s  0.62% 75.95%     17.19s 39.26%  crypto/internal/fips140/hmac.(*HMAC).Sum
+     0.26s  0.59% 76.55%      0.26s  0.59%  crypto/internal/fips140/sha256.(*Digest).Reset
+     0.26s  0.59% 77.14%      0.39s  0.89%  runtime.gcmarknewobject
+     0.26s  0.59% 77.73%      0.63s  1.44%  runtime.scanObjectsSmall
+     0.22s   0.5% 78.24%      0.22s   0.5%  runtime.(*spanInlineMarkBits).init
+     0.21s  0.48% 78.72%      0.24s  0.55%  image/jpeg.idctRows
+     0.21s  0.48% 79.20%      0.24s  0.55%  runtime.typePointers.next
+     0.20s  0.46% 79.65%      0.31s  0.71%  image/jpeg.idctCols
+     0.20s  0.46% 80.11%      0.30s  0.69%  runtime.scanblock
+     0.18s  0.41% 80.52%      2.55s  5.82%  crypto/hmac.New.UnwrapNew[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }].func1
+     0.18s  0.41% 80.93%         1s  2.28%  runtime.mallocgcSmallScanNoHeader
+     0.17s  0.39% 81.32%      0.42s  0.96%  runtime.pcvalue
+     0.13s   0.3% 81.62%      0.36s  0.82%  runtime.(*unwinder).resolveInternal
+     0.10s  0.23% 81.85%      3.23s  7.38%  runtime.newobject
+     0.08s  0.18% 82.03%      0.27s  0.62%  crypto/internal/fips140/hmac.New[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }].func1
+     0.07s  0.16% 82.19%      0.22s   0.5%  crypto/internal/fips140/sha256.(*Digest).UnmarshalBinary
+     0.07s  0.16% 82.35%      0.94s  2.15%  runtime.growslice
+     0.07s  0.16% 82.51%      1.45s  3.31%  runtime.makeslice

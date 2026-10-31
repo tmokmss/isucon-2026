@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-114245-718b774",
+  "startedAt": "2026-10-31T11:42:45+09:00",
+  "finishedAt": "2026-10-31T11:48:14+09:00",
+  "ref": "offload-cpu",
+  "sha": "718b774f966f8c3da13cdc339731d43fca55d66e",
+  "score": 48796,
+  "status": "pass",
+  "note": "offload-sign-only-on-main-f782d77",
+  "benchJobId": "5303",
+  "prevRunId": "20261031-113441-6a7a33a",
+  "bestRunId": "20261031-114245-718b774"
+}

@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-114137-25f2cad",
+  "startedAt": "2026-10-31T11:41:37+09:00",
+  "finishedAt": "2026-10-31T11:46:19+09:00",
+  "ref": "origin/mem-reduce-gogc400",
+  "sha": "25f2cada3c82548ff7cf90bc2fd7940c89a189fc",
+  "score": 27654,
+  "status": "pass",
+  "note": "メモリ削減 + GOGC 400",
+  "benchJobId": "5173",
+  "prevRunId": "20261031-113854-7a0fd2d",
+  "bestRunId": "20261031-114137-25f2cad"
+}

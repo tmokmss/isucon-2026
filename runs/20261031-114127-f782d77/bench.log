@@ -1,0 +1,53 @@
+{"id":"5047","status":"done","portalStatus":"finished","passed":true,"score":33567,"raw":33567,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:43:17.277Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:43:20.329Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:43:23.226Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:43:26.242Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T02:43:29.414Z level=INFO msg="europe 2 日目: 13 人"
+time=2026-10-31T02:43:32.269Z level=INFO msg="america 2 日目: 13 人"
+time=2026-10-31T02:43:35.316Z level=INFO msg="asia 3 日目: 134 人"
+time=2026-10-31T02:43:38.135Z level=INFO msg="user moved" user=orfuivy-5373 from=europe to=asia
+time=2026-10-31T02:43:38.282Z level=INFO msg="europe 3 日目: 28 人"
+time=2026-10-31T02:43:41.390Z level=INFO msg="america 3 日目: 23 人"
+time=2026-10-31T02:43:44.363Z level=INFO msg="asia 4 日目: 262 人"
+time=2026-10-31T02:43:48.635Z level=INFO msg="europe 4 日目: 28 人"
+time=2026-10-31T02:43:50.603Z level=INFO msg="america 4 日目: 23 人"
+time=2026-10-31T02:43:51.609Z level=INFO msg="user moved" user=tsuisnu-5843 from=asia to=europe
+time=2026-10-31T02:43:53.984Z level=INFO msg="asia 5 日目: 261 人"
+time=2026-10-31T02:43:57.356Z level=INFO msg="europe 5 日目: 29 人"
+time=2026-10-31T02:43:59.405Z level=INFO msg="america 5 日目: 23 人"
+time=2026-10-31T02:44:08.291Z level=INFO msg="europe 最終日（グランプリ）: 28 人"
+time=2026-10-31T02:44:08.298Z level=INFO msg="america 最終日（グランプリ）: 21 人"
+time=2026-10-31T02:44:08.334Z level=INFO msg="asia 最終日（グランプリ）: 144 人"
+time=2026-10-31T02:44:17.223Z level=INFO msg="グランプリ: アジア 65 人, ヨーロッパ 12 人, アメリカ 9 人"
+{
+  "pass": true,
+  "score": 33567,
+  "messages": [
+    "sumeshi_6308: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "ketor-6310: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "sechifu.6324: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "benhe-6333: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "wate-6341: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "zoeso.6346: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "ormiamu-6352: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "ivybenru.6361: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "niso-6371: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "kinu-6373: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "noyu.6380: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "liateul_6390: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "kiulne6397: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "noameta_6405: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "mezoeben_6410: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "orneis6420: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "wahe.6426: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "rimise.6431: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "ulmoshi-6441: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "ivyel_6446: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

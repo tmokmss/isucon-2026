@@ -1,0 +1,33 @@
+{"id":"10279","status":"done","portalStatus":"finished","passed":true,"score":62243,"raw":62243,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T03:55:45.536Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:55:48.497Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:55:51.596Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:55:54.644Z level=INFO msg="asia 2 日目: 47 人"
+time=2026-10-31T03:55:57.617Z level=INFO msg="europe 2 日目: 16 人"
+time=2026-10-31T03:56:00.598Z level=INFO msg="america 2 日目: 13 人"
+time=2026-10-31T03:56:03.675Z level=INFO msg="asia 3 日目: 132 人"
+time=2026-10-31T03:56:06.629Z level=INFO msg="europe 3 日目: 40 人"
+time=2026-10-31T03:56:09.491Z level=INFO msg="user moved" user=nete.5120 from=america to=europe
+time=2026-10-31T03:56:09.596Z level=INFO msg="america 3 日目: 30 人"
+time=2026-10-31T03:56:12.690Z level=INFO msg="asia 4 日目: 370 人"
+time=2026-10-31T03:56:15.773Z level=INFO msg="europe 4 日目: 98 人"
+time=2026-10-31T03:56:18.764Z level=INFO msg="america 4 日目: 52 人"
+time=2026-10-31T03:56:21.801Z level=INFO msg="asia 5 日目: 656 人"
+time=2026-10-31T03:56:25.981Z level=INFO msg="europe 5 日目: 98 人"
+time=2026-10-31T03:56:27.661Z level=INFO msg="america 5 日目: 52 人"
+time=2026-10-31T03:56:36.951Z level=INFO msg="asia 最終日（グランプリ）: 656 人"
+time=2026-10-31T03:56:37.101Z level=INFO msg="europe 最終日（グランプリ）: 98 人"
+time=2026-10-31T03:56:37.506Z level=INFO msg="america 最終日（グランプリ）: 52 人"
+time=2026-10-31T03:56:45.519Z level=INFO msg="グランプリ: アジア 12 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 62243,
+  "messages": [
+    "sonoa_5397: フィード friends を取得できません: GET /api/feeds/friends: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

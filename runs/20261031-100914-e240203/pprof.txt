@@ -1,0 +1,1 @@
+未取得: metrics.pprofEnabled = false（アプリに pprof を仕込んでいない）

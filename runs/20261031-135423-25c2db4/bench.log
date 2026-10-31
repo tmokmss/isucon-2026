@@ -1,0 +1,64 @@
+{"id":"15016","status":"done","portalStatus":"finished","passed":true,"score":82880,"raw":82880,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T04:57:35.206Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:57:38.179Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:57:41.178Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:57:44.199Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T04:57:45.433Z level=INFO msg="user moved" user=tekaben.5218 from=asia to=america
+time=2026-10-31T04:57:46.766Z level=INFO msg="user moved" user=tekaben.5218 from=america to=asia
+time=2026-10-31T04:57:47.179Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T04:57:50.180Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T04:57:53.203Z level=INFO msg="asia 3 日目: 150 人"
+time=2026-10-31T04:57:53.836Z level=INFO msg="user moved" user=miase5580 from=asia to=america
+time=2026-10-31T04:57:54.326Z level=INFO msg="user moved" user=tekaben.5218 from=asia to=america
+time=2026-10-31T04:57:55.499Z level=INFO msg="user moved" user=wane_5909 from=asia to=europe
+time=2026-10-31T04:57:55.927Z level=INFO msg="user moved" user=miis-5671 from=asia to=america
+time=2026-10-31T04:57:56.178Z level=INFO msg="europe 3 日目: 53 人"
+time=2026-10-31T04:57:56.488Z level=INFO msg="user moved" user=murare_6098 from=asia to=europe
+time=2026-10-31T04:57:59.177Z level=INFO msg="america 3 日目: 46 人"
+time=2026-10-31T04:58:02.199Z level=INFO msg="asia 4 日目: 433 人"
+time=2026-10-31T04:58:02.821Z level=INFO msg="user moved" user=remami6699 from=asia to=europe
+time=2026-10-31T04:58:05.510Z level=INFO msg="europe 4 日目: 149 人"
+time=2026-10-31T04:58:06.141Z level=INFO msg="user moved" user=remami6699 from=europe to=america
+time=2026-10-31T04:58:08.205Z level=INFO msg="america 4 日目: 107 人"
+time=2026-10-31T04:58:08.443Z level=INFO msg="user moved" user=wane_5909 from=europe to=america
+time=2026-10-31T04:58:08.962Z level=INFO msg="user moved" user=murare_6098 from=europe to=america
+time=2026-10-31T04:58:10.677Z level=INFO msg="user moved" user=chiku6832 from=asia to=america
+time=2026-10-31T04:58:12.774Z level=INFO msg="asia 5 日目: 450 人"
+time=2026-10-31T04:58:14.274Z level=INFO msg="europe 5 日目: 283 人"
+time=2026-10-31T04:58:16.434Z level=INFO msg="user moved" user=tekaben.5218 from=america to=asia
+time=2026-10-31T04:58:22.213Z level=INFO msg="user moved" user=miis-5671 from=america to=asia
+time=2026-10-31T04:58:25.304Z level=INFO msg="user moved" user=kileois-9523 from=america to=asia
+time=2026-10-31T04:58:26.268Z level=INFO msg="user moved" user=miase5580 from=america to=europe
+time=2026-10-31T04:58:28.967Z level=INFO msg="europe 最終日（グランプリ）: 283 人"
+time=2026-10-31T04:58:35.210Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 168 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 82880,
+  "messages": [
+    "america の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "kileois-9523: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "orneri.7454: 友達申請を送れません: POST /api/friend-requests: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests\": EOF",
+    "soel.8636: 友達申請を送れません: POST /api/friend-requests: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests\": EOF",
+    "zoemia-7897: 投稿の公開範囲を変えられません: PATCH /api/posts/1e25049e-8db5-4b01-a578-30ad05a9528c: 通信に失敗しました: Patch \"http://52.69.202.109:8080/api/posts/1e25049e-8db5-4b01-a578-30ad05a9528c\": EOF",
+    "ivymo7855: 友達申請を送れません: POST /api/friend-requests: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests\": EOF",
+    "tazoena7180: 友達申請を送れません: POST /api/friend-requests: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests\": EOF",
+    "fuka_8311: 投稿の公開範囲を変えられません: PATCH /api/posts/e06529da-4f03-40e6-ba30-cea4a0ed35ba: 通信に失敗しました: Patch \"http://52.69.202.109:8080/api/posts/e06529da-4f03-40e6-ba30-cea4a0ed35ba\": EOF",
+    "noaivy9800: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "hajun_jeong_976: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "tankao_mini_huoji_2265: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "zhumian_wushe_3701: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "yowa_8723: 友達申請を送れません: POST /api/friend-requests: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests\": EOF",
+    "tsuki10155: 友達申請を送れません: POST /api/friend-requests: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/friend-requests\": EOF",
+    "mero_7343: 投稿の公開範囲を変えられません: PATCH /api/posts/146965ee-c60d-4c4f-8bc3-74e7827d9fcf: 通信に失敗しました: Patch \"http://52.69.202.109:8080/api/posts/146965ee-c60d-4c4f-8bc3-74e7827d9fcf\": EOF",
+    "yomiasa6255: 投稿を削除できません: DELETE /api/posts/6fdf784e-2f78-4b04-a18e-6ef1c7a9f858: 通信に失敗しました: Delete \"http://52.69.202.109:8080/api/posts/6fdf784e-2f78-4b04-a18e-6ef1c7a9f858\": EOF",
+    "suel_9987: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "subin_yun_3514: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://52.69.202.109:8080/api/auth/login\": EOF",
+    "hitoyasumi_sento_694: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hupo_shuizuguan_3040: ログインできません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

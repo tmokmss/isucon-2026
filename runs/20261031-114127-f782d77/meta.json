@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-114127-f782d77",
+  "startedAt": "2026-10-31T11:41:27+09:00",
+  "finishedAt": "2026-10-31T11:44:32+09:00",
+  "ref": "origin/main",
+  "sha": "f782d770714528dc8b1a4a73e8df50d779ce6ebe",
+  "score": 33567,
+  "status": "pass",
+  "note": "main: +#68 検証だけの JPEG デコーダ",
+  "benchJobId": "5047",
+  "prevRunId": "20261031-113441-6a7a33a",
+  "bestRunId": "20261031-114127-f782d77"
+}

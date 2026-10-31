@@ -1,0 +1,35 @@
+{"id":"8824","status":"done","portalStatus":"finished","passed":true,"score":66783,"raw":66783,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T03:36:44.316Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:36:47.278Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:36:50.279Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:36:53.301Z level=INFO msg="asia 2 日目: 45 人"
+time=2026-10-31T03:36:56.279Z level=INFO msg="europe 2 日目: 14 人"
+time=2026-10-31T03:36:59.282Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T03:37:02.305Z level=INFO msg="asia 3 日目: 126 人"
+time=2026-10-31T03:37:05.284Z level=INFO msg="europe 3 日目: 33 人"
+time=2026-10-31T03:37:05.644Z level=INFO msg="user moved" user=chimotsu.5563 from=asia to=america
+time=2026-10-31T03:37:05.831Z level=INFO msg="user moved" user=komo.5893 from=asia to=europe
+time=2026-10-31T03:37:08.281Z level=INFO msg="america 3 日目: 37 人"
+time=2026-10-31T03:37:11.327Z level=INFO msg="asia 4 日目: 353 人"
+time=2026-10-31T03:37:14.332Z level=INFO msg="europe 4 日目: 81 人"
+time=2026-10-31T03:37:17.149Z level=INFO msg="user moved" user=solivy-7015 from=asia to=america
+time=2026-10-31T03:37:17.326Z level=INFO msg="america 4 日目: 68 人"
+time=2026-10-31T03:37:20.561Z level=INFO msg="asia 5 日目: 735 人"
+time=2026-10-31T03:37:25.219Z level=INFO msg="europe 5 日目: 81 人"
+time=2026-10-31T03:37:26.682Z level=INFO msg="america 5 日目: 68 人"
+time=2026-10-31T03:37:35.621Z level=INFO msg="asia 最終日（グランプリ）: 735 人"
+time=2026-10-31T03:37:35.785Z level=INFO msg="europe 最終日（グランプリ）: 80 人"
+time=2026-10-31T03:37:35.891Z level=INFO msg="america 最終日（グランプリ）: 68 人"
+time=2026-10-31T03:37:44.314Z level=INFO msg="グランプリ: アジア 122 人, ヨーロッパ 12 人, アメリカ 10 人"
+{
+  "pass": true,
+  "score": 66783,
+  "messages": [
+    "ivykivin.9171: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました"
+  ]
+}
+
+--- stderr ---
+

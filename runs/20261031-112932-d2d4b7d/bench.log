@@ -1,0 +1,52 @@
+{"id":"4250","status":"done","portalStatus":"finished","passed":true,"score":18045,"raw":18045,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T02:31:29.366Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:31:32.363Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:31:35.331Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:31:38.350Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T02:31:41.349Z level=INFO msg="europe 2 日目: 16 人"
+time=2026-10-31T02:31:44.345Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T02:31:47.367Z level=INFO msg="asia 3 日目: 137 人"
+time=2026-10-31T02:31:50.333Z level=INFO msg="europe 3 日目: 26 人"
+time=2026-10-31T02:31:53.405Z level=INFO msg="america 3 日目: 15 人"
+time=2026-10-31T02:31:54.008Z level=INFO msg="user moved" user=leois5731 from=asia to=europe
+time=2026-10-31T02:31:56.484Z level=INFO msg="asia 4 日目: 136 人"
+time=2026-10-31T02:31:59.364Z level=INFO msg="europe 4 日目: 27 人"
+time=2026-10-31T02:32:02.380Z level=INFO msg="america 4 日目: 15 人"
+time=2026-10-31T02:32:05.358Z level=INFO msg="asia 5 日目: 136 人"
+time=2026-10-31T02:32:08.445Z level=INFO msg="europe 5 日目: 27 人"
+time=2026-10-31T02:32:11.360Z level=INFO msg="america 5 日目: 15 人"
+time=2026-10-31T02:32:20.440Z level=INFO msg="europe 最終日（グランプリ）: 27 人"
+time=2026-10-31T02:32:20.510Z level=INFO msg="america 最終日（グランプリ）: 15 人"
+time=2026-10-31T02:32:20.614Z level=INFO msg="asia 最終日（グランプリ）: 136 人"
+time=2026-10-31T02:32:29.326Z level=INFO msg="グランプリ: アジア 44 人, ヨーロッパ 8 人, アメリカ 5 人"
+{
+  "pass": true,
+  "score": 18045,
+  "messages": [
+    "orso.5814: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "tosolni5914: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "istoyu5760: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "ketsu.5717: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "miayutor5848: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "leonuma5860: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "miahono-5424: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "sesuben-5415: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "ulte-6088: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "uloryo.5478: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "mumolia6037: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "anhanoa_6002: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "suzoemu_6095: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "tsuna_5487: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "seor-5468: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "monaya.5657: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "tsumunu.5056: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "miasoyo-5383: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "nisa.5931: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）",
+    "satoku.5568: 投稿できません: POST /api/posts: ステータスコード 503 が返りました（期待値 201、busy）（5 回試行）"
+  ]
+}
+
+--- stderr ---
+

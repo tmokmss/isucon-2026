@@ -1,0 +1,32 @@
+{"id":"2148","status":"done","portalStatus":"finished","passed":true,"score":14209,"raw":14209,"deduction":0,"reason":"実行終了"}
+
+--- stdout ---
+time=2026-10-31T01:57:52.999Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T01:57:55.388Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T01:57:58.108Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T01:58:01.791Z level=INFO msg="asia 2 日目: 37 人"
+time=2026-10-31T01:58:04.678Z level=INFO msg="europe 2 日目: 13 人"
+time=2026-10-31T01:58:07.099Z level=INFO msg="america 2 日目: 12 人"
+time=2026-10-31T01:58:11.353Z level=INFO msg="asia 3 日目: 82 人"
+time=2026-10-31T01:58:14.008Z level=INFO msg="europe 3 日目: 23 人"
+time=2026-10-31T01:58:16.434Z level=INFO msg="america 3 日目: 17 人"
+time=2026-10-31T01:58:16.687Z level=INFO msg="user moved" user=liavinso_5211 from=asia to=america
+time=2026-10-31T01:58:21.599Z level=INFO msg="asia 4 日目: 90 人"
+time=2026-10-31T01:58:26.759Z level=INFO msg="europe 4 日目: 23 人"
+time=2026-10-31T01:58:30.594Z level=INFO msg="america 4 日目: 18 人"
+time=2026-10-31T01:58:33.012Z level=INFO msg="asia 5 日目: 90 人"
+time=2026-10-31T01:58:35.993Z level=INFO msg="europe 5 日目: 23 人"
+time=2026-10-31T01:58:40.431Z level=INFO msg="america 5 日目: 18 人"
+time=2026-10-31T01:58:48.857Z level=INFO msg="asia 最終日（グランプリ）: 90 人"
+time=2026-10-31T01:58:52.083Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 14209,
+  "messages": [
+    "niso-5733: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "niso-5733: 投稿できるはずの投稿期間で投稿が拒否されました: POST /api/posts: ステータスコード 409 が返りました（期待値 201、post_slot_unavailable）"
+  ]
+}
+
+--- stderr ---
+

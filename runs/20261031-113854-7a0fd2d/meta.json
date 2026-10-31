@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-113854-7a0fd2d",
+  "startedAt": "2026-10-31T11:38:54+09:00",
+  "finishedAt": "2026-10-31T11:40:56+09:00",
+  "ref": "origin/mem-reduce",
+  "sha": "7a0fd2db2c37fa27bc878cc4f6a84a264bb33999",
+  "score": 27321,
+  "status": "pass",
+  "note": "メモリ削減: 行をまとめて確保・文字列の共有（GOGC 200 のまま）",
+  "benchJobId": "4793",
+  "prevRunId": "20261031-113441-6a7a33a",
+  "bestRunId": "20261031-113854-7a0fd2d"
+}

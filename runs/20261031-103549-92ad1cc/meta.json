@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-103549-92ad1cc",
+  "startedAt": "2026-10-31T10:35:49+09:00",
+  "finishedAt": "2026-10-31T10:39:25+09:00",
+  "ref": "db-drop-table-locks",
+  "sha": "92ad1ccf072efc5cac96b5543706d7b8ce4d7d45",
+  "score": 7316,
+  "status": "pass",
+  "note": "投稿期間の開始のLOCK TABLEをadvisory lockに（DBはインデックスと設定入り、署名修正入りのmainがbase）",
+  "benchJobId": "1139",
+  "prevRunId": "20261031-102655-8cd1279",
+  "bestRunId": "20261031-103549-92ad1cc"
+}

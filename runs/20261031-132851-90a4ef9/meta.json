@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-132851-90a4ef9",
+  "startedAt": "2026-10-31T13:28:51+09:00",
+  "finishedAt": "2026-10-31T13:37:43+09:00",
+  "ref": "image-files",
+  "sha": "90a4ef9e55ab15a1f2223242a5afa442fcde8d4d",
+  "score": 0,
+  "status": "fail",
+  "note": "image bodies to files on asia1 (init/ new/), DB data empty",
+  "benchJobId": "13372",
+  "prevRunId": "20261031-121235-e0e4cb3",
+  "bestRunId": "20261031-121235-e0e4cb3"
+}
