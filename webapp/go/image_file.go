@@ -59,8 +59,17 @@ func readNewImage(id string) ([]byte, bool) {
 // loadImage は asia1 で画像の本体を返す。新しい画像は new/ から、初期データの画像は PostgreSQL から読む。
 // asia1 はメモリが少なく CPU も埋まっているので、初期データの画像（16GB）をファイルから読むとディスクの読み出しで詰まる。initial は初期データの画像か
 func loadImage(ctx context.Context, db *sqlx.DB, id string, createdAt *time.Time) (data []byte, initial bool, err error) {
-	if data, ok := readNewImage(id); ok {
+	if data, ok := readHeldLocal(id); ok {
 		return data, false, nil
+	}
+	if data, ok, err := fetchHeldImage(ctx, id); err != nil {
+		return nil, false, err
+	} else if ok {
+		return data, false, nil
+	}
+	// europe1・america1 は、持ち主（asia1 を含む）に無ければ無い
+	if selfInternal != "" {
+		return nil, false, sql.ErrNoRows
 	}
 	err = sql.ErrNoRows
 	if createdAt != nil {

@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-144734-fd0f88e",
+  "startedAt": "2026-10-31T14:47:34+09:00",
+  "finishedAt": "2026-10-31T14:49:31+09:00",
+  "ref": "fd0f88e",
+  "sha": "fd0f88e6dbc8e6f56f4ff0b04d6c6a5661bc61a5",
+  "score": 174034,
+  "status": "pass",
+  "note": "画像をリージョン内で完結（image-local、inmemory-persist f7ca385 の上、repl-lag の計測入り）",
+  "benchJobId": "19234",
+  "prevRunId": "20261031-143412-10c9074",
+  "bestRunId": "20261031-144734-fd0f88e"
+}
