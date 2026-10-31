@@ -48,6 +48,8 @@ TypeScript / Node + tsx。エントリポイントは `bin/isuh`。
 
 > AI によるコードの分析・生成はレギュレーションで**明示的に許可されている**。
 
+@docs/RULEBOOK.md
+
 ## 4. リポジトリの規約
 
 - **デプロイは `isuh deploy` / `isuh bench` 経由。** 直接 `scp` や `systemctl restart` を
