@@ -14,7 +14,8 @@ export const config: Config = {
   hosts: {
     // isu1 = asia1, isu2 = europe1, isu3 = america1, isu4 = asia2（共有 PostgreSQL）
     all: ["isu1", "isu2", "isu3", "isu4"],
-    app: ["isu1", "isu2", "isu3"],
+    // isu4 は署名の計算を受ける逃がし先（conf/isu4 の unit が全データを読まないモードで起動する）
+    app: ["isu1", "isu2", "isu3", "isu4"],
     nginx: ["isu1", "isu2", "isu3"],
     db: "isu4",
     primary: "isu1",
