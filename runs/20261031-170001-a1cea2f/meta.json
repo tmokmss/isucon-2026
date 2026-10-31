@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-170001-a1cea2f",
+  "startedAt": "2026-10-31T17:00:01+09:00",
+  "finishedAt": "2026-10-31T17:02:23+09:00",
+  "ref": "sign-cache-to-asia1",
+  "sha": "a1cea2f11404a718f0c18a191d787ec7efbb5a55",
+  "score": 223475,
+  "status": "pass",
+  "note": "asia2 が計算した署名を asia1 のキャッシュへ送る（main bdf05cd の上）",
+  "benchJobId": "31574",
+  "prevRunId": "20261031-163606-15a1e6c",
+  "bestRunId": "20261031-163105-6f2cd6f"
+}
