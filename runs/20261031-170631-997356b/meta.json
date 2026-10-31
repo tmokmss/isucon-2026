@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-170631-997356b",
+  "startedAt": "2026-10-31T17:06:31+09:00",
+  "finishedAt": "2026-10-31T17:09:09+09:00",
+  "ref": "sign-peers-euus",
+  "sha": "997356bce53e6c7b3a19bfb6d161c1f0e7d634d7",
+  "score": 233154,
+  "status": "pass",
+  "note": "asia1 sign offload peers: europe1/america1 only (no asia2)",
+  "benchJobId": "32275",
+  "prevRunId": "20261031-165402-07a4cc3",
+  "bestRunId": "20261031-170631-997356b"
+}
