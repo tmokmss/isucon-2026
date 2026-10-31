@@ -15,12 +15,17 @@ import (
 const imageURLLifetime = 24 * time.Hour
 const imageSignatureIterations = 1000
 
-// 同じ (鍵, 画像 ID, exp) の署名を使い回す。exp を 1 分単位に切り上げるので、同じ 1 分の間は同じ URL になる
-const imageSignatureCacheMax = 1_000_000
+// 同じ (鍵, 画像 ID, exp) の署名を使い回す。exp を 1 分単位に切り上げるので、同じ 1 分の間は同じ URL になる。
+// exp ごとに分けて、一番新しい exp とその前の exp の分だけを持つ。計算中の署名は、同じものを頼んだ他のリクエストに待たせる
+type imageSignatureCall struct {
+	done  chan struct{}
+	value []byte
+}
 
 var (
 	imageSignatureCacheMu sync.RWMutex
-	imageSignatureCache   = make(map[string][]byte)
+	imageSignatureCache   = map[int64]map[string][]byte{}
+	imageSignatureCalls   = map[string]*imageSignatureCall{}
 )
 
 func imageSigningKey(secretKeyHash string) ([]byte, error) {
@@ -35,21 +40,44 @@ func imageSignature(key []byte, imageID string, exp int64) []byte {
 	cacheKey := imageSignatureCacheKey(key, imageID, exp)
 
 	imageSignatureCacheMu.RLock()
-	cached, ok := imageSignatureCache[cacheKey]
+	cached, ok := imageSignatureCache[exp][cacheKey]
 	imageSignatureCacheMu.RUnlock()
 	if ok {
 		return cached
 	}
 
-	value := computeImageSignature(key, imageID, exp)
+	imageSignatureCacheMu.Lock()
+	if cached, ok := imageSignatureCache[exp][cacheKey]; ok {
+		imageSignatureCacheMu.Unlock()
+		return cached
+	}
+	if call, ok := imageSignatureCalls[cacheKey]; ok {
+		imageSignatureCacheMu.Unlock()
+		<-call.done
+		return call.value
+	}
+	call := &imageSignatureCall{done: make(chan struct{})}
+	imageSignatureCalls[cacheKey] = call
+	imageSignatureCacheMu.Unlock()
+
+	call.value = computeImageSignature(key, imageID, exp)
 
 	imageSignatureCacheMu.Lock()
-	if len(imageSignatureCache) >= imageSignatureCacheMax {
-		imageSignatureCache = make(map[string][]byte)
+	m := imageSignatureCache[exp]
+	if m == nil {
+		m = make(map[string][]byte)
+		imageSignatureCache[exp] = m
+		for e := range imageSignatureCache {
+			if e < exp-60 {
+				delete(imageSignatureCache, e)
+			}
+		}
 	}
-	imageSignatureCache[cacheKey] = value
+	m[cacheKey] = call.value
+	delete(imageSignatureCalls, cacheKey)
 	imageSignatureCacheMu.Unlock()
-	return value
+	close(call.done)
+	return call.value
 }
 
 func computeImageSignature(key []byte, imageID string, exp int64) []byte {

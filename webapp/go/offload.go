@@ -201,7 +201,7 @@ func prefetchImageSignatures(targets []signTarget) {
 			continue
 		}
 		seen[cacheKey] = true
-		if _, ok := imageSignatureCache[cacheKey]; ok {
+		if _, ok := imageSignatureCache[exp][cacheKey]; ok {
 			continue
 		}
 		keys = append(keys, cacheKey)
@@ -216,11 +216,13 @@ func prefetchImageSignatures(targets []signTarget) {
 		return
 	}
 	imageSignatureCacheMu.Lock()
-	if len(imageSignatureCache)+len(keys) > imageSignatureCacheMax {
-		imageSignatureCache = make(map[string][]byte)
+	m := imageSignatureCache[exp]
+	if m == nil {
+		m = make(map[string][]byte)
+		imageSignatureCache[exp] = m
 	}
 	for i, k := range keys {
-		imageSignatureCache[k] = res[i*32 : (i+1)*32 : (i+1)*32]
+		m[k] = res[i*32 : (i+1)*32 : (i+1)*32]
 	}
 	imageSignatureCacheMu.Unlock()
 }
