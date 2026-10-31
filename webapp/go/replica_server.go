@@ -122,7 +122,8 @@ func NewReplicaServer(config *Config) http.Handler {
 }
 
 func (f *replicaFront) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if strings.HasPrefix(r.URL.Path, "/api/images/") {
+	// 画像と投稿（画像を検証してから asia1 へ送る、post_forward.go）は image_local.go の入口が受ける
+	if strings.HasPrefix(r.URL.Path, "/api/images/") || r.URL.Path == "/api/posts" {
 		f.images.ServeHTTP(w, r)
 		return
 	}
@@ -184,8 +185,8 @@ func (f *replicaFront) shadow(w http.ResponseWriter, r *http.Request) {
 		n := f.shadowDiff.Add(1)
 		f.countRoute(route, 1)
 		if n <= 1000 {
-			log.Printf("repl-diff %s %s asia=%d local=%d/%d\n  asia:  %s\n  local: %s", r2.Method, r2.URL.RequestURI(), rec.Code, before.Code, after.Code,
-				diffContext(rec.Body.Bytes(), after.Body.Bytes()), diffContext(after.Body.Bytes(), rec.Body.Bytes()))
+			log.Printf("repl-diff %s %s asia=%d local=%d/%d\n  asia:   %s\n  before: %s\n  after:  %s", r2.Method, r2.URL.RequestURI(), rec.Code, before.Code, after.Code,
+				diffContext(rec.Body.Bytes(), before.Body.Bytes()), diffContext(before.Body.Bytes(), rec.Body.Bytes()), diffContext(after.Body.Bytes(), rec.Body.Bytes()))
 		}
 	}()
 }
@@ -236,7 +237,11 @@ func (f *replicaFront) statsLoop() {
 		if n > 0 {
 			avgWait = time.Duration(f.waitedTotal.Load() / n)
 		}
-		log.Printf("repl-stats fresh=%v shadow=%d diff=%d late=%d local=%d fallback=%d avg_wait=%s", f.rep.fresh(), f.shadowTotal.Load(), f.shadowDiff.Load(), f.shadowLate.Load(), f.localTotal.Load(), f.fallbackTotal.Load(), avgWait)
+		var avgLag time.Duration
+		if m := f.rep.lagCount.Load(); m > 0 {
+			avgLag = time.Duration(f.rep.lagTotal.Load() / m)
+		}
+		log.Printf("repl-stats fresh=%v shadow=%d diff=%d late=%d local=%d fallback=%d avg_wait=%s avg_lag=%s", f.rep.fresh(), f.shadowTotal.Load(), f.shadowDiff.Load(), f.shadowLate.Load(), f.localTotal.Load(), f.fallbackTotal.Load(), avgWait, avgLag)
 		f.routeMu.Lock()
 		var b strings.Builder
 		for k, c := range f.routeCounts {

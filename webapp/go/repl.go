@@ -727,6 +727,9 @@ type replica struct {
 	live     atomic.Bool
 	lastRecv atomic.Int64
 	appliedT atomic.Int64
+	// asia1 で流してから当て終えるまでの時間の合計と件数（印ごと）
+	lagTotal atomic.Int64
+	lagCount atomic.Int64
 	advanced atomic.Pointer[chan struct{}]
 }
 
@@ -872,6 +875,8 @@ func (r *replica) applyBatch(batch []replIn, lastSeq *uint64) error {
 	var lastT int64
 	defer func() {
 		if lastT > 0 {
+			r.lagTotal.Add(time.Now().UnixNano() - lastT)
+			r.lagCount.Add(1)
 			r.appliedT.Store(lastT)
 			next := make(chan struct{})
 			if old := r.advanced.Swap(&next); old != nil {

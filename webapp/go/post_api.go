@@ -70,7 +70,7 @@ func createPostHandler(h *HandlerContext) echo.HandlerFunc {
 		if !location.valid() {
 			return NewAPIError(http.StatusBadRequest, "invalid_post")
 		}
-		width, height, err := checkJPEG(imageData)
+		width, height, err := checkPostJPEG(c.Request(), imageData)
 		if err != nil {
 			return NewAPIError(http.StatusBadRequest, "invalid_post")
 		}
