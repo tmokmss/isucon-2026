@@ -137,3 +137,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-171626-1662a5d	2026-10-31T17:16:26+09:00	1662a5d5b0f1f9e6ee6c2705a0e61f85f8259c13	sse-read-timeout	191008	pass	SSE proxy_read_timeout 20s on main 885b12c
 20261031-171843-1662a5d	2026-10-31T17:18:43+09:00	1662a5d5b0f1f9e6ee6c2705a0e61f85f8259c13	sse-read-timeout	219963	pass	SSE proxy_read_timeout 20s rerun
 20261031-172124-4c078d8	2026-10-31T17:21:24+09:00	4c078d8c5a8c40e82c1b2ac7305f90d12c211e35	4c078d8	223434	pass	presign-wide EU/US precompute next-minute signatures, 2-gen exp cache
+20261031-172947-21d10c4	2026-10-31T17:29:47+09:00	21d10c4d020a3f2dcd46c3a676cb30a4732f2a0a	combined	205640	pass	combined: sse read timeout 20s + asia2 sign offload to EU/US (64 slots)

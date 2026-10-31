@@ -1,0 +1,13 @@
+{
+  "runId": "20261031-172947-21d10c4",
+  "startedAt": "2026-10-31T17:29:47+09:00",
+  "finishedAt": "2026-10-31T17:32:52+09:00",
+  "ref": "combined",
+  "sha": "21d10c4d020a3f2dcd46c3a676cb30a4732f2a0a",
+  "score": 205640,
+  "status": "pass",
+  "note": "combined: sse read timeout 20s + asia2 sign offload to EU/US (64 slots)",
+  "benchJobId": "34740",
+  "prevRunId": "20261031-172124-4c078d8",
+  "bestRunId": "20261031-164055-bdf05cd"
+}
