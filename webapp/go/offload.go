@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -34,7 +35,6 @@ const (
 	offloadSignTimeout = 2 * time.Second
 	offloadJPEGTimeout = 2 * time.Second
 	offloadPeerBackoff = 5 * time.Second
-	offloadPeerSlots   = 8
 )
 
 type offloadPeer struct {
@@ -44,6 +44,14 @@ type offloadPeer struct {
 }
 
 var offloadPeerByAddr = map[string]*offloadPeer{}
+
+// 逃がし先 1 台に同時に頼める数。既定は 8。
+var offloadPeerSlots = func() int {
+	if n, err := strconv.Atoi(os.Getenv("ISUREAL_OFFLOAD_PEER_SLOTS")); err == nil && n > 0 {
+		return n
+	}
+	return 8
+}()
 
 func offloadPeersFromEnv(key string) []*offloadPeer {
 	var peers []*offloadPeer
