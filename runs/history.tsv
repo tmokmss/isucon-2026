@@ -98,3 +98,4 @@ run_id	started_at	sha	ref	score	status	note
 20261031-140122-bd0fe45	2026-10-31T14:01:22+09:00	bd0fe45bf2e297e5a29c0f64fc6b357d64d09425	bd0fe45	126129	pass	複製 local・時刻の印で待つ（main c6abd65 取り込み済み）1回目
 20261031-140544-247167c	2026-10-31T14:05:44+09:00	247167c3ec73b18ed02639f598c50a9c64999fbd	image-storage-external	123551	pass	画像の列で圧縮を試さない（main 14640b7 の上）
 20261031-141027-bd0fe45	2026-10-31T14:10:27+09:00	bd0fe45bf2e297e5a29c0f64fc6b357d64d09425	bd0fe45	141335	pass	複製 local・時刻の印で待つ（main c6abd65 取り込み済み）2回目
+20261031-141745-a28a701	2026-10-31T14:17:45+09:00	a28a701c6be3e8bc33a447050f32c4afe806d10d	a28a701	140030	pass	複製 local・時刻の印で待つ（main e42c64c 取り込み済み）
